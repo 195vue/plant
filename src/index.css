@@ -1,0 +1,386 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  font-family: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", -apple-system,
+    BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* 滚动条样式 */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(144, 147, 153, 0.3);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(144, 147, 153, 0.5);
+}
+
+/* 大屏深色主题滚动条 */
+.screen-dark ::-webkit-scrollbar-thumb {
+  background: rgba(64, 158, 255, 0.3);
+}
+
+.screen-dark ::-webkit-scrollbar-thumb:hover {
+  background: rgba(64, 158, 255, 0.5);
+}
+
+/* 通用工具类 */
+@layer components {
+  .screen-panel {
+    @apply bg-screen-panel backdrop-blur-sm border border-screen-border;
+  }
+
+  .admin-card {
+    @apply bg-admin-card border border-admin-border rounded;
+  }
+
+  .btn-primary {
+    @apply bg-blue-500 text-white px-4 py-1.5 rounded text-sm hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .btn-success {
+    @apply bg-green-500 text-white px-4 py-1.5 rounded text-sm hover:bg-green-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .btn-warning {
+    @apply bg-orange-500 text-white px-4 py-1.5 rounded text-sm hover:bg-orange-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .btn-danger {
+    @apply bg-red-500 text-white px-4 py-1.5 rounded text-sm hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .btn-secondary {
+    @apply bg-gray-500 text-white px-4 py-1.5 rounded text-sm hover:bg-gray-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .btn-purple {
+    @apply bg-purple-500 text-white px-4 py-1.5 rounded text-sm hover:bg-purple-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .btn-cyan {
+    @apply bg-cyan-500 text-white px-4 py-1.5 rounded text-sm hover:bg-cyan-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .btn-default {
+    @apply bg-white text-admin-text border border-admin-border px-4 py-1.5 rounded text-sm hover:text-admin-primary hover:border-admin-primary transition-colors;
+  }
+
+  .btn-link {
+    @apply text-admin-primary hover:text-blue-600 text-sm cursor-pointer transition-colors;
+  }
+
+  .btn-link-danger {
+    @apply text-admin-danger hover:text-red-600 text-sm cursor-pointer transition-colors;
+  }
+
+  .input-base {
+    @apply w-full px-3 py-1.5 text-sm border border-admin-border rounded bg-white text-admin-text placeholder:text-admin-muted focus:outline-none focus:border-admin-primary focus:ring-1 focus:ring-admin-primary transition-colors;
+  }
+
+  .tag-base {
+    @apply inline-flex items-center px-2 py-0.5 rounded text-xs;
+  }
+}
+
+/* 大屏工业数字孪生背景 - 扁平深蓝 */
+.screen-bg {
+  background: #070b14;
+  position: relative;
+}
+
+.screen-bg::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: 
+    radial-gradient(circle at 20% 30%, rgba(64, 169, 255, 0.04) 0%, transparent 50%),
+    radial-gradient(circle at 80% 70%, rgba(64, 169, 255, 0.02) 0%, transparent 50%);
+  pointer-events: none;
+}
+
+/* 工业数字孪生卡片 - 直角玻璃质感 */
+.tech-card {
+  background: rgba(10, 18, 32, 0.85);
+  border: 1px solid rgba(64, 169, 255, 0.35);
+  border-radius: 0;
+  box-shadow: 0 0 8px rgba(64, 169, 255, 0.15);
+  transition: border-color 0.2s;
+}
+
+.tech-card:hover {
+  border-color: rgba(64, 169, 255, 0.6);
+  box-shadow: 0 0 12px rgba(64, 169, 255, 0.25);
+}
+
+/* 科技感标题 - 白色发光 */
+.tech-title {
+  color: #ffffff;
+  text-shadow: 0 0 6px rgba(64, 169, 255, 0.6);
+  font-weight: 500;
+}
+
+/* 科技感发光边框 */
+.tech-glow-border {
+  border: 1px solid rgba(64, 169, 255, 0.35);
+  box-shadow: 0 0 6px rgba(64, 169, 255, 0.15);
+}
+
+.tech-glow-border:hover {
+  border-color: rgba(64, 169, 255, 0.6);
+  box-shadow: 0 0 10px rgba(64, 169, 255, 0.25);
+}
+
+/* 3D 场景占位 - 深蓝背景 */
+.scene-placeholder {
+  background: #070b14;
+  position: relative;
+  overflow: hidden;
+}
+
+/* 科技感网格 - 细蓝色线 */
+.scene-grid {
+  background-image: linear-gradient(
+      rgba(64, 169, 255, 0.08) 1px,
+      transparent 1px
+    ),
+    linear-gradient(90deg, rgba(64, 169, 255, 0.08) 1px, transparent 1px);
+  background-size: 40px 40px;
+  position: absolute;
+  inset: 0;
+  animation: gridMove 20s linear infinite;
+}
+
+@keyframes gridMove {
+  0% {
+    background-position: 0 0;
+  }
+  100% {
+    background-position: 40px 40px;
+  }
+}
+
+/* 树节点高亮 */
+.tree-node-highlight {
+  background-color: rgba(250, 204, 21, 0.3);
+}
+
+/* ========== 大屏3D场景动画 ========== */
+
+/* 水流动画 */
+@keyframes waterFlow {
+  0% { transform: translateY(-100%); opacity: 0; }
+  10% { opacity: 0.8; }
+  90% { opacity: 0.8; }
+  100% { transform: translateY(100%); opacity: 0; }
+}
+
+.dam-water-flow {
+  position: absolute;
+  width: 4px;
+  background: linear-gradient(180deg, transparent, rgba(64, 158, 255, 0.8), rgba(100, 200, 255, 0.4), transparent);
+  border-radius: 2px;
+  animation: waterFlow 2s linear infinite;
+}
+
+/* 大坝发光脉冲 */
+@keyframes damGlow {
+  0%, 100% { box-shadow: 0 0 20px rgba(64, 158, 255, 0.2), inset 0 0 30px rgba(64, 158, 255, 0.1); }
+  50% { box-shadow: 0 0 40px rgba(64, 158, 255, 0.4), inset 0 0 50px rgba(64, 158, 255, 0.2); }
+}
+
+.dam-glow {
+  animation: damGlow 4s ease-in-out infinite;
+}
+
+/* 扫描线动画 */
+@keyframes scanLine {
+  0% { top: 0%; opacity: 0; }
+  10% { opacity: 0.6; }
+  90% { opacity: 0.6; }
+  100% { top: 100%; opacity: 0; }
+}
+
+.scan-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(64, 158, 255, 0.8), rgba(100, 200, 255, 1), rgba(64, 158, 255, 0.8), transparent);
+  animation: scanLine 4s ease-in-out infinite;
+  pointer-events: none;
+}
+
+/* 设备点闪烁 */
+@keyframes equipmentBlink {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.7); }
+}
+
+.equipment-dot {
+  animation: equipmentBlink 1.5s ease-in-out infinite;
+}
+
+/* 设备点光环扩散 */
+@keyframes equipmentRipple {
+  0% { transform: scale(1); opacity: 0.8; }
+  100% { transform: scale(3); opacity: 0; }
+}
+
+.equipment-ripple {
+  animation: equipmentRipple 2s ease-out infinite;
+}
+
+/* 管道流光动画 */
+@keyframes pipeFlow {
+  0% { background-position: 0% 50%; }
+  100% { background-position: 200% 50%; }
+}
+
+.pipe-flow {
+  background: linear-gradient(90deg,
+    transparent 0%,
+    rgba(64, 158, 255, 0.1) 20%,
+    rgba(64, 158, 255, 0.6) 50%,
+    rgba(64, 158, 255, 0.1) 80%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: pipeFlow 3s linear infinite;
+}
+
+/* 管道流光 - 技术供水(蓝色) */
+.pipe-flow-blue .pipe-flow {
+  background: linear-gradient(90deg,
+    transparent 0%,
+    rgba(24, 144, 255, 0.1) 20%,
+    rgba(24, 144, 255, 0.7) 50%,
+    rgba(24, 144, 255, 0.1) 80%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+}
+
+/* 管道流光 - 排水(绿色) */
+.pipe-flow-green .pipe-flow {
+  background: linear-gradient(90deg,
+    transparent 0%,
+    rgba(82, 196, 26, 0.1) 20%,
+    rgba(82, 196, 26, 0.7) 50%,
+    rgba(82, 196, 26, 0.1) 80%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+}
+
+/* 管道流光 - 气系统(黄色) */
+.pipe-flow-yellow .pipe-flow {
+  background: linear-gradient(90deg,
+    transparent 0%,
+    rgba(250, 173, 20, 0.1) 20%,
+    rgba(250, 173, 20, 0.7) 50%,
+    rgba(250, 173, 20, 0.1) 80%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+}
+
+/* 管道流光 - 透平油(橙色) */
+.pipe-flow-orange .pipe-flow {
+  background: linear-gradient(90deg,
+    transparent 0%,
+    rgba(255, 133, 20, 0.1) 20%,
+    rgba(255, 133, 20, 0.7) 50%,
+    rgba(255, 133, 20, 0.1) 80%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+}
+
+/* 管道流光 - 消防水(红色) */
+.pipe-flow-red .pipe-flow {
+  background: linear-gradient(90deg,
+    transparent 0%,
+    rgba(255, 77, 79, 0.1) 20%,
+    rgba(255, 77, 79, 0.7) 50%,
+    rgba(255, 77, 79, 0.1) 80%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+}
+
+/* 设备标签浮动 */
+@keyframes labelFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}
+
+.equipment-label {
+  animation: labelFloat 3s ease-in-out infinite;
+}
+
+/* 数据更新闪烁 */
+@keyframes dataUpdate {
+  0% { background-color: rgba(64, 158, 255, 0.3); }
+  100% { background-color: transparent; }
+}
+
+.data-update {
+  animation: dataUpdate 0.5s ease-out;
+}
+
+/* 旋转动画 */
+@keyframes rotate3d {
+  0% { transform: rotateY(0deg); }
+  100% { transform: rotateY(360deg); }
+}
+
+.rotate-3d {
+  animation: rotate3d 20s linear infinite;
+}
+
+/* 水波纹 */
+@keyframes waterRipple {
+  0% { transform: scale(0.8); opacity: 0.5; }
+  50% { transform: scale(1.2); opacity: 0.3; }
+  100% { transform: scale(0.8); opacity: 0.5; }
+}
+
+.water-ripple {
+  animation: waterRipple 3s ease-in-out infinite;
+}

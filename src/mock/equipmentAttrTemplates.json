@@ -1,0 +1,3977 @@
+{
+  "水泵水轮机": {
+    "className": "PumpTurbine",
+    "categories": [
+      {
+        "name": "设备信息",
+        "attrs": [
+          {
+            "name": "设备名称",
+            "enName": "Name",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "水泵水轮机",
+            "pickList": ""
+          },
+          {
+            "name": "KKS编码",
+            "enName": "KKS",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "唯一编码",
+            "enName": "ID",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "编码",
+            "enName": "Code",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "PumpTurbine",
+            "pickList": ""
+          }
+        ]
+      },
+      {
+        "name": "特性参数",
+        "attrs": [
+          {
+            "name": "型号",
+            "enName": "Model",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "单机容量",
+            "enName": "UnitCapacity",
+            "type": "String",
+            "unit": "MW",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "额定水头",
+            "enName": "RatedHead",
+            "type": "String",
+            "unit": "m",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "最大水头",
+            "enName": "MaximumHead",
+            "type": "String",
+            "unit": "m",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "最小水头",
+            "enName": "MinimumHead",
+            "type": "String",
+            "unit": "m",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "加权平均水头",
+            "enName": "WeightedMeanHead",
+            "type": "String",
+            "unit": "m",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "安装高程",
+            "enName": "InstallationElevation",
+            "type": "String",
+            "unit": "m",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "吸出高度",
+            "enName": "SuctionHead",
+            "type": "String",
+            "unit": "m",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "机组安装形式",
+            "enName": "InstallationType",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "立式",
+            "pickList": "机组安装形式"
+          },
+          {
+            "name": "水轮机型式",
+            "enName": "TurbineType",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "混流式",
+            "pickList": "水轮机型式"
+          },
+          {
+            "name": "转轮直径",
+            "enName": "NominalDiameter",
+            "type": "String",
+            "unit": "m",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "叶片数",
+            "enName": "RunnerBladeCount",
+            "type": "String",
+            "unit": "个",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "转轮重量",
+            "enName": "TurbineWeight",
+            "type": "String",
+            "unit": "t",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "水轮机总重量",
+            "enName": "TotalWeight",
+            "type": "String",
+            "unit": "t",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "额定工况比转速",
+            "enName": "RatedSpecificSpeed",
+            "type": "String",
+            "unit": "m·kW",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "额定效率",
+            "enName": "RatedEfficiency",
+            "type": "String",
+            "unit": "%",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "额定出力",
+            "enName": "RatedPower",
+            "type": "String",
+            "unit": "MW",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "额定转速",
+            "enName": "RatedSpeed",
+            "type": "String",
+            "unit": "r/min",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "额定流量",
+            "enName": "RatedFlow",
+            "type": "String",
+            "unit": "m3/s",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "最大扬程",
+            "enName": "MaximumLift",
+            "type": "String",
+            "unit": "m",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "最小扬程",
+            "enName": "MinimumLift",
+            "type": "String",
+            "unit": "m",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "最大入力",
+            "enName": "MaximumPowerInput",
+            "type": "String",
+            "unit": "MW",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "最大抽水流量",
+            "enName": "MaximumPumpFlow",
+            "type": "String",
+            "unit": "m3/s",
+            "defaultValue": "",
+            "pickList": ""
+          }
+        ]
+      }
+    ]
+  },
+  "进水阀": {
+    "className": "InletValve",
+    "categories": [
+      {
+        "name": "设备信息",
+        "attrs": [
+          {
+            "name": "设备名称",
+            "enName": "Name",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "KKS编码",
+            "enName": "KKS",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "唯一编码",
+            "enName": "ID",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "编码",
+            "enName": "Code",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "InletValve",
+            "pickList": ""
+          }
+        ]
+      },
+      {
+        "name": "特性参数",
+        "attrs": [
+          {
+            "name": "型式",
+            "enName": "Type",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "公称直径",
+            "enName": "NominalDiameter",
+            "type": "String",
+            "unit": "m",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "重量",
+            "enName": "Weight",
+            "type": "String",
+            "unit": "t",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "设计压力",
+            "enName": "DesignPressure",
+            "type": "String",
+            "unit": "MPa",
+            "defaultValue": "",
+            "pickList": ""
+          }
+        ]
+      }
+    ]
+  },
+  "油压装置": {
+    "className": "OilPressureUnit",
+    "categories": [
+      {
+        "name": "设备信息",
+        "attrs": [
+          {
+            "name": "设备名称",
+            "enName": "Name",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "KKS编码",
+            "enName": "KKS",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "唯一编码",
+            "enName": "ID",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "编码",
+            "enName": "Code",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "OilPressureUnit",
+            "pickList": ""
+          }
+        ]
+      },
+      {
+        "name": "特性参数",
+        "attrs": [
+          {
+            "name": "容积",
+            "enName": "Volume",
+            "type": "String",
+            "unit": "m3",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "操作油压",
+            "enName": "OperatingOilPressure",
+            "type": "String",
+            "unit": "MPa",
+            "defaultValue": "",
+            "pickList": ""
+          }
+        ]
+      }
+    ]
+  },
+  "桥式起重机": {
+    "className": "BridgeCrane",
+    "categories": [
+      {
+        "name": "设备信息",
+        "attrs": [
+          {
+            "name": "设备名称",
+            "enName": "Name",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "KKS编码",
+            "enName": "KKS",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "唯一编码",
+            "enName": "ID",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "编码",
+            "enName": "Code",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "BridgeCrane",
+            "pickList": ""
+          }
+        ]
+      },
+      {
+        "name": "特性参数",
+        "attrs": [
+          {
+            "name": "桥机型号",
+            "enName": "Model",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "桥机跨度",
+            "enName": "CraneSpan",
+            "type": "String",
+            "unit": "m",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "桥机自重",
+            "enName": "CraneWeight",
+            "type": "String",
+            "unit": "t",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "桥机起重量",
+            "enName": "CraneLift",
+            "type": "String",
+            "unit": "t",
+            "defaultValue": "",
+            "pickList": ""
+          }
+        ]
+      }
+    ]
+  },
+  "水泵": {
+    "className": "WaterPump",
+    "categories": [
+      {
+        "name": "设备信息",
+        "attrs": [
+          {
+            "name": "设备名称",
+            "enName": "Name",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "KKS编码",
+            "enName": "KKS",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "唯一编码",
+            "enName": "ID",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "编码",
+            "enName": "Code",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "WaterPump",
+            "pickList": ""
+          }
+        ]
+      },
+      {
+        "name": "特性参数",
+        "attrs": [
+          {
+            "name": "流量",
+            "enName": "Flow",
+            "type": "String",
+            "unit": "m3/h",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "扬程",
+            "enName": "Lift",
+            "type": "String",
+            "unit": "m",
+            "defaultValue": "",
+            "pickList": ""
+          }
+        ]
+      }
+    ]
+  },
+  "滤水器": {
+    "className": "WaterStrainer",
+    "categories": [
+      {
+        "name": "设备信息",
+        "attrs": [
+          {
+            "name": "设备名称",
+            "enName": "Name",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "KKS编码",
+            "enName": "KKS",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "唯一编码",
+            "enName": "ID",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "编码",
+            "enName": "Code",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "WaterStrainer",
+            "pickList": ""
+          }
+        ]
+      },
+      {
+        "name": "特性参数",
+        "attrs": [
+          {
+            "name": "设计压力",
+            "enName": "DesignPressure",
+            "type": "String",
+            "unit": "MPa",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "设计流量",
+            "enName": "DesignFlow",
+            "type": "String",
+            "unit": "l/min",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "过滤精度",
+            "enName": "FilterFineness",
+            "type": "String",
+            "unit": "μm",
+            "defaultValue": "",
+            "pickList": ""
+          }
+        ]
+      }
+    ]
+  },
+  "空压机": {
+    "className": "AirCompressor",
+    "categories": [
+      {
+        "name": "设备信息",
+        "attrs": [
+          {
+            "name": "设备名称",
+            "enName": "Name",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "KKS编码",
+            "enName": "KKS",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "唯一编码",
+            "enName": "ID",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "编码",
+            "enName": "Code",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "AirCompressor",
+            "pickList": ""
+          }
+        ]
+      },
+      {
+        "name": "特性参数",
+        "attrs": [
+          {
+            "name": "排气量",
+            "enName": "OutputAirFlow",
+            "type": "String",
+            "unit": "m3/min",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "排气压力",
+            "enName": "OutputAirPressure",
+            "type": "String",
+            "unit": "MPa",
+            "defaultValue": "",
+            "pickList": ""
+          }
+        ]
+      }
+    ]
+  },
+  "贮气罐": {
+    "className": "GasTank",
+    "categories": [
+      {
+        "name": "设备信息",
+        "attrs": [
+          {
+            "name": "设备名称",
+            "enName": "Name",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "KKS编码",
+            "enName": "KKS",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "唯一编码",
+            "enName": "ID",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "编码",
+            "enName": "Code",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "GasTank",
+            "pickList": ""
+          }
+        ]
+      },
+      {
+        "name": "特性参数",
+        "attrs": [
+          {
+            "name": "容积",
+            "enName": "Volume",
+            "type": "String",
+            "unit": "m3",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "工作压力",
+            "enName": "OperatingPressure",
+            "type": "String",
+            "unit": "MPa",
+            "defaultValue": "",
+            "pickList": ""
+          }
+        ]
+      }
+    ]
+  },
+  "油罐": {
+    "className": "OilTank",
+    "categories": [
+      {
+        "name": "设备信息",
+        "attrs": [
+          {
+            "name": "设备名称",
+            "enName": "Name",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "KKS编码",
+            "enName": "KKS",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "唯一编码",
+            "enName": "ID",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "编码",
+            "enName": "Code",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "OilTank",
+            "pickList": ""
+          }
+        ]
+      },
+      {
+        "name": "特性参数",
+        "attrs": [
+          {
+            "name": "容积",
+            "enName": "Volume",
+            "type": "String",
+            "unit": "m3",
+            "defaultValue": "",
+            "pickList": ""
+          }
+        ]
+      }
+    ]
+  },
+  "油泵": {
+    "className": "OilPump",
+    "categories": [
+      {
+        "name": "设备信息",
+        "attrs": [
+          {
+            "name": "设备名称",
+            "enName": "Name",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "KKS编码",
+            "enName": "KKS",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "唯一编码",
+            "enName": "ID",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "编码",
+            "enName": "Code",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "OilPump",
+            "pickList": ""
+          }
+        ]
+      }
+    ]
+  },
+  "冷却器": {
+    "className": "Cooler",
+    "categories": [
+      {
+        "name": "设备信息",
+        "attrs": [
+          {
+            "name": "设备名称",
+            "enName": "Name",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "KKS编码",
+            "enName": "KKS",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "唯一编码",
+            "enName": "ID",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "编码",
+            "enName": "Code",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "Cooler",
+            "pickList": ""
+          }
+        ]
+      }
+    ]
+  },
+  "推力外循环冷却装置": {
+    "className": "ThrustCirculationCooler",
+    "categories": [
+      {
+        "name": "设备信息",
+        "attrs": [
+          {
+            "name": "设备名称",
+            "enName": "Name",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "KKS编码",
+            "enName": "KKS",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "唯一编码",
+            "enName": "ID",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "编码",
+            "enName": "Code",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "ThrustCirculationCooler",
+            "pickList": ""
+          }
+        ]
+      }
+    ]
+  },
+  "水导外循环冷却装置": {
+    "className": "TurbineGuideCirculationCooler",
+    "categories": [
+      {
+        "name": "设备信息",
+        "attrs": [
+          {
+            "name": "设备名称",
+            "enName": "Name",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "KKS编码",
+            "enName": "KKS",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "唯一编码",
+            "enName": "ID",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "编码",
+            "enName": "Code",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "TurbineGuideCirculationCooler",
+            "pickList": ""
+          }
+        ]
+      }
+    ]
+  },
+  "高压油顶起装置": {
+    "className": "ForcedOilDevice",
+    "categories": [
+      {
+        "name": "设备信息",
+        "attrs": [
+          {
+            "name": "设备名称",
+            "enName": "Name",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "KKS编码",
+            "enName": "KKS",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "唯一编码",
+            "enName": "ID",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "编码",
+            "enName": "Code",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "ForcedOilDevice",
+            "pickList": ""
+          }
+        ]
+      }
+    ]
+  },
+  "下导吸油雾装置": {
+    "className": "FogSuctionDevice",
+    "categories": [
+      {
+        "name": "设备信息",
+        "attrs": [
+          {
+            "name": "设备名称",
+            "enName": "Name",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "KKS编码",
+            "enName": "KKS",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "唯一编码",
+            "enName": "ID",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "编码",
+            "enName": "Code",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "FogSuctionDevice",
+            "pickList": ""
+          }
+        ]
+      }
+    ]
+  },
+  "滤油机": {
+    "className": "OilFilter",
+    "categories": [
+      {
+        "name": "设备信息",
+        "attrs": [
+          {
+            "name": "设备名称",
+            "enName": "Name",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "KKS编码",
+            "enName": "KKS",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "唯一编码",
+            "enName": "ID",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "编码",
+            "enName": "Code",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "OilFilter",
+            "pickList": ""
+          }
+        ]
+      },
+      {
+        "name": "特性参数",
+        "attrs": [
+          {
+            "name": "工作流量",
+            "enName": "OperatingFlow",
+            "type": "String",
+            "unit": "l/min",
+            "defaultValue": "",
+            "pickList": ""
+          }
+        ]
+      }
+    ]
+  },
+  "含油污水处理设备": {
+    "className": "OilyWastewaterProcessor",
+    "categories": [
+      {
+        "name": "设备信息",
+        "attrs": [
+          {
+            "name": "设备名称",
+            "enName": "Name",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "KKS编码",
+            "enName": "KKS",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "唯一编码",
+            "enName": "ID",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "编码",
+            "enName": "Code",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "OilyWastewaterProcessor",
+            "pickList": ""
+          }
+        ]
+      },
+      {
+        "name": "特性参数",
+        "attrs": [
+          {
+            "name": "工作流量",
+            "enName": "OperatingFlow",
+            "type": "String",
+            "unit": "l/min",
+            "defaultValue": "",
+            "pickList": ""
+          }
+        ]
+      }
+    ]
+  },
+  "发电电动机": {
+    "className": "GeneratorMotor",
+    "categories": [
+      {
+        "name": "设备信息",
+        "attrs": [
+          {
+            "name": "设备名称",
+            "enName": "Name",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "唯一编码",
+            "enName": "ID",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "编码",
+            "enName": "Code",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "GeneratorMotor",
+            "pickList": ""
+          },
+          {
+            "name": "KKS编码",
+            "enName": "KKS",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          }
+        ]
+      },
+      {
+        "name": "特性参数",
+        "attrs": [
+          {
+            "name": "型式",
+            "enName": "Type",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "型号",
+            "enName": "Model",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "外形尺寸",
+            "enName": "Dimension",
+            "type": "String",
+            "unit": "mm×mm×mm",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "重量",
+            "enName": "Weight",
+            "type": "String",
+            "unit": "t",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "额定电压",
+            "enName": "RatedVoltage",
+            "type": "String",
+            "unit": "kV",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "额定电流",
+            "enName": "RatedCurrent",
+            "type": "String",
+            "unit": "A",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "额定频率",
+            "enName": "RatedFrequency",
+            "type": "String",
+            "unit": "Hz",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "额定容量",
+            "enName": "RatedCapacity",
+            "type": "String",
+            "unit": "MW/MVA",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "转速",
+            "enName": "Speed",
+            "type": "String",
+            "unit": "r/min",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "额定功率因数",
+            "enName": "RatedPowerFactor",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          }
+        ]
+      }
+    ]
+  },
+  "励磁变压器": {
+    "className": "ExcitationTransformer",
+    "categories": [
+      {
+        "name": "设备信息",
+        "attrs": [
+          {
+            "name": "设备名称",
+            "enName": "Name",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "KKS编码",
+            "enName": "KKS",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "唯一编码",
+            "enName": "ID",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "编码",
+            "enName": "Code",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "ExcitationTransformer",
+            "pickList": ""
+          }
+        ]
+      },
+      {
+        "name": "特性参数",
+        "attrs": [
+          {
+            "name": "型号",
+            "enName": "Model",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "外形尺寸",
+            "enName": "Dimension",
+            "type": "String",
+            "unit": "mm×mm×mm",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "额定电压",
+            "enName": "RatedVoltage",
+            "type": "String",
+            "unit": "kV",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "额定电流",
+            "enName": "RatedCurrent",
+            "type": "String",
+            "unit": "A",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "额定容量",
+            "enName": "RatedCapacity",
+            "type": "String",
+            "unit": "kVA",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "变比",
+            "enName": "TransformerRatio",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "空载损耗",
+            "enName": "NoLoadLoss",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "负载损耗",
+            "enName": "LoadLoss",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "联接组别",
+            "enName": "CoupleGroup",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "短路阻抗",
+            "enName": "ShortCircuitImpedence",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "冷却方式",
+            "enName": "CoolingPattern",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          }
+        ]
+      }
+    ]
+  },
+  "电压互感器柜": {
+    "className": "PTCabinet",
+    "categories": [
+      {
+        "name": "设备信息",
+        "attrs": [
+          {
+            "name": "设备名称",
+            "enName": "Name",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "KKS编码",
+            "enName": "KKS",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "唯一编码",
+            "enName": "ID",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "编码",
+            "enName": "Code",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "PTCabinet",
+            "pickList": ""
+          }
+        ]
+      },
+      {
+        "name": "特性参数",
+        "attrs": [
+          {
+            "name": "型号",
+            "enName": "Model",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "外形尺寸",
+            "enName": "Dimension",
+            "type": "String",
+            "unit": "mm×mm×mm",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "防护等级",
+            "enName": "ProtectionLevel",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          }
+        ]
+      }
+    ]
+  },
+  "发电电动机断路器": {
+    "className": "GCB",
+    "categories": [
+      {
+        "name": "设备信息",
+        "attrs": [
+          {
+            "name": "设备名称",
+            "enName": "Name",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "KKS编码",
+            "enName": "KKS",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "唯一编码",
+            "enName": "ID",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "编码",
+            "enName": "Code",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "GCB",
+            "pickList": ""
+          }
+        ]
+      },
+      {
+        "name": "特性参数",
+        "attrs": [
+          {
+            "name": "额定电压",
+            "enName": "RatedVoltage",
+            "type": "String",
+            "unit": "kV",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "额定电流",
+            "enName": "RatedCurrent",
+            "type": "String",
+            "unit": "A",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "短时工作频率",
+            "enName": "ShorttimeOperatingFrequency",
+            "type": "String",
+            "unit": "Hz",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "额定短时耐受电流",
+            "enName": "RatedShorttermWithstandCurrent",
+            "type": "String",
+            "unit": "kA",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "额定峰值耐受电流",
+            "enName": "RatedPeakWithstandCurrent",
+            "type": "String",
+            "unit": "kA/3s",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "1min工频耐压(有效值)相对地",
+            "enName": "oneminWithstandVoltagePG",
+            "type": "String",
+            "unit": "kV",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "1min工频耐压(有效值)断口间",
+            "enName": "oneminWithstandVoltageC",
+            "type": "String",
+            "unit": "kV",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "雷电冲击耐压(峰值)相对地",
+            "enName": "LightningImpulseWithstandVoltagePG",
+            "type": "String",
+            "unit": "kV",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "雷电冲击耐压(峰值)断口间",
+            "enName": "LightningImpulseWithstandVoltageC",
+            "type": "String",
+            "unit": "kV",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "外形尺寸",
+            "enName": "Dimension",
+            "type": "String",
+            "unit": "mm×mm×mm",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "防护等级",
+            "enName": "ProtectionLevel",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          }
+        ]
+      }
+    ]
+  },
+  "换相开关": {
+    "className": "PRDisconnector",
+    "categories": [
+      {
+        "name": "设备信息",
+        "attrs": [
+          {
+            "name": "设备名称",
+            "enName": "Name",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "KKS编码",
+            "enName": "KKS",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "唯一编码",
+            "enName": "ID",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "编码",
+            "enName": "Code",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "PRDisconnector",
+            "pickList": ""
+          }
+        ]
+      },
+      {
+        "name": "特性参数",
+        "attrs": [
+          {
+            "name": "额定电压",
+            "enName": "RatedVoltage",
+            "type": "String",
+            "unit": "kV",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "额定电流",
+            "enName": "RatedCurrent",
+            "type": "String",
+            "unit": "A",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "额定短时耐受电流",
+            "enName": "RatedShorttermWithstandCurrent",
+            "type": "String",
+            "unit": "kA",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "额定峰值耐受电流",
+            "enName": "RatedPeakWithstandCurrent",
+            "type": "String",
+            "unit": "kA/3s",
+            "defaultValue": "",
+            "pickList": ""
+          }
+        ]
+      }
+    ]
+  },
+  "限流电抗器": {
+    "className": "CurrentLimitingReacor",
+    "categories": [
+      {
+        "name": "设备信息",
+        "attrs": [
+          {
+            "name": "设备名称",
+            "enName": "Name",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "KKS编码",
+            "enName": "KKS",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "编码",
+            "enName": "Code",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "CurrentLimitingReacor",
+            "pickList": ""
+          }
+        ]
+      },
+      {
+        "name": "特性参数",
+        "attrs": [
+          {
+            "name": "额定电压",
+            "enName": "RatedVoltage",
+            "type": "String",
+            "unit": "kV",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "额定短时耐受电流",
+            "enName": "RatedShorttermWithstandCurrent",
+            "type": "String",
+            "unit": "kA/3s",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "工作频率",
+            "enName": "WorkingFrequency",
+            "type": "String",
+            "unit": "Hz",
+            "defaultValue": "",
+            "pickList": ""
+          }
+        ]
+      }
+    ]
+  },
+  "离相封闭母线": {
+    "className": "IPB",
+    "categories": [
+      {
+        "name": "设备信息",
+        "attrs": [
+          {
+            "name": "设备名称",
+            "enName": "Name",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "KKS编码",
+            "enName": "KKS",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "唯一编码",
+            "enName": "ID",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "编码",
+            "enName": "Code",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "IPB",
+            "pickList": ""
+          }
+        ]
+      },
+      {
+        "name": "特性参数",
+        "attrs": [
+          {
+            "name": "额定电压",
+            "enName": "RatedVoltage",
+            "type": "String",
+            "unit": "kV",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "额定电流",
+            "enName": "RatedCurrent",
+            "type": "String",
+            "unit": "A",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "额定短时耐受电流",
+            "enName": "RatedShorttermWithstandCurrent",
+            "type": "String",
+            "unit": "kA",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "额定峰值耐受电流",
+            "enName": "RatedPeakWithstandCurrent",
+            "type": "String",
+            "unit": "kA/3s",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "额定频率",
+            "enName": "RatedFrequency",
+            "type": "String",
+            "unit": "Hz",
+            "defaultValue": "",
+            "pickList": ""
+          }
+        ]
+      }
+    ]
+  },
+  "隔离开关": {
+    "className": "Disconnector",
+    "categories": [
+      {
+        "name": "设备信息",
+        "attrs": [
+          {
+            "name": "设备名称",
+            "enName": "Name",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "KKS编码",
+            "enName": "KKS",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "唯一编码",
+            "enName": "ID",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "编码",
+            "enName": "Code",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "Disconnector",
+            "pickList": ""
+          }
+        ]
+      },
+      {
+        "name": "特性参数",
+        "attrs": [
+          {
+            "name": "额定电压",
+            "enName": "RatedVoltage",
+            "type": "String",
+            "unit": "kV",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "额定电流",
+            "enName": "RatedCurrent",
+            "type": "String",
+            "unit": "A",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "工作频率",
+            "enName": "WorkingFrequency",
+            "type": "String",
+            "unit": "Hz",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "1min工频耐压(有效值)相对地",
+            "enName": "oneminWithstandVoltagePG",
+            "type": "String",
+            "unit": "kV",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "1min工频耐压(有效值)断口间",
+            "enName": "oneminWithstandVoltageC",
+            "type": "String",
+            "unit": "kV",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "雷电冲击耐压(峰值)相对地",
+            "enName": "LightningImpulseWithstandVoltagePG",
+            "type": "String",
+            "unit": "kV",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "雷电冲击耐压(峰值)断口间",
+            "enName": "LightningImpulseWithstandVoltageC",
+            "type": "String",
+            "unit": "kV",
+            "defaultValue": "",
+            "pickList": ""
+          }
+        ]
+      }
+    ]
+  },
+  "电气制动断路器": {
+    "className": "EBCB",
+    "categories": [
+      {
+        "name": "设备信息",
+        "attrs": [
+          {
+            "name": "设备名称",
+            "enName": "Name",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "KKS编码",
+            "enName": "KKS",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "唯一编码",
+            "enName": "ID",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "编码",
+            "enName": "Code",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "EBCB",
+            "pickList": ""
+          }
+        ]
+      },
+      {
+        "name": "特性参数",
+        "attrs": [
+          {
+            "name": "额定电压",
+            "enName": "RatedVoltage",
+            "type": "String",
+            "unit": "kV",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "10min允许短时最大工作电流",
+            "enName": "Max10minCurrent",
+            "type": "String",
+            "unit": "A",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "额定短时耐受电流",
+            "enName": "RatedShorttermWithstandCurrent",
+            "type": "String",
+            "unit": "kA",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "额定峰值耐受电流",
+            "enName": "RatedPeakWithstandCurrent",
+            "type": "String",
+            "unit": "kA/3s",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "1min工频耐压(有效值)相对地",
+            "enName": "oneminWithstandVoltagePG",
+            "type": "String",
+            "unit": "kV",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "1min工频耐压(有效值)断口间",
+            "enName": "oneminWithstandVoltageC",
+            "type": "String",
+            "unit": "kV",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "雷电冲击耐压(峰值)相对地",
+            "enName": "LightningImpulseWithstandVoltagePG",
+            "type": "String",
+            "unit": "kV",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "雷电冲击耐压(峰值)断口间",
+            "enName": "LightningImpulseWithstandVoltageC",
+            "type": "String",
+            "unit": "kV",
+            "defaultValue": "",
+            "pickList": ""
+          }
+        ]
+      }
+    ]
+  },
+  "主变压器": {
+    "className": "MainTransformaer",
+    "categories": [
+      {
+        "name": "设备信息",
+        "attrs": [
+          {
+            "name": "设备名称",
+            "enName": "Name",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "KKS编码",
+            "enName": "KKS",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "唯一编码",
+            "enName": "ID",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "编码",
+            "enName": "Code",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "MainTransformaer",
+            "pickList": ""
+          }
+        ]
+      },
+      {
+        "name": "特性参数",
+        "attrs": [
+          {
+            "name": "型号",
+            "enName": "Model",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "重量",
+            "enName": "Weight",
+            "type": "String",
+            "unit": "t",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "额定电压",
+            "enName": "RatedVoltage",
+            "type": "String",
+            "unit": "kV",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "额定电流",
+            "enName": "RatedCurrent",
+            "type": "String",
+            "unit": "A",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "额定容量",
+            "enName": "RatedCapacity",
+            "type": "String",
+            "unit": "MVA",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "变比",
+            "enName": "TransformerRatio",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "调压方式",
+            "enName": "VoltageRegulation",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "中性点接地方式",
+            "enName": "NeutralGrounding",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "联接组别",
+            "enName": "CoupleGroup",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "短路阻抗",
+            "enName": "ShortCircuitImpedence",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "冷却方式",
+            "enName": "CoolingPattern",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          }
+        ]
+      }
+    ]
+  },
+  "500kV电缆": {
+    "className": "XLPECable",
+    "categories": [
+      {
+        "name": "设备信息",
+        "attrs": [
+          {
+            "name": "设备名称",
+            "enName": "Name",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "KKS编码",
+            "enName": "KKS",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "唯一编码",
+            "enName": "ID",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "编码",
+            "enName": "Code",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "XLPECable",
+            "pickList": ""
+          }
+        ]
+      },
+      {
+        "name": "特性参数",
+        "attrs": [
+          {
+            "name": "额定电压",
+            "enName": "RatedVoltage",
+            "type": "String",
+            "unit": "kV",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "额定电流",
+            "enName": "RatedCurrent",
+            "type": "String",
+            "unit": "A",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "导体截面",
+            "enName": "Crosssection",
+            "type": "String",
+            "unit": "mm2",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "额定频率",
+            "enName": "RatedFrequency",
+            "type": "String",
+            "unit": "Hz",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "额定短时耐受电流",
+            "enName": "RatedShorttermWithstandCurrent",
+            "type": "String",
+            "unit": "KA/s",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "额定短时耐受电流",
+            "enName": "RatedShorttermWithstandCurrentSP",
+            "type": "String",
+            "unit": "KA/s",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "额定峰值耐受电流",
+            "enName": "RatedPeakWithstandCurrent",
+            "type": "String",
+            "unit": "kA",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "雷电冲击耐压(峰值)",
+            "enName": "LightningImpulseWithstandVoltage",
+            "type": "String",
+            "unit": "kV",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "操作冲击耐压(峰值)",
+            "enName": "OperatingWithstandVoltage",
+            "type": "String",
+            "unit": "kV",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "1min工频耐压(有效值)",
+            "enName": "FrequencyWithstandVoltage",
+            "type": "String",
+            "unit": "kV",
+            "defaultValue": "",
+            "pickList": ""
+          }
+        ]
+      }
+    ]
+  },
+  "GIS设备": {
+    "className": "GIS",
+    "categories": [
+      {
+        "name": "设备信息",
+        "attrs": [
+          {
+            "name": "设备名称",
+            "enName": "Name",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "KKS编码",
+            "enName": "KKS",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "唯一编码",
+            "enName": "ID",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "编码",
+            "enName": "Code",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "GIS",
+            "pickList": ""
+          }
+        ]
+      },
+      {
+        "name": "特性参数",
+        "attrs": [
+          {
+            "name": "额定电压",
+            "enName": "RatedVoltage",
+            "type": "String",
+            "unit": "kV",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "额定电流",
+            "enName": "RatedCurrent",
+            "type": "String",
+            "unit": "A",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "1min工频耐压(有效值)",
+            "enName": "FrequencyWithstandVoltage",
+            "type": "String",
+            "unit": "kV",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "额定雷电冲击耐受电压峰值（1.2/50μs）（相对地）",
+            "enName": "LightningImpulseWithstandVoltageI",
+            "type": "String",
+            "unit": "kV",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "额定操作冲击耐受电压峰值（250/2500μs）（相对地）",
+            "enName": "LightningImpulseWithstandVoltageII",
+            "type": "String",
+            "unit": "kV",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "短路开断电流",
+            "enName": "ShortCircuitBreakingCurrent",
+            "type": "String",
+            "unit": "kA",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "短路关合电流",
+            "enName": "ShortCircuitClosingCurrent",
+            "type": "String",
+            "unit": "kA",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "额定短时耐受电流",
+            "enName": "RatedShorttermWithstandCurrent",
+            "type": "String",
+            "unit": "kA/s",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "额定峰值耐受电流",
+            "enName": "RatedPeakWithstandCurrent",
+            "type": "String",
+            "unit": "kA",
+            "defaultValue": "",
+            "pickList": ""
+          }
+        ]
+      }
+    ]
+  },
+  "出线平台设备": {
+    "className": "SubstationEquipment",
+    "categories": [
+      {
+        "name": "设备信息",
+        "attrs": [
+          {
+            "name": "设备名称",
+            "enName": "Name",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "KKS编码",
+            "enName": "KKS",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "唯一编码",
+            "enName": "ID",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "编码",
+            "enName": "Code",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "SubstationEquipment",
+            "pickList": ""
+          }
+        ]
+      },
+      {
+        "name": "特性参数",
+        "attrs": [
+          {
+            "name": "额定电压",
+            "enName": "RatedVoltage",
+            "type": "String",
+            "unit": "kV",
+            "defaultValue": "",
+            "pickList": ""
+          }
+        ]
+      }
+    ]
+  },
+  "变压器（厂用）": {
+    "className": "AuxiliaryTransformer",
+    "categories": [
+      {
+        "name": "设备信息",
+        "attrs": [
+          {
+            "name": "设备名称",
+            "enName": "Name",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "KKS编码",
+            "enName": "KKS",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "唯一编码",
+            "enName": "ID",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "编码",
+            "enName": "Code",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "AuxiliaryTransformer",
+            "pickList": ""
+          }
+        ]
+      },
+      {
+        "name": "特性参数",
+        "attrs": [
+          {
+            "name": "型号",
+            "enName": "Model",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "冷却方式",
+            "enName": "CoolingPattern",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "额定电压",
+            "enName": "RatedVoltage",
+            "type": "String",
+            "unit": "kV",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "额定电流",
+            "enName": "RatedCurrent",
+            "type": "String",
+            "unit": "A",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "额定容量",
+            "enName": "RatedCapacity",
+            "type": "String",
+            "unit": "MVA",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "变比",
+            "enName": "TransformerRatio",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "联接组别",
+            "enName": "CoupleGroup",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "短路阻抗",
+            "enName": "ShortCircuitImpedence",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          }
+        ]
+      }
+    ]
+  },
+  "开关柜": {
+    "className": "SwitchGear",
+    "categories": [
+      {
+        "name": "设备信息",
+        "attrs": [
+          {
+            "name": "设备名称",
+            "enName": "Name",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "KKS编码",
+            "enName": "KKS",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "唯一编码",
+            "enName": "ID",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "编码",
+            "enName": "Code",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "SwitchGear",
+            "pickList": ""
+          }
+        ]
+      },
+      {
+        "name": "特性参数",
+        "attrs": [
+          {
+            "name": "额定电压",
+            "enName": "RatedVoltage",
+            "type": "String",
+            "unit": "kV",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "额定电流",
+            "enName": "RatedCurrent",
+            "type": "String",
+            "unit": "A",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "外形尺寸",
+            "enName": "Dimension",
+            "type": "String",
+            "unit": "mm×mm×mm",
+            "defaultValue": "",
+            "pickList": ""
+          }
+        ]
+      }
+    ]
+  },
+  "SFC变频启动装置": {
+    "className": "SFC",
+    "categories": [
+      {
+        "name": "设备信息",
+        "attrs": [
+          {
+            "name": "设备名称",
+            "enName": "Name",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "KKS编码",
+            "enName": "KKS",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "唯一编码",
+            "enName": "ID",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "编码",
+            "enName": "Code",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "SFC",
+            "pickList": ""
+          }
+        ]
+      },
+      {
+        "name": "特性参数",
+        "attrs": [
+          {
+            "name": "输出频率",
+            "enName": "OutputFrequency",
+            "type": "String",
+            "unit": "Hz",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "额定容量",
+            "enName": "RatedCapacity",
+            "type": "String",
+            "unit": "MVA",
+            "defaultValue": "",
+            "pickList": ""
+          }
+        ]
+      }
+    ]
+  },
+  "电气二次盘柜": {
+    "className": "ControlCabinet",
+    "categories": [
+      {
+        "name": "设备信息",
+        "attrs": [
+          {
+            "name": "设备名称",
+            "enName": "Name",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "KKS编码",
+            "enName": "KKS",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "唯一编码",
+            "enName": "ID",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "编码",
+            "enName": "Code",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "ControlCabinet",
+            "pickList": ""
+          }
+        ]
+      },
+      {
+        "name": "特性参数",
+        "attrs": [
+          {
+            "name": "系统功能",
+            "enName": "SystemFunction",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "外形尺寸",
+            "enName": "Dimension",
+            "type": "String",
+            "unit": "mm×mm×mm",
+            "defaultValue": "",
+            "pickList": ""
+          }
+        ]
+      }
+    ]
+  },
+  "拦污栅": {
+    "className": "DrainGrating",
+    "categories": [
+      {
+        "name": "设备信息",
+        "attrs": [
+          {
+            "name": "设备名称",
+            "enName": "Name",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "KKS编码",
+            "enName": "KKS",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "唯一编码",
+            "enName": "ID",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "编码",
+            "enName": "Code",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "DrainGrating",
+            "pickList": ""
+          },
+          {
+            "name": "制造商",
+            "enName": "Manufacturer",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          }
+        ]
+      },
+      {
+        "name": "特性参数",
+        "attrs": [
+          {
+            "name": "孔口尺寸",
+            "enName": "PortSize",
+            "type": "String",
+            "unit": "m×m",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "型式",
+            "enName": "Type",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "设计水头差",
+            "enName": "HeadDifference",
+            "type": "String",
+            "unit": "m",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "底坎高程",
+            "enName": "BottomSillEL",
+            "type": "String",
+            "unit": "m",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "栅条净距",
+            "enName": "BarsNetDistance",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "总水压力",
+            "enName": "TotalWaterPressure",
+            "type": "String",
+            "unit": "m",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "操作条件",
+            "enName": "OperatingConditions",
+            "type": "String",
+            "unit": "m",
+            "defaultValue": "",
+            "pickList": ""
+          }
+        ]
+      }
+    ]
+  },
+  "启闭机": {
+    "className": "Hoist",
+    "categories": [
+      {
+        "name": "特性参数",
+        "attrs": [
+          {
+            "name": "型式",
+            "enName": "Type",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "启闭机容量",
+            "enName": "HoistCapacity",
+            "type": "String",
+            "unit": "kN",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "工作级别",
+            "enName": "ClassificationGroup",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "起升高度",
+            "enName": "LiftingAltitude",
+            "type": "String",
+            "unit": "m",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "起升速度",
+            "enName": "LiftingSpeed",
+            "type": "String",
+            "unit": "m/min",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "大车行走速度",
+            "enName": "WalkingSpeed",
+            "type": "String",
+            "unit": "m/min",
+            "defaultValue": "",
+            "pickList": ""
+          }
+        ]
+      }
+    ]
+  },
+  "闸门": {
+    "className": "Gate",
+    "categories": [
+      {
+        "name": "设备信息",
+        "attrs": [
+          {
+            "name": "设备名称",
+            "enName": "Name",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "KKS编码",
+            "enName": "KKS",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "唯一编码",
+            "enName": "ID",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "编码",
+            "enName": "Code",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "Gate",
+            "pickList": ""
+          },
+          {
+            "name": "制造商",
+            "enName": "Manufacturer",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          }
+        ]
+      },
+      {
+        "name": "特性参数",
+        "attrs": [
+          {
+            "name": "孔口尺寸",
+            "enName": "PortSize",
+            "type": "String",
+            "unit": "m×m",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "闸门型式",
+            "enName": "Gatetype",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "底坎高程",
+            "enName": "BottomSillEL",
+            "type": "String",
+            "unit": "m",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "设计水头",
+            "enName": "DesignedHead",
+            "type": "String",
+            "unit": "m",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "支承型式",
+            "enName": "SupportingType",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "水封尺寸",
+            "enName": "WaterSealSize",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "操作条件",
+            "enName": "OperationCondition",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "总水压力",
+            "enName": "TotalWaterPressure",
+            "type": "String",
+            "unit": "m",
+            "defaultValue": "",
+            "pickList": ""
+          }
+        ]
+      }
+    ]
+  },
+  "冷水机组": {
+    "className": "WaterChiller",
+    "categories": [
+      {
+        "name": "设备信息",
+        "attrs": [
+          {
+            "name": "设备名称",
+            "enName": "Name",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "KKS编码",
+            "enName": "KKS",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "唯一编码",
+            "enName": "ID",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "编码",
+            "enName": "Code",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "WaterChiller",
+            "pickList": ""
+          }
+        ]
+      },
+      {
+        "name": "特性参数",
+        "attrs": [
+          {
+            "name": "制冷量",
+            "enName": "CoolingCapacity",
+            "type": "String",
+            "unit": "kW",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "冷冻水进水温度",
+            "enName": "ChilledWaterTempI",
+            "type": "String",
+            "unit": "℃",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "冷冻水出水温度",
+            "enName": "ChilledWaterTempO",
+            "type": "String",
+            "unit": "℃",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "冷冻水量",
+            "enName": "ChilledWaterQuantity",
+            "type": "String",
+            "unit": "m³/h",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "冷却水进水温度",
+            "enName": "CoolingWaterTempI",
+            "type": "String",
+            "unit": "℃",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "冷却水出水温度",
+            "enName": "CoolingWaterTempO",
+            "type": "String",
+            "unit": "℃",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "冷却水量",
+            "enName": "CoolingWaterQuantity",
+            "type": "String",
+            "unit": "m³/h",
+            "defaultValue": "",
+            "pickList": ""
+          }
+        ]
+      }
+    ]
+  },
+  "风机": {
+    "className": "Fan",
+    "categories": [
+      {
+        "name": "设备信息",
+        "attrs": [
+          {
+            "name": "设备名称",
+            "enName": "Name",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "KKS编码",
+            "enName": "KKS",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "唯一编码",
+            "enName": "ID",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "编码",
+            "enName": "Code",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "Fan",
+            "pickList": ""
+          }
+        ]
+      },
+      {
+        "name": "特性参数",
+        "attrs": [
+          {
+            "name": "风量",
+            "enName": "AirFlow",
+            "type": "String",
+            "unit": "m³/h",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "风压",
+            "enName": "WindPressure",
+            "type": "String",
+            "unit": "Pa",
+            "defaultValue": "",
+            "pickList": ""
+          }
+        ]
+      }
+    ]
+  },
+  "除湿机": {
+    "className": "Dehumidifier",
+    "categories": [
+      {
+        "name": "设备信息",
+        "attrs": [
+          {
+            "name": "设备名称",
+            "enName": "Name",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "KKS编码",
+            "enName": "KKS",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "唯一编码",
+            "enName": "ID",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "编码",
+            "enName": "Code",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "Dehumidifier",
+            "pickList": ""
+          }
+        ]
+      },
+      {
+        "name": "特性参数",
+        "attrs": [
+          {
+            "name": "除湿量",
+            "enName": "Dehumidification",
+            "type": "String",
+            "unit": "kg/h",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "循环风量",
+            "enName": "CirculatingAirFlow",
+            "type": "String",
+            "unit": "m³/h",
+            "defaultValue": "",
+            "pickList": ""
+          }
+        ]
+      }
+    ]
+  },
+  "空气处理机组": {
+    "className": "AirTreatmentUnit",
+    "categories": [
+      {
+        "name": "设备信息",
+        "attrs": [
+          {
+            "name": "设备名称",
+            "enName": "Name",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "唯一编码",
+            "enName": "ID",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "编码",
+            "enName": "Code",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "AirTreatmentUnit",
+            "pickList": ""
+          },
+          {
+            "name": "KKS编码",
+            "enName": "KKS",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          }
+        ]
+      },
+      {
+        "name": "特性参数",
+        "attrs": [
+          {
+            "name": "制冷量",
+            "enName": "CoolingCapacity",
+            "type": "String",
+            "unit": "kW",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "冷冻水量",
+            "enName": "ChilledWaterQuantity",
+            "type": "String",
+            "unit": "m³/h",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "盘管阻力",
+            "enName": "PipeResistance",
+            "type": "String",
+            "unit": "m",
+            "defaultValue": "",
+            "pickList": ""
+          }
+        ]
+      }
+    ]
+  },
+  "家用空调": {
+    "className": "HouseholdAirConditioning",
+    "categories": [
+      {
+        "name": "设备信息",
+        "attrs": [
+          {
+            "name": "设备名称",
+            "enName": "Name",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "唯一编码",
+            "enName": "ID",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "编码",
+            "enName": "Code",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "HouseholdAirConditioning",
+            "pickList": ""
+          },
+          {
+            "name": "KKS编码",
+            "enName": "KKS",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          }
+        ]
+      },
+      {
+        "name": "特性参数",
+        "attrs": [
+          {
+            "name": "制冷量",
+            "enName": "CoolingCapacity",
+            "type": "String",
+            "unit": "kW",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "制热量",
+            "enName": "HeatingCapacity",
+            "type": "String",
+            "unit": "kW",
+            "defaultValue": "",
+            "pickList": ""
+          }
+        ]
+      }
+    ]
+  },
+  "水冷冷风机": {
+    "className": "WaterCooledAirCooler",
+    "categories": [
+      {
+        "name": "设备信息",
+        "attrs": [
+          {
+            "name": "设备名称",
+            "enName": "Name",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "唯一编码",
+            "enName": "ID",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "编码",
+            "enName": "Code",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "WaterCooledAirCooler",
+            "pickList": ""
+          },
+          {
+            "name": "KKS编码",
+            "enName": "KKS",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          }
+        ]
+      },
+      {
+        "name": "特性参数",
+        "attrs": [
+          {
+            "name": "制冷量",
+            "enName": "CoolingCapacity",
+            "type": "String",
+            "unit": "kW",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "水量",
+            "enName": "WaterQuantity",
+            "type": "String",
+            "unit": "m³/h",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "风量",
+            "enName": "AirFlow",
+            "type": "String",
+            "unit": "m³/h",
+            "defaultValue": "",
+            "pickList": ""
+          }
+        ]
+      }
+    ]
+  },
+  "空调风柜": {
+    "className": "AirConditioningCabinet",
+    "categories": [
+      {
+        "name": "设备信息",
+        "attrs": [
+          {
+            "name": "设备名称",
+            "enName": "Name",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "唯一编码",
+            "enName": "ID",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "编码",
+            "enName": "Code",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "AirConditioningCabinet",
+            "pickList": ""
+          },
+          {
+            "name": "KKS编码",
+            "enName": "KKS",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          }
+        ]
+      },
+      {
+        "name": "特性参数",
+        "attrs": [
+          {
+            "name": "制冷量",
+            "enName": "CoolingCapacity",
+            "type": "String",
+            "unit": "kW",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "水量",
+            "enName": "WaterQuantity",
+            "type": "String",
+            "unit": "m³/h",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "风量",
+            "enName": "AirFlow",
+            "type": "String",
+            "unit": "m³/h",
+            "defaultValue": "",
+            "pickList": ""
+          }
+        ]
+      }
+    ]
+  },
+  "桥架": {
+    "className": "CableBridge",
+    "categories": [
+      {
+        "name": "设备信息",
+        "attrs": [
+          {
+            "name": "设备名称",
+            "enName": "Name",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "唯一编码",
+            "enName": "ID",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "编码",
+            "enName": "Code",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "CableBridge",
+            "pickList": ""
+          },
+          {
+            "name": "KKS编码",
+            "enName": "KKS",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          }
+        ]
+      },
+      {
+        "name": "特性参数",
+        "attrs": [
+          {
+            "name": "类型",
+            "enName": "Type",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "材质",
+            "enName": "Material",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "容量",
+            "enName": "Capacity",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "规格",
+            "enName": "Specification",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "长度",
+            "enName": "Length",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          }
+        ]
+      }
+    ]
+  },
+  "电缆": {
+    "className": "Cable",
+    "categories": [
+      {
+        "name": "设备信息",
+        "attrs": [
+          {
+            "name": "设备名称",
+            "enName": "Name",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "唯一编码",
+            "enName": "ID",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "编码",
+            "enName": "Code",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "Cable",
+            "pickList": ""
+          },
+          {
+            "name": "KKS编码",
+            "enName": "KKS",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          }
+        ]
+      },
+      {
+        "name": "特性参数",
+        "attrs": [
+          {
+            "name": "类型",
+            "enName": "Type",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "材质",
+            "enName": "Material",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "直径",
+            "enName": "Diameter",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "电流",
+            "enName": "Current",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "规格",
+            "enName": "Specification",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "长度",
+            "enName": "Length",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          }
+        ]
+      }
+    ]
+  },
+  "管道": {
+    "className": "Pipeline",
+    "categories": [
+      {
+        "name": "设备信息",
+        "attrs": [
+          {
+            "name": "设备名称",
+            "enName": "Name",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "唯一编码",
+            "enName": "ID",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "编码",
+            "enName": "Code",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "Pipeline",
+            "pickList": ""
+          },
+          {
+            "name": "KKS编码",
+            "enName": "KKS",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          }
+        ]
+      },
+      {
+        "name": "特性参数",
+        "attrs": [
+          {
+            "name": "类型",
+            "enName": "Type",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "材质",
+            "enName": "Material",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "压力",
+            "enName": "Capacity",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "长度",
+            "enName": "Length",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "直径",
+            "enName": "Diameter",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          }
+        ]
+      }
+    ]
+  },
+  "阀门": {
+    "className": "Valve",
+    "categories": [
+      {
+        "name": "设备信息",
+        "attrs": [
+          {
+            "name": "设备名称",
+            "enName": "Name",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "唯一编码",
+            "enName": "ID",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "编码",
+            "enName": "Code",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "Valve",
+            "pickList": ""
+          },
+          {
+            "name": "KKS编码",
+            "enName": "KKS",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          }
+        ]
+      },
+      {
+        "name": "特性参数",
+        "attrs": [
+          {
+            "name": "类型",
+            "enName": "Type",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "材质",
+            "enName": "Material",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "压力",
+            "enName": "Capacity",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "介质",
+            "enName": "Specification",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "长度",
+            "enName": "Length",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          }
+        ]
+      }
+    ]
+  },
+  "建筑物模型": {
+    "className": "Buildingmodel",
+    "categories": [
+      {
+        "name": "设备信息",
+        "attrs": [
+          {
+            "name": "设备名称",
+            "enName": "Name",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "唯一编码",
+            "enName": "ID",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          },
+          {
+            "name": "编码",
+            "enName": "Code",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "Buildingmodel",
+            "pickList": ""
+          },
+          {
+            "name": "KKS编码",
+            "enName": "KKS",
+            "type": "String",
+            "unit": "",
+            "defaultValue": "",
+            "pickList": ""
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,1942 @@
+[
+  {
+    "id": 1,
+    "parentId": 0,
+    "level": "一级",
+    "category": "系统目录",
+    "name": "坝后厂房",
+    "typeCode": "",
+    "kks": "",
+    "sort": 1
+  },
+  {
+    "id": 2,
+    "parentId": 1,
+    "level": "二级",
+    "category": "系统目录",
+    "name": "1号机组系统",
+    "typeCode": "",
+    "kks": "1",
+    "sort": 1
+  },
+  {
+    "id": 3,
+    "parentId": 2,
+    "level": "三级",
+    "category": "系统目录",
+    "name": "1号机组水泵水轮机",
+    "typeCode": "",
+    "kks": "1MFA",
+    "sort": 1
+  },
+  {
+    "id": 4,
+    "parentId": 3,
+    "level": "四级",
+    "category": "系统目录",
+    "name": "1号机组水泵水轮机转动部件",
+    "typeCode": "",
+    "kks": "1MFA10",
+    "sort": 1
+  },
+  {
+    "id": 5,
+    "parentId": 4,
+    "level": "四级",
+    "category": "设备",
+    "name": "1号机组转轮",
+    "typeCode": "",
+    "kks": "1MFA10HB001",
+    "sort": 1
+  },
+  {
+    "id": 6,
+    "parentId": 4,
+    "level": "四级",
+    "category": "设备",
+    "name": "1号机组水泵水轮机主轴",
+    "typeCode": "",
+    "kks": "1MFA10HB002",
+    "sort": 2
+  },
+  {
+    "id": 7,
+    "parentId": 3,
+    "level": "四级",
+    "category": "系统目录",
+    "name": "1号机组导水机构",
+    "typeCode": "",
+    "kks": "1MFA20",
+    "sort": 2
+  },
+  {
+    "id": 8,
+    "parentId": 7,
+    "level": "四级",
+    "category": "设备",
+    "name": "1号机组顶盖",
+    "typeCode": "",
+    "kks": "1MFA20BF001",
+    "sort": 1
+  },
+  {
+    "id": 9,
+    "parentId": 7,
+    "level": "四级",
+    "category": "设备",
+    "name": "1号机组顶盖上止漏环",
+    "typeCode": "",
+    "kks": "1MFA20AB001",
+    "sort": 2
+  },
+  {
+    "id": 10,
+    "parentId": 7,
+    "level": "四级",
+    "category": "设备",
+    "name": "1号机组底环",
+    "typeCode": "",
+    "kks": "1MFA20BF002",
+    "sort": 3
+  },
+  {
+    "id": 11,
+    "parentId": 7,
+    "level": "四级",
+    "category": "设备",
+    "name": "1号机组底环下止漏环",
+    "typeCode": "",
+    "kks": "1MFA20AB002",
+    "sort": 4
+  },
+  {
+    "id": 12,
+    "parentId": 7,
+    "level": "四级",
+    "category": "设备",
+    "name": "1号机组活动导叶",
+    "typeCode": "",
+    "kks": "1MFA20AE100",
+    "sort": 5
+  },
+  {
+    "id": 13,
+    "parentId": 7,
+    "level": "四级",
+    "category": "设备",
+    "name": "1号机组导叶1号接力器",
+    "typeCode": "",
+    "kks": "1MFA20AE201",
+    "sort": 6
+  },
+  {
+    "id": 14,
+    "parentId": 7,
+    "level": "四级",
+    "category": "设备",
+    "name": "1号机组导叶2号接力器",
+    "typeCode": "",
+    "kks": "1MFA20AE202",
+    "sort": 7
+  },
+  {
+    "id": 15,
+    "parentId": 7,
+    "level": "四级",
+    "category": "设备",
+    "name": "1号机组导叶控制环",
+    "typeCode": "",
+    "kks": "1MFA20AE001",
+    "sort": 8
+  },
+  {
+    "id": 16,
+    "parentId": 7,
+    "level": "四级",
+    "category": "设备",
+    "name": "1号机组止漏环供水总管过滤器",
+    "typeCode": "",
+    "kks": "1MFA20DT001",
+    "sort": 9
+  },
+  {
+    "id": 17,
+    "parentId": 3,
+    "level": "四级",
+    "category": "设备",
+    "name": "1号机组检修密封控制装置",
+    "typeCode": "",
+    "kks": "1MFA30AB002",
+    "sort": 4
+  },
+  {
+    "id": 18,
+    "parentId": 3,
+    "level": "四级",
+    "category": "设备",
+    "name": "1号机组座环",
+    "typeCode": "",
+    "kks": "1MFA40",
+    "sort": 5
+  },
+  {
+    "id": 19,
+    "parentId": 3,
+    "level": "四级",
+    "category": "设备",
+    "name": "1号机组蜗壳",
+    "typeCode": "",
+    "kks": "1MFA41",
+    "sort": 6
+  },
+  {
+    "id": 20,
+    "parentId": 3,
+    "level": "四级",
+    "category": "设备",
+    "name": "1号机组尾水管",
+    "typeCode": "",
+    "kks": "1MFA42",
+    "sort": 7
+  },
+  {
+    "id": 21,
+    "parentId": 3,
+    "level": "四级",
+    "category": "设备",
+    "name": "1号机组顶盖及排水装置",
+    "typeCode": "",
+    "kks": "1MFA50",
+    "sort": 8
+  },
+  {
+    "id": 22,
+    "parentId": 3,
+    "level": "四级",
+    "category": "系统目录",
+    "name": "1号机组水轮机盘柜",
+    "typeCode": "",
+    "kks": "1MFA60",
+    "sort": 3
+  },
+  {
+    "id": 23,
+    "parentId": 22,
+    "level": "四级",
+    "category": "设备",
+    "name": "1号水泵水轮机辅助设备控制柜",
+    "typeCode": "",
+    "kks": "1MFA60GH301",
+    "sort": 1
+  },
+  {
+    "id": 24,
+    "parentId": 3,
+    "level": "四级",
+    "category": "设备",
+    "name": "1号机组水导轴承",
+    "typeCode": "",
+    "kks": "1MFD10",
+    "sort": 9
+  },
+  {
+    "id": 25,
+    "parentId": 3,
+    "level": "四级",
+    "category": "设备",
+    "name": "1号机组压水回水系统",
+    "typeCode": "",
+    "kks": "1MFL10",
+    "sort": 10
+  },
+  {
+    "id": 26,
+    "parentId": 2,
+    "level": "三级",
+    "category": "系统目录",
+    "name": "1号机组主进水阀",
+    "typeCode": "",
+    "kks": "1MFB",
+    "sort": 2
+  },
+  {
+    "id": 27,
+    "parentId": 26,
+    "level": "四级",
+    "category": "设备",
+    "name": "1号机组主进水阀本体",
+    "typeCode": "",
+    "kks": "1MFB10AA001",
+    "sort": 1
+  },
+  {
+    "id": 28,
+    "parentId": 26,
+    "level": "四级",
+    "category": "设备",
+    "name": "1号机组主进水阀控制柜",
+    "typeCode": "",
+    "kks": "1MFB10GK001",
+    "sort": 2
+  },
+  {
+    "id": 29,
+    "parentId": 26,
+    "level": "四级",
+    "category": "设备",
+    "name": "1号机组主进水阀油压装置控制柜",
+    "typeCode": "",
+    "kks": "1MFB10GK002",
+    "sort": 3
+  },
+  {
+    "id": 30,
+    "parentId": 26,
+    "level": "四级",
+    "category": "设备",
+    "name": "1号机组主进水阀油压装置",
+    "typeCode": "",
+    "kks": "1MFB10AP001",
+    "sort": 4
+  },
+  {
+    "id": 31,
+    "parentId": 2,
+    "level": "三级",
+    "category": "系统目录",
+    "name": "1号机组调速器",
+    "typeCode": "",
+    "kks": "1MFY",
+    "sort": 3
+  },
+  {
+    "id": 32,
+    "parentId": 31,
+    "level": "四级",
+    "category": "设备",
+    "name": "1号机组调速器油压装置",
+    "typeCode": "",
+    "kks": "1MFY10AP001",
+    "sort": 1
+  },
+  {
+    "id": 33,
+    "parentId": 31,
+    "level": "四级",
+    "category": "设备",
+    "name": "1号机组调速器油压装置电气控制柜",
+    "typeCode": "",
+    "kks": "1MFY10GK001",
+    "sort": 2
+  },
+  {
+    "id": 34,
+    "parentId": 31,
+    "level": "四级",
+    "category": "设备",
+    "name": "1号机组调速器电气控制柜",
+    "typeCode": "",
+    "kks": "1MFY10GK002",
+    "sort": 3
+  },
+  {
+    "id": 35,
+    "parentId": 2,
+    "level": "三级",
+    "category": "系统目录",
+    "name": "1号机组技术供水",
+    "typeCode": "",
+    "kks": "1PAC10",
+    "sort": 4
+  },
+  {
+    "id": 36,
+    "parentId": 35,
+    "level": "四级",
+    "category": "设备",
+    "name": "1号机组技术供水1号水泵",
+    "typeCode": "",
+    "kks": "1PAC10AP001",
+    "sort": 1
+  },
+  {
+    "id": 37,
+    "parentId": 35,
+    "level": "四级",
+    "category": "设备",
+    "name": "1号机组技术供水2号水泵",
+    "typeCode": "",
+    "kks": "1PAC10AP002",
+    "sort": 2
+  },
+  {
+    "id": 38,
+    "parentId": 35,
+    "level": "四级",
+    "category": "设备",
+    "name": "1号机组技术供水1号滤水器",
+    "typeCode": "",
+    "kks": "1PAC10AT001",
+    "sort": 3
+  },
+  {
+    "id": 39,
+    "parentId": 35,
+    "level": "四级",
+    "category": "设备",
+    "name": "1号机组技术供水2号滤水器",
+    "typeCode": "",
+    "kks": "1PAC10AT002",
+    "sort": 4
+  },
+  {
+    "id": 40,
+    "parentId": 35,
+    "level": "四级",
+    "category": "设备",
+    "name": "1号机组技术供水控制屏",
+    "typeCode": "",
+    "kks": "1PAC10GK001",
+    "sort": 5
+  },
+  {
+    "id": 41,
+    "parentId": 35,
+    "level": "四级",
+    "category": "设备",
+    "name": "1号机组技术供水1号泵动力柜",
+    "typeCode": "",
+    "kks": "1PAC10GK002",
+    "sort": 6
+  },
+  {
+    "id": 42,
+    "parentId": 35,
+    "level": "四级",
+    "category": "设备",
+    "name": "1号机组技术供水2号泵动力柜",
+    "typeCode": "",
+    "kks": "1PAC10GK003",
+    "sort": 7
+  },
+  {
+    "id": 43,
+    "parentId": 2,
+    "level": "三级",
+    "category": "系统目录",
+    "name": "1号机组电动机",
+    "typeCode": "",
+    "kks": "1MLA",
+    "sort": 5
+  },
+  {
+    "id": 44,
+    "parentId": 43,
+    "level": "四级",
+    "category": "系统目录",
+    "name": "1号机组发电机上部结构",
+    "typeCode": "",
+    "kks": "1MLA10",
+    "sort": 1
+  },
+  {
+    "id": 45,
+    "parentId": 44,
+    "level": "四级",
+    "category": "设备",
+    "name": "1号机组滑环",
+    "typeCode": "",
+    "kks": "1MLA10AG001",
+    "sort": 1
+  },
+  {
+    "id": 46,
+    "parentId": 44,
+    "level": "四级",
+    "category": "设备",
+    "name": "1号机组碳刷支架",
+    "typeCode": "",
+    "kks": "1MLA10AG002",
+    "sort": 2
+  },
+  {
+    "id": 47,
+    "parentId": 44,
+    "level": "四级",
+    "category": "设备",
+    "name": "1号机组碳刷",
+    "typeCode": "",
+    "kks": "1MLA10AG101",
+    "sort": 3
+  },
+  {
+    "id": 48,
+    "parentId": 44,
+    "level": "四级",
+    "category": "设备",
+    "name": "1号机组发电机机罩",
+    "typeCode": "",
+    "kks": "1MLA10BF001",
+    "sort": 4
+  },
+  {
+    "id": 49,
+    "parentId": 43,
+    "level": "四级",
+    "category": "系统目录",
+    "name": "1号机组上机架",
+    "typeCode": "",
+    "kks": "1MLA20",
+    "sort": 2
+  },
+  {
+    "id": 50,
+    "parentId": 49,
+    "level": "四级",
+    "category": "设备",
+    "name": "1号机组上机架附件",
+    "typeCode": "",
+    "kks": "1MLA20AG002",
+    "sort": 1
+  },
+  {
+    "id": 51,
+    "parentId": 43,
+    "level": "四级",
+    "category": "系统目录",
+    "name": "1号机组发电机转子",
+    "typeCode": "",
+    "kks": "1MLA30",
+    "sort": 3
+  },
+  {
+    "id": 52,
+    "parentId": 51,
+    "level": "四级",
+    "category": "设备",
+    "name": "1号机组转子中心体",
+    "typeCode": "",
+    "kks": "1MLA30AG001",
+    "sort": 1
+  },
+  {
+    "id": 53,
+    "parentId": 51,
+    "level": "四级",
+    "category": "设备",
+    "name": "1号机组磁轭",
+    "typeCode": "",
+    "kks": "1MLA30AG101",
+    "sort": 2
+  },
+  {
+    "id": 54,
+    "parentId": 43,
+    "level": "四级",
+    "category": "系统目录",
+    "name": "1号机组发电机定子",
+    "typeCode": "",
+    "kks": "1MLA40",
+    "sort": 4
+  },
+  {
+    "id": 55,
+    "parentId": 54,
+    "level": "四级",
+    "category": "设备",
+    "name": "1号机组定子机座",
+    "typeCode": "",
+    "kks": "1MLA40BF001",
+    "sort": 1
+  },
+  {
+    "id": 56,
+    "parentId": 54,
+    "level": "四级",
+    "category": "设备",
+    "name": "1号机组定子铁芯",
+    "typeCode": "",
+    "kks": "1MLA40AG001",
+    "sort": 2
+  },
+  {
+    "id": 57,
+    "parentId": 54,
+    "level": "四级",
+    "category": "设备",
+    "name": "1号机组定子线圈",
+    "typeCode": "",
+    "kks": "1MLA40AG002",
+    "sort": 3
+  },
+  {
+    "id": 58,
+    "parentId": 54,
+    "level": "四级",
+    "category": "设备",
+    "name": "1号机组定子主引出线装配",
+    "typeCode": "",
+    "kks": "1MLA40GA002",
+    "sort": 4
+  },
+  {
+    "id": 59,
+    "parentId": 54,
+    "level": "四级",
+    "category": "设备",
+    "name": "1号机组发电机1号空冷器",
+    "typeCode": "",
+    "kks": "1MLA40AC001",
+    "sort": 5
+  },
+  {
+    "id": 60,
+    "parentId": 54,
+    "level": "四级",
+    "category": "设备",
+    "name": "1号机组发电机2号空冷器",
+    "typeCode": "",
+    "kks": "1MLA40AC002",
+    "sort": 6
+  },
+  {
+    "id": 61,
+    "parentId": 54,
+    "level": "四级",
+    "category": "设备",
+    "name": "1号机组发电机3号空冷器",
+    "typeCode": "",
+    "kks": "1MLA40AC003",
+    "sort": 7
+  },
+  {
+    "id": 62,
+    "parentId": 54,
+    "level": "四级",
+    "category": "设备",
+    "name": "1号机组发电机4号空冷器",
+    "typeCode": "",
+    "kks": "1MLA40AC004",
+    "sort": 8
+  },
+  {
+    "id": 63,
+    "parentId": 54,
+    "level": "四级",
+    "category": "设备",
+    "name": "1号机组发电机5号空冷器",
+    "typeCode": "",
+    "kks": "1MLA40AC005",
+    "sort": 9
+  },
+  {
+    "id": 64,
+    "parentId": 54,
+    "level": "四级",
+    "category": "设备",
+    "name": "1号机组发电机6号空冷器",
+    "typeCode": "",
+    "kks": "1MLA40AC006",
+    "sort": 10
+  },
+  {
+    "id": 65,
+    "parentId": 54,
+    "level": "四级",
+    "category": "设备",
+    "name": "1号机组发电机7号空冷器",
+    "typeCode": "",
+    "kks": "1MLA40AC007",
+    "sort": 11
+  },
+  {
+    "id": 66,
+    "parentId": 54,
+    "level": "四级",
+    "category": "设备",
+    "name": "1号机组发电机8号空冷器",
+    "typeCode": "",
+    "kks": "1MLA40AC008",
+    "sort": 12
+  },
+  {
+    "id": 67,
+    "parentId": 43,
+    "level": "四级",
+    "category": "设备",
+    "name": "1号机组下机架",
+    "typeCode": "",
+    "kks": "1MLA50",
+    "sort": 8
+  },
+  {
+    "id": 68,
+    "parentId": 43,
+    "level": "四级",
+    "category": "系统目录",
+    "name": "1号机组发电机附属设施",
+    "typeCode": "",
+    "kks": "1MLA60",
+    "sort": 5
+  },
+  {
+    "id": 69,
+    "parentId": 43,
+    "level": "四级",
+    "category": "设备",
+    "name": "2号机组发电机附属设施1",
+    "typeCode": "",
+    "kks": "2MLA60AP001",
+    "sort": 9
+  },
+  {
+    "id": 70,
+    "parentId": 43,
+    "level": "四级",
+    "category": "设备",
+    "name": "2号机组发电机附属设施2",
+    "typeCode": "",
+    "kks": "2MLA60AP002",
+    "sort": 10
+  },
+  {
+    "id": 71,
+    "parentId": 43,
+    "level": "四级",
+    "category": "设备",
+    "name": "2号机组发电机附属设施3",
+    "typeCode": "",
+    "kks": "2MLA60AP003",
+    "sort": 11
+  },
+  {
+    "id": 72,
+    "parentId": 43,
+    "level": "四级",
+    "category": "设备",
+    "name": "2号机组发电机附属设施4",
+    "typeCode": "",
+    "kks": "2MLA60AP004",
+    "sort": 12
+  },
+  {
+    "id": 73,
+    "parentId": 68,
+    "level": "四级",
+    "category": "设备",
+    "name": "1号机组上导油雾收集装置",
+    "typeCode": "",
+    "kks": "1MLA60AP150",
+    "sort": 1
+  },
+  {
+    "id": 74,
+    "parentId": 68,
+    "level": "四级",
+    "category": "设备",
+    "name": "1号机组推力及下导油雾收集装置",
+    "typeCode": "",
+    "kks": "1MLA60AP250",
+    "sort": 2
+  },
+  {
+    "id": 75,
+    "parentId": 68,
+    "level": "四级",
+    "category": "设备",
+    "name": "1号机组碳刷粉尘收集装置",
+    "typeCode": "",
+    "kks": "1MLA60AP160",
+    "sort": 3
+  },
+  {
+    "id": 76,
+    "parentId": 68,
+    "level": "四级",
+    "category": "设备",
+    "name": "1号机组制动粉尘收集装置",
+    "typeCode": "",
+    "kks": "1MLA60AP260",
+    "sort": 4
+  },
+  {
+    "id": 77,
+    "parentId": 43,
+    "level": "四级",
+    "category": "系统目录",
+    "name": "1号机组机械制动装置",
+    "typeCode": "",
+    "kks": "1MLA70",
+    "sort": 6
+  },
+  {
+    "id": 78,
+    "parentId": 77,
+    "level": "四级",
+    "category": "设备",
+    "name": "1号机组机械制动柜",
+    "typeCode": "",
+    "kks": "1MLA70GK001",
+    "sort": 1
+  },
+  {
+    "id": 79,
+    "parentId": 43,
+    "level": "四级",
+    "category": "设备",
+    "name": "1号机组发电机自动化盘柜",
+    "typeCode": "",
+    "kks": "1MLA80",
+    "sort": 13
+  },
+  {
+    "id": 80,
+    "parentId": 43,
+    "level": "四级",
+    "category": "设备",
+    "name": "1号机组推力轴承",
+    "typeCode": "",
+    "kks": "1MLD01",
+    "sort": 14
+  },
+  {
+    "id": 81,
+    "parentId": 43,
+    "level": "四级",
+    "category": "系统目录",
+    "name": "1号机组推力轴承高压顶起装置",
+    "typeCode": "",
+    "kks": "1MLD02",
+    "sort": 7
+  },
+  {
+    "id": 82,
+    "parentId": 81,
+    "level": "四级",
+    "category": "设备",
+    "name": "1号机组交流高压油泵控制柜",
+    "typeCode": "",
+    "kks": "1MLD02GK001",
+    "sort": 1
+  },
+  {
+    "id": 83,
+    "parentId": 81,
+    "level": "四级",
+    "category": "设备",
+    "name": "1号机组直流高压油泵控制柜",
+    "typeCode": "",
+    "kks": "1MLD02GK002",
+    "sort": 2
+  },
+  {
+    "id": 84,
+    "parentId": 43,
+    "level": "四级",
+    "category": "设备",
+    "name": "1号机组上导轴承",
+    "typeCode": "",
+    "kks": "1MLD11",
+    "sort": 15
+  },
+  {
+    "id": 85,
+    "parentId": 43,
+    "level": "四级",
+    "category": "设备",
+    "name": "2号机组上导轴承",
+    "typeCode": "",
+    "kks": "2MLD11AG001",
+    "sort": 16
+  },
+  {
+    "id": 86,
+    "parentId": 43,
+    "level": "四级",
+    "category": "设备",
+    "name": "1号机组下导轴承",
+    "typeCode": "",
+    "kks": "1MLD21",
+    "sort": 17
+  },
+  {
+    "id": 87,
+    "parentId": 43,
+    "level": "四级",
+    "category": "设备",
+    "name": "2号机组下导轴承",
+    "typeCode": "",
+    "kks": "2MLD21AG001",
+    "sort": 18
+  },
+  {
+    "id": 88,
+    "parentId": 2,
+    "level": "三级",
+    "category": "系统目录",
+    "name": "1号机组中性点设备",
+    "typeCode": "",
+    "kks": "1BAU10",
+    "sort": 6
+  },
+  {
+    "id": 89,
+    "parentId": 88,
+    "level": "四级",
+    "category": "设备",
+    "name": "1号机组中性点电流互感器",
+    "typeCode": "",
+    "kks": "1BAU10GT001",
+    "sort": 1
+  },
+  {
+    "id": 90,
+    "parentId": 88,
+    "level": "四级",
+    "category": "设备",
+    "name": "1号机组中性点接地柜",
+    "typeCode": "",
+    "kks": "1BAU10GH201",
+    "sort": 2
+  },
+  {
+    "id": 91,
+    "parentId": 2,
+    "level": "三级",
+    "category": "系统目录",
+    "name": "1号机组励磁",
+    "typeCode": "",
+    "kks": "1MLC10",
+    "sort": 7
+  },
+  {
+    "id": 92,
+    "parentId": 91,
+    "level": "四级",
+    "category": "设备",
+    "name": "1号机组励磁变压器",
+    "typeCode": "",
+    "kks": "1MLC10GT100",
+    "sort": 1
+  },
+  {
+    "id": 93,
+    "parentId": 91,
+    "level": "四级",
+    "category": "设备",
+    "name": "1号机组励磁调节柜",
+    "typeCode": "",
+    "kks": "1MLC10GK007",
+    "sort": 2
+  },
+  {
+    "id": 94,
+    "parentId": 91,
+    "level": "四级",
+    "category": "设备",
+    "name": "1号机组灭磁电阻柜",
+    "typeCode": "",
+    "kks": "1MLC10GK006",
+    "sort": 3
+  },
+  {
+    "id": 95,
+    "parentId": 91,
+    "level": "四级",
+    "category": "设备",
+    "name": "1号机组灭磁开关柜",
+    "typeCode": "",
+    "kks": "1MLC10GK005",
+    "sort": 4
+  },
+  {
+    "id": 96,
+    "parentId": 91,
+    "level": "四级",
+    "category": "设备",
+    "name": "1号机组励磁1号功率柜",
+    "typeCode": "",
+    "kks": "1MLC10GK004",
+    "sort": 5
+  },
+  {
+    "id": 97,
+    "parentId": 91,
+    "level": "四级",
+    "category": "设备",
+    "name": "1号机组励磁2号功率柜",
+    "typeCode": "",
+    "kks": "1MLC10GK003",
+    "sort": 6
+  },
+  {
+    "id": 98,
+    "parentId": 91,
+    "level": "四级",
+    "category": "设备",
+    "name": "1号机组励磁3号功率柜",
+    "typeCode": "",
+    "kks": "1MLC10GK002",
+    "sort": 7
+  },
+  {
+    "id": 99,
+    "parentId": 91,
+    "level": "四级",
+    "category": "设备",
+    "name": "2号机组励磁交流开关柜",
+    "typeCode": "",
+    "kks": "1MLC10GK001",
+    "sort": 8
+  },
+  {
+    "id": 100,
+    "parentId": 1,
+    "level": "二级",
+    "category": "系统目录",
+    "name": "2号机组系统",
+    "typeCode": "",
+    "kks": "2",
+    "sort": 2
+  },
+  {
+    "id": 101,
+    "parentId": 100,
+    "level": "三级",
+    "category": "系统目录",
+    "name": "2号机组水泵水轮机",
+    "typeCode": "",
+    "kks": "2MFA",
+    "sort": 1
+  },
+  {
+    "id": 102,
+    "parentId": 101,
+    "level": "四级",
+    "category": "系统目录",
+    "name": "2号机组水泵水轮机转动部件",
+    "typeCode": "",
+    "kks": "2MFA10",
+    "sort": 1
+  },
+  {
+    "id": 103,
+    "parentId": 102,
+    "level": "四级",
+    "category": "设备",
+    "name": "2号机组转轮",
+    "typeCode": "",
+    "kks": "2MFA10HB001",
+    "sort": 1
+  },
+  {
+    "id": 104,
+    "parentId": 102,
+    "level": "四级",
+    "category": "设备",
+    "name": "2号机组水泵水轮机主轴",
+    "typeCode": "",
+    "kks": "2MFA10HB002",
+    "sort": 2
+  },
+  {
+    "id": 105,
+    "parentId": 101,
+    "level": "四级",
+    "category": "系统目录",
+    "name": "2号机组导水机构",
+    "typeCode": "",
+    "kks": "2MFA20",
+    "sort": 2
+  },
+  {
+    "id": 106,
+    "parentId": 105,
+    "level": "四级",
+    "category": "设备",
+    "name": "2号机组顶盖",
+    "typeCode": "",
+    "kks": "2MFA20BF001",
+    "sort": 1
+  },
+  {
+    "id": 107,
+    "parentId": 105,
+    "level": "四级",
+    "category": "设备",
+    "name": "2号机组顶盖上止漏环",
+    "typeCode": "",
+    "kks": "2MFA20AB001",
+    "sort": 2
+  },
+  {
+    "id": 108,
+    "parentId": 105,
+    "level": "四级",
+    "category": "设备",
+    "name": "2号机组底环",
+    "typeCode": "",
+    "kks": "2MFA20BF002",
+    "sort": 3
+  },
+  {
+    "id": 109,
+    "parentId": 105,
+    "level": "四级",
+    "category": "设备",
+    "name": "2号机组底环下止漏环",
+    "typeCode": "",
+    "kks": "2MFA20AB002",
+    "sort": 4
+  },
+  {
+    "id": 110,
+    "parentId": 105,
+    "level": "四级",
+    "category": "设备",
+    "name": "2号机组活动导叶",
+    "typeCode": "",
+    "kks": "2MFA20AE100",
+    "sort": 5
+  },
+  {
+    "id": 111,
+    "parentId": 105,
+    "level": "四级",
+    "category": "设备",
+    "name": "2号机组导叶2号接力器",
+    "typeCode": "",
+    "kks": "2MFA20AE201",
+    "sort": 6
+  },
+  {
+    "id": 112,
+    "parentId": 105,
+    "level": "四级",
+    "category": "设备",
+    "name": "2号机组导叶控制环",
+    "typeCode": "",
+    "kks": "2MFA20AE001",
+    "sort": 7
+  },
+  {
+    "id": 113,
+    "parentId": 105,
+    "level": "四级",
+    "category": "设备",
+    "name": "2号机组止漏环供水总管过滤器",
+    "typeCode": "",
+    "kks": "2MFA20DT001",
+    "sort": 8
+  },
+  {
+    "id": 114,
+    "parentId": 101,
+    "level": "四级",
+    "category": "设备",
+    "name": "2号机组检修密封控制装置",
+    "typeCode": "",
+    "kks": "2MFA30AB002",
+    "sort": 4
+  },
+  {
+    "id": 115,
+    "parentId": 101,
+    "level": "四级",
+    "category": "设备",
+    "name": "2号机组座环",
+    "typeCode": "",
+    "kks": "2MFA40",
+    "sort": 5
+  },
+  {
+    "id": 116,
+    "parentId": 101,
+    "level": "四级",
+    "category": "设备",
+    "name": "2号机组蜗壳",
+    "typeCode": "",
+    "kks": "2MFA41",
+    "sort": 6
+  },
+  {
+    "id": 117,
+    "parentId": 101,
+    "level": "四级",
+    "category": "设备",
+    "name": "2号机组尾水管",
+    "typeCode": "",
+    "kks": "2MFA42",
+    "sort": 7
+  },
+  {
+    "id": 118,
+    "parentId": 101,
+    "level": "四级",
+    "category": "设备",
+    "name": "2号机组顶盖及排水装置",
+    "typeCode": "",
+    "kks": "2MFA50",
+    "sort": 8
+  },
+  {
+    "id": 119,
+    "parentId": 101,
+    "level": "四级",
+    "category": "系统目录",
+    "name": "2号机组水轮机盘柜",
+    "typeCode": "",
+    "kks": "2MFA60",
+    "sort": 3
+  },
+  {
+    "id": 120,
+    "parentId": 119,
+    "level": "四级",
+    "category": "设备",
+    "name": "2号水泵水轮机辅助设备控制柜",
+    "typeCode": "",
+    "kks": "2MFA60GH301",
+    "sort": 1
+  },
+  {
+    "id": 121,
+    "parentId": 101,
+    "level": "四级",
+    "category": "设备",
+    "name": "2号机组水导轴承",
+    "typeCode": "",
+    "kks": "2MFD10",
+    "sort": 9
+  },
+  {
+    "id": 122,
+    "parentId": 101,
+    "level": "四级",
+    "category": "设备",
+    "name": "2号机组压水回水系统",
+    "typeCode": "",
+    "kks": "2MFL10",
+    "sort": 10
+  },
+  {
+    "id": 123,
+    "parentId": 100,
+    "level": "三级",
+    "category": "系统目录",
+    "name": "2号机组主进水阀",
+    "typeCode": "",
+    "kks": "2MFB",
+    "sort": 2
+  },
+  {
+    "id": 124,
+    "parentId": 123,
+    "level": "四级",
+    "category": "设备",
+    "name": "2号机组主进水阀本体",
+    "typeCode": "",
+    "kks": "2MFB10AA001",
+    "sort": 1
+  },
+  {
+    "id": 125,
+    "parentId": 123,
+    "level": "四级",
+    "category": "设备",
+    "name": "2号机组主进水阀控制柜",
+    "typeCode": "",
+    "kks": "2MFB10GK001",
+    "sort": 2
+  },
+  {
+    "id": 126,
+    "parentId": 123,
+    "level": "四级",
+    "category": "设备",
+    "name": "2号机组主进水阀油压装置控制柜",
+    "typeCode": "",
+    "kks": "2MFB10GK002",
+    "sort": 3
+  },
+  {
+    "id": 127,
+    "parentId": 123,
+    "level": "四级",
+    "category": "设备",
+    "name": "2号机组主进水阀油压装置",
+    "typeCode": "",
+    "kks": "2MFB10AP001",
+    "sort": 4
+  },
+  {
+    "id": 128,
+    "parentId": 100,
+    "level": "三级",
+    "category": "系统目录",
+    "name": "2号机组调速器",
+    "typeCode": "",
+    "kks": "2MFY",
+    "sort": 3
+  },
+  {
+    "id": 129,
+    "parentId": 128,
+    "level": "四级",
+    "category": "设备",
+    "name": "2号机组调速器油压装置",
+    "typeCode": "",
+    "kks": "2MFY10AP001",
+    "sort": 1
+  },
+  {
+    "id": 130,
+    "parentId": 128,
+    "level": "四级",
+    "category": "设备",
+    "name": "2号机组调速器油压装置电气控制柜",
+    "typeCode": "",
+    "kks": "2MFY10GK001",
+    "sort": 2
+  },
+  {
+    "id": 131,
+    "parentId": 128,
+    "level": "四级",
+    "category": "设备",
+    "name": "2号机组调速器电气控制柜",
+    "typeCode": "",
+    "kks": "2MFY10GK002",
+    "sort": 3
+  },
+  {
+    "id": 132,
+    "parentId": 100,
+    "level": "三级",
+    "category": "系统目录",
+    "name": "2号机组技术供水",
+    "typeCode": "",
+    "kks": "2PAC10",
+    "sort": 4
+  },
+  {
+    "id": 133,
+    "parentId": 132,
+    "level": "四级",
+    "category": "设备",
+    "name": "2号机组技术供水1号水泵",
+    "typeCode": "",
+    "kks": "2PAC10AP001",
+    "sort": 1
+  },
+  {
+    "id": 134,
+    "parentId": 132,
+    "level": "四级",
+    "category": "设备",
+    "name": "2号机组技术供水2号水泵",
+    "typeCode": "",
+    "kks": "2PAC10AP002",
+    "sort": 2
+  },
+  {
+    "id": 135,
+    "parentId": 132,
+    "level": "四级",
+    "category": "设备",
+    "name": "2号机组技术供水1号滤水器",
+    "typeCode": "",
+    "kks": "2PAC10AT001",
+    "sort": 3
+  },
+  {
+    "id": 136,
+    "parentId": 132,
+    "level": "四级",
+    "category": "设备",
+    "name": "2号机组技术供水2号滤水器",
+    "typeCode": "",
+    "kks": "2PAC10AT002",
+    "sort": 4
+  },
+  {
+    "id": 137,
+    "parentId": 132,
+    "level": "四级",
+    "category": "设备",
+    "name": "2号机组技术供水控制屏",
+    "typeCode": "",
+    "kks": "2PAC10GK001",
+    "sort": 5
+  },
+  {
+    "id": 138,
+    "parentId": 132,
+    "level": "四级",
+    "category": "设备",
+    "name": "2号机组技术供水1号泵动力柜",
+    "typeCode": "",
+    "kks": "2PAC10GK002",
+    "sort": 6
+  },
+  {
+    "id": 139,
+    "parentId": 132,
+    "level": "四级",
+    "category": "设备",
+    "name": "2号机组技术供水2号泵动力柜",
+    "typeCode": "",
+    "kks": "2PAC10GK003",
+    "sort": 7
+  },
+  {
+    "id": 140,
+    "parentId": 100,
+    "level": "三级",
+    "category": "系统目录",
+    "name": "2号机组电动机",
+    "typeCode": "",
+    "kks": "2MLA",
+    "sort": 5
+  },
+  {
+    "id": 141,
+    "parentId": 140,
+    "level": "四级",
+    "category": "系统目录",
+    "name": "2号机组发电机上部结构",
+    "typeCode": "",
+    "kks": "2MLA10",
+    "sort": 1
+  },
+  {
+    "id": 142,
+    "parentId": 141,
+    "level": "四级",
+    "category": "设备",
+    "name": "2号机组滑环",
+    "typeCode": "",
+    "kks": "2MLA10AG001",
+    "sort": 1
+  },
+  {
+    "id": 143,
+    "parentId": 141,
+    "level": "四级",
+    "category": "设备",
+    "name": "2号机组碳刷支架",
+    "typeCode": "",
+    "kks": "2MLA10AG002",
+    "sort": 2
+  },
+  {
+    "id": 144,
+    "parentId": 141,
+    "level": "四级",
+    "category": "设备",
+    "name": "2号机组碳刷",
+    "typeCode": "",
+    "kks": "2MLA10AG101",
+    "sort": 3
+  },
+  {
+    "id": 145,
+    "parentId": 141,
+    "level": "四级",
+    "category": "设备",
+    "name": "2号机组发电机机罩",
+    "typeCode": "",
+    "kks": "2MLA10BF001",
+    "sort": 4
+  },
+  {
+    "id": 146,
+    "parentId": 140,
+    "level": "四级",
+    "category": "系统目录",
+    "name": "2号机组上机架",
+    "typeCode": "",
+    "kks": "2MLA20",
+    "sort": 2
+  },
+  {
+    "id": 147,
+    "parentId": 146,
+    "level": "四级",
+    "category": "设备",
+    "name": "2号机组上机架附件",
+    "typeCode": "",
+    "kks": "2MLA20AG002",
+    "sort": 1
+  },
+  {
+    "id": 148,
+    "parentId": 140,
+    "level": "四级",
+    "category": "系统目录",
+    "name": "2号机组发电机转子",
+    "typeCode": "",
+    "kks": "2MLA30",
+    "sort": 3
+  },
+  {
+    "id": 149,
+    "parentId": 148,
+    "level": "四级",
+    "category": "设备",
+    "name": "2号机组转子中心体",
+    "typeCode": "",
+    "kks": "2MLA30AG001",
+    "sort": 1
+  },
+  {
+    "id": 150,
+    "parentId": 148,
+    "level": "四级",
+    "category": "设备",
+    "name": "2号机组磁轭",
+    "typeCode": "",
+    "kks": "2MLA30AG101",
+    "sort": 2
+  },
+  {
+    "id": 151,
+    "parentId": 140,
+    "level": "四级",
+    "category": "系统目录",
+    "name": "2号机组发电机定子",
+    "typeCode": "",
+    "kks": "2MLA40",
+    "sort": 4
+  },
+  {
+    "id": 152,
+    "parentId": 151,
+    "level": "四级",
+    "category": "设备",
+    "name": "2号机组定子机座",
+    "typeCode": "",
+    "kks": "2MLA40BF001",
+    "sort": 1
+  },
+  {
+    "id": 153,
+    "parentId": 151,
+    "level": "四级",
+    "category": "设备",
+    "name": "2号机组定子铁芯",
+    "typeCode": "",
+    "kks": "2MLA40AG001",
+    "sort": 2
+  },
+  {
+    "id": 154,
+    "parentId": 151,
+    "level": "四级",
+    "category": "设备",
+    "name": "2号机组定子线圈",
+    "typeCode": "",
+    "kks": "2MLA40AG002",
+    "sort": 3
+  },
+  {
+    "id": 155,
+    "parentId": 151,
+    "level": "四级",
+    "category": "设备",
+    "name": "2号机组定子主引出线装配",
+    "typeCode": "",
+    "kks": "2MLA40GA002",
+    "sort": 4
+  },
+  {
+    "id": 156,
+    "parentId": 151,
+    "level": "四级",
+    "category": "设备",
+    "name": "2号机组发电机1号空冷器",
+    "typeCode": "",
+    "kks": "2MLA40AC001",
+    "sort": 5
+  },
+  {
+    "id": 157,
+    "parentId": 151,
+    "level": "四级",
+    "category": "设备",
+    "name": "2号机组发电机2号空冷器",
+    "typeCode": "",
+    "kks": "2MLA40AC002",
+    "sort": 6
+  },
+  {
+    "id": 158,
+    "parentId": 151,
+    "level": "四级",
+    "category": "设备",
+    "name": "2号机组发电机3号空冷器",
+    "typeCode": "",
+    "kks": "2MLA40AC003",
+    "sort": 7
+  },
+  {
+    "id": 159,
+    "parentId": 151,
+    "level": "四级",
+    "category": "设备",
+    "name": "2号机组发电机4号空冷器",
+    "typeCode": "",
+    "kks": "2MLA40AC004",
+    "sort": 8
+  },
+  {
+    "id": 160,
+    "parentId": 151,
+    "level": "四级",
+    "category": "设备",
+    "name": "2号机组发电机5号空冷器",
+    "typeCode": "",
+    "kks": "2MLA40AC005",
+    "sort": 9
+  },
+  {
+    "id": 161,
+    "parentId": 151,
+    "level": "四级",
+    "category": "设备",
+    "name": "2号机组发电机6号空冷器",
+    "typeCode": "",
+    "kks": "2MLA40AC006",
+    "sort": 10
+  },
+  {
+    "id": 162,
+    "parentId": 151,
+    "level": "四级",
+    "category": "设备",
+    "name": "2号机组发电机7号空冷器",
+    "typeCode": "",
+    "kks": "2MLA40AC007",
+    "sort": 11
+  },
+  {
+    "id": 163,
+    "parentId": 151,
+    "level": "四级",
+    "category": "设备",
+    "name": "2号机组发电机8号空冷器",
+    "typeCode": "",
+    "kks": "2MLA40AC008",
+    "sort": 12
+  },
+  {
+    "id": 164,
+    "parentId": 140,
+    "level": "四级",
+    "category": "设备",
+    "name": "2号机组下机架",
+    "typeCode": "",
+    "kks": "2MLA50",
+    "sort": 8
+  },
+  {
+    "id": 165,
+    "parentId": 140,
+    "level": "四级",
+    "category": "系统目录",
+    "name": "2号机组发电机附属设施",
+    "typeCode": "",
+    "kks": "2MLA60",
+    "sort": 5
+  },
+  {
+    "id": 166,
+    "parentId": 165,
+    "level": "四级",
+    "category": "设备",
+    "name": "2号机组发电机附属设施1",
+    "typeCode": "",
+    "kks": "2MLA60AP001",
+    "sort": 1
+  },
+  {
+    "id": 167,
+    "parentId": 165,
+    "level": "四级",
+    "category": "设备",
+    "name": "2号机组发电机附属设施2",
+    "typeCode": "",
+    "kks": "2MLA60AP002",
+    "sort": 2
+  },
+  {
+    "id": 168,
+    "parentId": 165,
+    "level": "四级",
+    "category": "设备",
+    "name": "2号机组发电机附属设施3",
+    "typeCode": "",
+    "kks": "2MLA60AP003",
+    "sort": 3
+  },
+  {
+    "id": 169,
+    "parentId": 165,
+    "level": "四级",
+    "category": "设备",
+    "name": "2号机组发电机附属设施4",
+    "typeCode": "",
+    "kks": "2MLA60AP004",
+    "sort": 4
+  },
+  {
+    "id": 170,
+    "parentId": 165,
+    "level": "四级",
+    "category": "设备",
+    "name": "2号机组上导油雾收集装置",
+    "typeCode": "",
+    "kks": "2MLA60AP150",
+    "sort": 5
+  },
+  {
+    "id": 171,
+    "parentId": 165,
+    "level": "四级",
+    "category": "设备",
+    "name": "2号机组推力及下导油雾收集装置",
+    "typeCode": "",
+    "kks": "2MLA60AP250",
+    "sort": 6
+  },
+  {
+    "id": 172,
+    "parentId": 165,
+    "level": "四级",
+    "category": "设备",
+    "name": "2号机组碳刷粉尘收集装置",
+    "typeCode": "",
+    "kks": "2MLA60AP160",
+    "sort": 7
+  },
+  {
+    "id": 173,
+    "parentId": 165,
+    "level": "四级",
+    "category": "设备",
+    "name": "2号机组制动粉尘收集装置",
+    "typeCode": "",
+    "kks": "2MLA60AP260",
+    "sort": 8
+  },
+  {
+    "id": 174,
+    "parentId": 140,
+    "level": "四级",
+    "category": "系统目录",
+    "name": "2号机组机械制动装置",
+    "typeCode": "",
+    "kks": "2MLA70",
+    "sort": 6
+  },
+  {
+    "id": 175,
+    "parentId": 174,
+    "level": "四级",
+    "category": "设备",
+    "name": "2号机组机械制动柜",
+    "typeCode": "",
+    "kks": "2MLA70GK001",
+    "sort": 1
+  },
+  {
+    "id": 176,
+    "parentId": 140,
+    "level": "四级",
+    "category": "设备",
+    "name": "2号机组发电机自动化盘柜",
+    "typeCode": "",
+    "kks": "2MLA80",
+    "sort": 9
+  },
+  {
+    "id": 177,
+    "parentId": 140,
+    "level": "四级",
+    "category": "设备",
+    "name": "2号机组推力轴承",
+    "typeCode": "",
+    "kks": "2MLD01",
+    "sort": 10
+  },
+  {
+    "id": 178,
+    "parentId": 140,
+    "level": "四级",
+    "category": "系统目录",
+    "name": "2号机组推力轴承高压顶起装置",
+    "typeCode": "",
+    "kks": "2MLD02",
+    "sort": 7
+  },
+  {
+    "id": 179,
+    "parentId": 178,
+    "level": "四级",
+    "category": "设备",
+    "name": "2号机组交流高压油泵控制柜",
+    "typeCode": "",
+    "kks": "2MLD02GK001",
+    "sort": 1
+  },
+  {
+    "id": 180,
+    "parentId": 178,
+    "level": "四级",
+    "category": "设备",
+    "name": "2号机组直流高压油泵控制柜",
+    "typeCode": "",
+    "kks": "2MLD02GK002",
+    "sort": 2
+  },
+  {
+    "id": 181,
+    "parentId": 140,
+    "level": "四级",
+    "category": "设备",
+    "name": "2号机组上导轴承",
+    "typeCode": "",
+    "kks": "2MLD11",
+    "sort": 11
+  },
+  {
+    "id": 182,
+    "parentId": 140,
+    "level": "四级",
+    "category": "设备",
+    "name": "2号机组下导轴承",
+    "typeCode": "",
+    "kks": "2MLD21",
+    "sort": 12
+  },
+  {
+    "id": 183,
+    "parentId": 100,
+    "level": "三级",
+    "category": "系统目录",
+    "name": "2号机组中性点设备",
+    "typeCode": "",
+    "kks": "2BAU10",
+    "sort": 6
+  },
+  {
+    "id": 184,
+    "parentId": 183,
+    "level": "四级",
+    "category": "设备",
+    "name": "2号机组中性点电流互感器",
+    "typeCode": "",
+    "kks": "2BAU10GT001",
+    "sort": 1
+  },
+  {
+    "id": 185,
+    "parentId": 183,
+    "level": "四级",
+    "category": "设备",
+    "name": "2号机组中性点接地柜",
+    "typeCode": "",
+    "kks": "2BAU10GH201",
+    "sort": 2
+  },
+  {
+    "id": 186,
+    "parentId": 100,
+    "level": "三级",
+    "category": "系统目录",
+    "name": "2号机组励磁",
+    "typeCode": "",
+    "kks": "2MLC10",
+    "sort": 7
+  },
+  {
+    "id": 187,
+    "parentId": 186,
+    "level": "四级",
+    "category": "设备",
+    "name": "2号机组励磁变压器",
+    "typeCode": "",
+    "kks": "2MLC10GT100",
+    "sort": 1
+  },
+  {
+    "id": 188,
+    "parentId": 186,
+    "level": "四级",
+    "category": "设备",
+    "name": "2号机组励磁调节柜",
+    "typeCode": "",
+    "kks": "2MLC10GK007",
+    "sort": 2
+  },
+  {
+    "id": 189,
+    "parentId": 186,
+    "level": "四级",
+    "category": "设备",
+    "name": "2号机组灭磁电阻柜",
+    "typeCode": "",
+    "kks": "2MLC10GK006",
+    "sort": 3
+  },
+  {
+    "id": 190,
+    "parentId": 186,
+    "level": "四级",
+    "category": "设备",
+    "name": "2号机组灭磁开关柜",
+    "typeCode": "",
+    "kks": "2MLC10GK005",
+    "sort": 4
+  },
+  {
+    "id": 191,
+    "parentId": 186,
+    "level": "四级",
+    "category": "设备",
+    "name": "2号机组励磁1号功率柜",
+    "typeCode": "",
+    "kks": "2MLC10GK004",
+    "sort": 5
+  },
+  {
+    "id": 192,
+    "parentId": 186,
+    "level": "四级",
+    "category": "设备",
+    "name": "2号机组励磁2号功率柜",
+    "typeCode": "",
+    "kks": "2MLC10GK003",
+    "sort": 6
+  },
+  {
+    "id": 193,
+    "parentId": 186,
+    "level": "四级",
+    "category": "设备",
+    "name": "2号机组励磁3号功率柜",
+    "typeCode": "",
+    "kks": "2MLC10GK002",
+    "sort": 7
+  },
+  {
+    "id": 194,
+    "parentId": 186,
+    "level": "四级",
+    "category": "设备",
+    "name": "2号机组励磁交流开关柜",
+    "typeCode": "",
+    "kks": "2MLC10GK001",
+    "sort": 8
+  }
+]
