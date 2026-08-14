@@ -44,22 +44,13 @@ export function Tag({ color = "blue", children, className }: TagProps) {
 // 状态标签快捷组件
 export function StatusTag({
   status,
-  type = "default",
 }: {
   status: string;
-  type?: "default" | "approval" | "linked" | "enable" | "log";
 }) {
   const statusConfig: Record<
     string,
     { color: TagColor; label: string }
   > = {
-    // 审批状态（资料管理统一口径）
-    draft: { color: "gray", label: "草稿" },
-    pending: { color: "yellow", label: "待审批" },
-    approving: { color: "orange", label: "审批中" },
-    approved: { color: "green", label: "已通过" },
-    archived: { color: "cyan", label: "已归档" },
-    rejected: { color: "red", label: "已驳回" },
     // 挂接状态
     linked: { color: "green", label: "已挂接" },
     unlinked: { color: "gray", label: "未挂接" },

@@ -1,8 +1,15 @@
-import { useCallback, useRef } from "react";
-import type { DrillDownData } from "@/components/screen/DrillDownModal";
+import { useCallback } from "react";
+import type {
+  DrillDownData,
+  DrillDownSession,
+} from "@/components/screen/DrillDownModal";
+import {
+  createDrillDownSession,
+  type DrillClickContext,
+} from "@/components/screen/drillDownFactory";
 
 interface DrillDownCallbacks {
-  onDrillDown: (data: DrillDownData) => void;
+  onDrillDown: (data: DrillDownSession) => void;
   onLocateBIM?: (kksCode: string) => void;
 }
 
@@ -329,9 +336,11 @@ function generateRawData(
   const rows: { timestamp: string; value: string; unit: string; quality: string }[] = [];
   for (let i = 0; i < count; i++) {
     const t = new Date(now.getTime() - i * intervalMs);
-    const noise = (Math.random() - 0.5) * 2 * variation * baseValue;
+    const seed = Math.max(1, Math.round(Math.abs(baseValue) * 100));
+    const wave = Math.sin((i + seed) * 0.91) + Math.cos((i + seed) * 0.37);
+    const noise = wave * variation * baseValue * 0.45;
     const v = baseValue + noise;
-    const isAbnormal = Math.random() < 0.05;
+    const isAbnormal = i > 0 && (i + seed) % 17 === 0;
     rows.push({
       timestamp: `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, "0")}-${String(t.getDate()).padStart(2, "0")} ${String(t.getHours()).padStart(2, "0")}:${String(t.getMinutes()).padStart(2, "0")}:${String(t.getSeconds()).padStart(2, "0")}`,
       value: v.toFixed(unit === "%" ? 1 : 2),
@@ -343,8 +352,6 @@ function generateRawData(
 }
 
 export function useChartDrillDown(callbacks: DrillDownCallbacks) {
-  const chartRefs = useRef<Map<string, any>>(new Map());
-
   const generateDrillDownData = useCallback(
     (args: {
       chartId: string;
@@ -378,6 +385,7 @@ export function useChartDrillDown(callbacks: DrillDownCallbacks) {
         );
 
       return {
+        detailType: "measurement",
         pointName: meta.pointName,
         deviceName,
         kksCode: meta.kksCode,
@@ -423,10 +431,9 @@ export function useChartDrillDown(callbacks: DrillDownCallbacks) {
     []
   );
 
-  const bindChartEvents = useCallback(
+  const configureChart = useCallback(
     (chartId: string, chartInstance: any, meta: { deviceName: string; metricPrefix: string }) => {
       if (!chartInstance) return;
-      chartRefs.current.set(chartId, chartInstance);
 
       // 检测图表类型，设置正确的 tooltip trigger
       const currentOption = chartInstance.getOption();
@@ -461,36 +468,54 @@ export function useChartDrillDown(callbacks: DrillDownCallbacks) {
           },
         },
       });
-
-      chartInstance.off("click");
-      chartInstance.on("click", (params: any) => {
-        if (params.componentType === "series" || params.componentType === "markPoint") {
-          const seriesIndex = params.seriesIndex ?? 0;
-          const dataIndex = params.dataIndex ?? 0;
-          const rawValue = Array.isArray(params.value)
-            ? Number(params.value[1] ?? params.value[0] ?? 0)
-            : Number(params.value ?? 0);
-
-          const pointName = params.seriesName || params.name || meta.metricPrefix;
-          const unit = getUnitForMetric(pointName, chartId);
-
-          const drillData = generateDrillDownData({
-            chartId,
-            seriesIndex,
-            dataIndex,
-            value: rawValue,
-            unit,
-            deviceName: meta.deviceName,
-            params,
-          });
-          callbacks.onDrillDown(drillData);
-        }
-      });
     },
-    [callbacks, generateDrillDownData]
+    []
   );
 
-  return { bindChartEvents, generateDrillDownData, chartRefs };
+  const createChartEvents = useCallback(
+    (chartId: string, meta: { deviceName: string; metricPrefix: string }) => ({
+      click: (params: any) => {
+        if (params.componentType !== "series" && params.componentType !== "markPoint") {
+          return;
+        }
+
+        const seriesIndex = params.seriesIndex ?? 0;
+        const dataIndex = params.dataIndex ?? 0;
+        const rawValue = Array.isArray(params.value)
+          ? Number(params.value[1] ?? params.value[0] ?? 0)
+          : Number(params.value ?? 0);
+        const pointName = params.seriesName || params.name || meta.metricPrefix;
+        const unit = getUnitForMetric(pointName, chartId);
+        const context: DrillClickContext = {
+          chartId,
+          seriesIndex,
+          dataIndex,
+          value: rawValue,
+          unit,
+          deviceName: meta.deviceName,
+          params,
+        };
+        const session = createDrillDownSession(
+          context,
+          (overrides = {}) =>
+            generateDrillDownData({
+              ...context,
+              ...overrides,
+              params: overrides.params ?? context.params,
+            }),
+        );
+
+        callbacks.onDrillDown(session);
+      },
+    }),
+    [callbacks.onDrillDown, generateDrillDownData]
+  );
+
+  return {
+    configureChart,
+    createChartEvents,
+    generateDrillDownData,
+  };
 }
 
 function getUnitForMetric(metricName: string, chartId?: string): string {

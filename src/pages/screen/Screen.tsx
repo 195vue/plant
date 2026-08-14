@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import ReactECharts from "echarts-for-react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
@@ -7,9 +7,16 @@ import { TopNav } from "@/components/screen/TopNav";
 import { Scene3D } from "@/components/screen/Scene3D";
 import { BottomBar } from "@/components/screen/BottomBar";
 import { TreePanel, type TreeNodeData } from "@/components/common/TreePanel";
-import DrillDownModal, { type DrillDownData } from "@/components/screen/DrillDownModal";
+import DrillDownModal, {
+  type DrillDownSession,
+} from "@/components/screen/DrillDownModal";
 import { useChartDrillDown } from "@/components/screen/useChartDrillDown";
 import { message } from "@/components/common/Message";
+import {
+  resolveAttributeTemplate,
+  useAttributeTemplates,
+  type AttributeTemplateScope,
+} from "@/lib/attributeTemplateStore";
 import {
   overviewTreeData,
   equipmentTreeData,
@@ -21,27 +28,76 @@ import {
   generateNodeInfo,
 } from "@/mock/screen";
 import { systems, alarms, screenStats } from "@/mock/index";
+import { DevNote } from "@/components/devNotes/DevNote";
 
 const ONLINE_COUNT = 230;
 const OFFLINE_COUNT = 18;
 
-const labelMap: Record<string, string> = {
-  code: "编码",
-  name: "名称",
-  type: "类型",
-  system: "所属系统",
-  major: "所属专业",
-  location: "安装位置",
-  model: "型号",
-  manufacturer: "厂家",
-  commissionDate: "投运日期",
-  spec: "规格",
-  material: "材质",
-  length: "长度/数量",
-  position: "所属位置",
-  usage: "所属用途",
-  count: "包含数量",
-};
+function inferTemplateClassifier(
+  scope: AttributeTemplateScope,
+  title: string,
+  basic: Record<string, any>,
+) {
+  if (scope === "pipeline") {
+    if (title.includes("技术供水")) return "技术供水管路";
+    if (title.includes("冷却水")) return "冷却水管路";
+    if (title.includes("排水")) return "排水管路";
+    if (title.includes("油")) return "供油管路";
+    if (title.includes("消防")) return "消防管路";
+    return basic.type || basic.usage || "主管路";
+  }
+
+  const candidates = [
+    "水泵水轮机",
+    "发电电动机",
+    "主变压器",
+    "进水阀",
+    "技术供水泵",
+    "低压空压机",
+    "电气二次盘柜",
+  ];
+  return basic.type || candidates.find((name) => title.includes(name)) || title;
+}
+
+function buildTemplateValueMap(nodeInfo: any) {
+  const basic = nodeInfo?.basic || {};
+  const values = new Map<string, string>();
+  const setValue = (key: string, value: unknown) => {
+    if (value !== undefined && value !== null && String(value).trim()) {
+      values.set(key, String(value));
+    }
+  };
+
+  [
+    ["设备名称", basic.name],
+    ["管路名称", basic.name],
+    ["KKS编码", basic.code],
+    ["唯一编码", basic.code],
+    ["编码", basic.code],
+    ["设备编码", basic.code],
+    ["管路编码", basic.code],
+    ["设备类型", basic.type],
+    ["所属系统", basic.system],
+    ["所属专业", basic.major],
+    ["安装位置", basic.location || basic.position],
+    ["型号", basic.model],
+    ["厂家", basic.manufacturer],
+    ["制造厂家", basic.manufacturer],
+    ["投运日期", basic.commissionDate],
+    ["安装日期", basic.commissionDate],
+    ["规格", basic.spec],
+    ["材质", basic.material],
+    ["长度", basic.length],
+    ["所属用途", basic.usage],
+    ["介质类型", basic.medium],
+  ].forEach(([key, value]) => setValue(String(key), value));
+
+  (nodeInfo?.techParams || []).forEach((param: any) => {
+    setValue(param.name, param.value);
+  });
+
+  return values;
+}
 
 function StatCard({
   label,
@@ -105,7 +161,7 @@ export default function Screen() {
   const navigate = useNavigate();
   const { isAuthenticated, currentUser } = useAuthStore();
 
-  const [viewMode, setViewMode] = useState<"overview" | "interior">("overview");
+  const [viewMode, setViewMode] = useState<"overview" | "interior">("interior");
   const [focusMode, setFocusMode] = useState<"panorama" | "equipment" | "pipeline">(
     "panorama"
   );
@@ -117,12 +173,12 @@ export default function Screen() {
   const [rightActiveTab, setRightActiveTab] = useState<RightTabKey>("basic");
   const [overviewActiveTab, setOverviewActiveTab] = useState<OverviewTabKey>("stats");
   const [sceneResetKey, setSceneResetKey] = useState(0);
+  const { templates } = useAttributeTemplates();
 
   const [drillDownOpen, setDrillDownOpen] = useState(false);
-  const [drillDownData, setDrillDownData] = useState<DrillDownData | null>(null);
-  const chartInstancesRef = useRef<Map<string, any>>(new Map());
+  const [drillDownData, setDrillDownData] = useState<DrillDownSession | null>(null);
 
-  const handleDrillDown = useCallback((data: DrillDownData) => {
+  const handleDrillDown = useCallback((data: DrillDownSession) => {
     setDrillDownData(data);
     setDrillDownOpen(true);
   }, []);
@@ -134,7 +190,7 @@ export default function Screen() {
     setDrillDownOpen(false);
   }, []);
 
-  const { bindChartEvents } = useChartDrillDown({
+  const { configureChart, createChartEvents } = useChartDrillDown({
     onDrillDown: handleDrillDown,
     onLocateBIM: handleLocateBIM,
   });
@@ -145,14 +201,20 @@ export default function Screen() {
     }
   }, [isAuthenticated, navigate]);
 
-  const onChartReady = useCallback(
+  const getChartProps = useCallback(
     (chartId: string, meta: { deviceName: string; metricPrefix: string }) =>
-      (instance: any) => {
-        if (!instance || !instance.on) return;
-        chartInstancesRef.current.set(chartId, instance);
-        bindChartEvents(chartId, instance, meta);
-      },
-    [bindChartEvents]
+      ({
+        "data-chart-id": chartId,
+        role: "img",
+        "aria-label": `${meta.metricPrefix}图表，点击数据点逐层钻取`,
+        title: "点击图表数据点逐层钻取",
+        onChartReady: (instance: any) => {
+          if (!instance?.setOption) return;
+          configureChart(chartId, instance, meta);
+        },
+        onEvents: createChartEvents(chartId, meta),
+      }),
+    [configureChart, createChartEvents]
   );
 
   if (!currentUser) return null;
@@ -171,22 +233,12 @@ export default function Screen() {
     setOverviewActiveTab("stats");
 
     const sceneDescriptions = {
-      overview: "返回工程总览默认观察点，加载大坝、厂房、水库和开关站等宏观对象",
+      overview: "切换到工程总览默认观察点，加载大坝与坝后厂房宏观模型",
       panorama: "切换到厂房全景，综合显示建筑、设备和管网模型",
       equipment: "切换到设备总览，淡化管网并按运行状态高亮设备",
       pipeline: "切换到管路总览，淡化设备并按所属系统高亮管线",
     };
     message.info(`实际项目中：三维相机将平滑${sceneDescriptions[scene]}。`);
-  };
-
-  const handleBackToOverview = () => {
-    setViewMode("overview");
-    setFocusMode("panorama");
-    setSelectedNode(undefined);
-    setOverviewActiveTab("stats");
-    message.info(
-      "实际项目中：三维相机将退出厂房内部并飞行返回工程总览，恢复大坝、库区、厂房和开关站的全局视角。"
-    );
   };
 
   const handleEnterInterior = (
@@ -206,15 +258,23 @@ export default function Screen() {
     );
   };
 
-  const handleSceneSelectNode = (title: string) => {
+  const handleSceneSelectNode = (
+    title: string,
+    kind: "equipment" | "pipeline" = "equipment",
+  ) => {
     setSelectedNode(
-      { key: title, title, code: "", type: "component" } as TreeNodeData
+      {
+        key: title,
+        title,
+        code: "",
+        type: kind === "pipeline" ? "component" : "equipment",
+      } as TreeNodeData
     );
     setRightActiveTab("basic");
   };
 
   const handleGlobalReset = () => {
-    setViewMode("overview");
+    setViewMode("interior");
     setFocusMode("panorama");
     setSelectedNode(undefined);
     setLeftPanelVisible(true);
@@ -246,6 +306,29 @@ export default function Screen() {
     return generateNodeInfo(selectedNode);
   };
   const nodeInfo = getNodeInfo();
+  const selectedScope: AttributeTemplateScope =
+    focusMode === "pipeline" ||
+    selectedNode?.type === "component" ||
+    selectedNode?.type === "usage"
+      ? "pipeline"
+      : "equipment";
+  const templateClassifier = inferTemplateClassifier(
+    selectedScope,
+    selectedNode?.title || "",
+    nodeInfo?.basic || {},
+  );
+  const matchedTemplate = selectedNode
+    ? resolveAttributeTemplate(selectedScope, templateClassifier, templates)
+    : null;
+  const templateValueMap = buildTemplateValueMap(nodeInfo);
+  const basicTemplateFields =
+    matchedTemplate?.fields.filter(
+      (field) => field.category === "基础信息",
+    ) || [];
+  const techTemplateFields =
+    matchedTemplate?.fields.filter(
+      (field) => field.category === "技术参数",
+    ) || [];
 
   const powerTrendOption = useMemo(() => {
     const hours = ["00", "02", "04", "06", "08", "10", "12", "14", "16", "18", "20", "22"];
@@ -635,7 +718,10 @@ export default function Screen() {
           <ReactECharts
             option={powerTrendOption}
             style={{ height: 110 }}
-            onChartReady={onChartReady("left-trend", { deviceName: "1#-4#机组", metricPrefix: "机组出力" })}
+            {...getChartProps("left-trend", {
+              deviceName: "1#-4#机组",
+              metricPrefix: "机组出力",
+            })}
           />
         </div>
 
@@ -647,7 +733,10 @@ export default function Screen() {
           <ReactECharts
             option={waterFlowOption}
             style={{ height: 90 }}
-            onChartReady={onChartReady("left-waterflow", { deviceName: "全厂机组", metricPrefix: "水头/流量" })}
+            {...getChartProps("left-waterflow", {
+              deviceName: "全厂机组",
+              metricPrefix: "水头/流量",
+            })}
           />
         </div>
 
@@ -659,7 +748,10 @@ export default function Screen() {
           <ReactECharts
             option={alarmTrendOption}
             style={{ height: 80 }}
-            onChartReady={onChartReady("left-alarm", { deviceName: "全厂设备", metricPrefix: "告警" })}
+            {...getChartProps("left-alarm", {
+              deviceName: "全厂设备",
+              metricPrefix: "告警",
+            })}
           />
         </div>
 
@@ -671,7 +763,10 @@ export default function Screen() {
           <ReactECharts
             option={onlineRateOption}
             style={{ height: 80 }}
-            onChartReady={onChartReady("left-online", { deviceName: "全厂设备", metricPrefix: "在线率" })}
+            {...getChartProps("left-online", {
+              deviceName: "全厂设备",
+              metricPrefix: "在线率",
+            })}
           />
         </div>
 
@@ -728,81 +823,33 @@ export default function Screen() {
   );
 
   const renderBasicInfoTab = () => {
-    const basic = nodeInfo?.basic || {};
-    const entries = Object.entries(basic);
-    if (entries.length === 0) {
+    if (!matchedTemplate) {
       return (
-        <div className="p-3 text-center">
-          <div className="text-xs text-[#40A9FF] font-medium mb-3" style={{ textShadow: "0 0 6px rgba(64,169,255,0.5)" }}>
-            系统设备分布
-          </div>
-          <div className="bg-black/30 border border-[#40A9FF]/25 p-2 mb-3 rounded-none">
-            <ReactECharts
-              option={{
-                backgroundColor: "transparent",
-                tooltip: { trigger: "item", formatter: "{b}: {c} ({d}%)" },
-                legend: {
-                  orient: "vertical",
-                  right: 10,
-                  top: "center",
-                  textStyle: { color: "#8a94a6", fontSize: 9 },
-                  itemWidth: 8,
-                  itemHeight: 6,
-                },
-                series: [
-                  {
-                    type: "pie",
-                    radius: ["40%", "70%"],
-                    center: ["40%", "50%"],
-                    data: screenStats.equipmentBySystem,
-                    itemStyle: {
-                      borderColor: "rgba(0, 180, 255, 0.3)",
-                      borderWidth: 1,
-                    },
-                    label: { show: false },
-                    emphasis: {
-                      label: { show: true, fontSize: 10, fontWeight: "bold", color: "#00b4ff" },
-                    },
-                  },
-                ],
-              }}
-              style={{ height: 150 }}
-              onChartReady={onChartReady("overview-pie-small", { deviceName: "全厂设备", metricPrefix: "系统分布" })}
-            />
-          </div>
-          <div className="grid grid-cols-2 gap-2">
-            <div className="bg-blue-900/30 border border-[#40A9FF]/25 rounded-nonep-2">
-              <div className="text-xs text-screen-muted">设备总数</div>
-              <div className="text-xl text-[#40A9FF] font-bold mt-1">{screenStats.equipmentTotal}</div>
-            </div>
-            <div className="bg-green-900/30 border border-[#40A9FF]/25 rounded-nonep-2">
-              <div className="text-xs text-screen-muted">管路总数</div>
-              <div className="text-xl text-green-400 font-bold mt-1">{screenStats.pipelineTotal}</div>
-            </div>
-            <div className="bg-orange-900/30 border border-[#40A9FF]/25 rounded-nonep-2">
-              <div className="text-xs text-screen-muted">在线设备</div>
-              <div className="text-xl text-orange-400 font-bold mt-1">{ONLINE_COUNT}</div>
-            </div>
-            <div className="bg-purple-900/30 border border-[#40A9FF]/25 rounded-nonep-2">
-              <div className="text-xs text-screen-muted">图纸总数</div>
-              <div className="text-xl text-purple-400 font-bold mt-1">{screenStats.drawingTotal}</div>
-            </div>
+        <div className="p-3">
+          <div className="text-xs text-[#40A9FF] font-medium mb-2">基础信息</div>
+          <div className="border border-orange-500/30 bg-orange-500/10 p-3 text-xs text-orange-300">
+            当前对象类型“{templateClassifier || "未识别"}”未匹配属性模板，请先在系统配置的属性模板库中维护。
           </div>
         </div>
       );
     }
     return (
       <div className="p-3">
-        <div className="text-xs text-[#40A9FF] font-medium mb-2" style={{ textShadow: "0 0 6px rgba(64,169,255,0.5)" }}>
-          基础信息
+        <div className="flex items-center justify-between mb-2">
+          <div className="text-xs text-[#40A9FF] font-medium" style={{ textShadow: "0 0 6px rgba(64,169,255,0.5)" }}>
+            基础信息
+          </div>
+          <span className="text-[10px] text-screen-muted">{matchedTemplate.name}</span>
         </div>
         <div className="space-y-1.5">
-          {entries.map(([k, v]) => (
-            <div key={k} className="flex text-xs bg-black/30 rounded-nonepx-2 py-1.5 border-l-2 border-[#40A9FF]/50">
+          {basicTemplateFields.map((field) => (
+            <div key={field.id} className="flex text-xs bg-black/30 rounded-none px-2 py-1.5 border-l-2 border-[#40A9FF]/50">
               <span className="w-20 text-screen-muted flex-shrink-0">
-                {labelMap[k] || k}
+                {field.name}
               </span>
-              <span className="flex-1 text-screen-text">{String(v)}</span>
+              <span className="flex-1 text-screen-text">
+                {templateValueMap.get(field.name) || "—"}
+              </span>
             </div>
           ))}
         </div>
@@ -811,11 +858,11 @@ export default function Screen() {
   };
 
   const renderTechParamsTab = () => {
-    if (!nodeInfo?.techParams || nodeInfo.techParams.length === 0) {
+    if (!matchedTemplate) {
       return (
         <div className="p-3 text-center">
           <div className="text-xs text-[#40A9FF] font-medium mb-2">技术参数</div>
-          <div className="text-xs text-screen-muted py-4">暂无技术参数信息</div>
+          <div className="text-xs text-screen-muted py-4">当前对象未匹配属性模板</div>
         </div>
       );
     }
@@ -832,11 +879,13 @@ export default function Screen() {
               </tr>
             </thead>
             <tbody>
-              {nodeInfo.techParams.map((p: any, i: number) => (
-                <tr key={i} className="border-t border-screen-border">
-                  <td className="px-2 py-1.5 text-screen-text">{p.name}</td>
-                  <td className="px-2 py-1.5 text-screen-text">{p.value}</td>
-                  <td className="px-2 py-1.5 text-screen-muted">{p.unit || "—"}</td>
+              {techTemplateFields.map((field) => (
+                <tr key={field.id} className="border-t border-screen-border">
+                  <td className="px-2 py-1.5 text-screen-text">{field.name}</td>
+                  <td className="px-2 py-1.5 text-screen-text">
+                    {templateValueMap.get(field.name) || "—"}
+                  </td>
+                  <td className="px-2 py-1.5 text-screen-muted">{field.unit || "—"}</td>
                 </tr>
               ))}
             </tbody>
@@ -890,7 +939,7 @@ export default function Screen() {
         <ReactECharts
           option={runtimeChartOption}
           style={{ height: 140 }}
-          onChartReady={onChartReady("right-runtime", {
+          {...getChartProps("right-runtime", {
             deviceName: nodeInfo?.basic?.name || "当前设备",
             metricPrefix: "运行数据",
           })}
@@ -958,6 +1007,42 @@ export default function Screen() {
 
     return (
       <div className="p-3 flex flex-col">
+        {viewMode === "overview" && (
+          <div className="grid grid-cols-2 gap-2 mb-3">
+            <button
+              onClick={() => {
+                handleEnterInterior("equipment");
+                message.info(
+                  "实际项目中：三维相机将进入厂房设备总览，淡化管网并按运行状态高亮设备。",
+                );
+              }}
+              className="text-left bg-green-500/10 border border-green-500/35 p-2.5 hover:bg-green-500/20 transition-colors"
+            >
+              <div className="flex items-center gap-1.5 text-green-400 text-xs">
+                <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+                设备总览
+              </div>
+              <div className="text-white font-semibold mt-1">156台在线</div>
+              <div className="text-[10px] text-screen-muted mt-1">点击进入设备场景</div>
+            </button>
+            <button
+              onClick={() => {
+                handleEnterInterior("pipeline");
+                message.info(
+                  "实际项目中：三维相机将进入厂房管路总览，淡化设备并按所属系统高亮管线。",
+                );
+              }}
+              className="text-left bg-cyan-500/10 border border-cyan-500/35 p-2.5 hover:bg-cyan-500/20 transition-colors"
+            >
+              <div className="flex items-center gap-1.5 text-cyan-400 text-xs">
+                <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
+                管路总览
+              </div>
+              <div className="text-white font-semibold mt-1">56条系统</div>
+              <div className="text-[10px] text-screen-muted mt-1">点击进入管路场景</div>
+            </button>
+          </div>
+        )}
         <div className="text-xs text-[#40A9FF] font-medium mb-2" style={{ textShadow: "0 0 6px rgba(64,169,255,0.5)" }}>
           系统设备分布
         </div>
@@ -1012,7 +1097,10 @@ export default function Screen() {
               ],
             }}
             style={{ height: 200 }}
-            onChartReady={onChartReady("overview-rose", { deviceName: "全厂设备", metricPrefix: "系统设备分布" })}
+            {...getChartProps("overview-rose", {
+              deviceName: "全厂设备",
+              metricPrefix: "系统设备分布",
+            })}
           />
         </div>
         <div className="flex gap-2 mb-2">
@@ -1137,7 +1225,10 @@ export default function Screen() {
               }],
             }}
             style={{ height: 130 }}
-            onChartReady={onChartReady("overview-health-pie", { deviceName: "全厂设备", metricPrefix: "健康分布" })}
+            {...getChartProps("overview-health-pie", {
+              deviceName: "全厂设备",
+              metricPrefix: "健康分布",
+            })}
           />
         </div>
       </div>
@@ -1203,7 +1294,10 @@ export default function Screen() {
               }],
             }}
             style={{ height: 140 }}
-            onChartReady={onChartReady("overview-health-trend", { deviceName: "全厂设备", metricPrefix: "健康度" })}
+            {...getChartProps("overview-health-trend", {
+              deviceName: "全厂设备",
+              metricPrefix: "健康度",
+            })}
           />
         </div>
       </div>
@@ -1242,12 +1336,24 @@ export default function Screen() {
         viewMode={viewMode}
         focusMode={focusMode}
         onSceneChange={handleSceneChange}
-        onBackToOverview={handleBackToOverview}
       />
 
       <div className="flex-1 flex overflow-hidden">
         {leftPanelVisible ? (
           <div className="flex h-full flex-shrink-0 relative">
+            <DevNote
+              id="screen-left-panel"
+              title="左侧面板（信息图表/结构导航）"
+              summary="两种模式：信息图表（统计数据与趋势图表）或结构导航（设备/管路结构树），点击侧边按钮切换"
+              items={[
+                { label: "数据来源", value: "图表模式：screenStats.equipmentTotal/pipelineTotal、ONLINE_COUNT=230、alarms 长度与告警列表（取前5条）、systems 辅机系统列表；结构树模式：按 viewMode/focusMode 选择 overviewTreeData/equipmentTreeData/pipelineTreeData/panoramaTreeData" },
+                { label: "图表内容", value: "统计卡（设备总数/管路总数/在线设备/今日告警）、机组出力趋势、水头/流量监测、告警数量趋势、设备在线率、辅机系统状态（全部标记“运行中”）、实时告警列表" },
+                { label: "交互逻辑", value: "右上角“-”折叠；侧边“结构树/图表”按钮切换模式；结构树点击节点 → handleSelectNode 选中并联动右侧基础信息与中央高亮；图表数据点支持逐层钻取（见钻取弹窗标注）" },
+                { label: "权限", value: "大屏所有已登录用户可用" },
+                { label: "后续步骤", value: "正式系统：统计值由实时数据服务推送（每5秒刷新），树数据由结构树服务返回" },
+              ]}
+              wrapClassName="flex-shrink-0"
+            >
             <div className="w-[320px] bg-screen-panel border-r border-[#40A9FF]/25 flex flex-col relative">
               <button
                 onClick={() => setLeftPanelVisible(false)}
@@ -1267,6 +1373,7 @@ export default function Screen() {
                   : renderLeftTreeContent()}
               </div>
             </div>
+            </DevNote>
             <button
               onClick={() =>
                 setLeftPanelMode(leftPanelMode === "chart" ? "tree" : "chart")
@@ -1298,10 +1405,24 @@ export default function Screen() {
           selectedNode={selectedNode}
           onSelectNode={handleSceneSelectNode}
           onEnterInterior={(focus) => handleEnterInterior(focus)}
-          onBackToOverview={handleBackToOverview}
         />
 
         {rightPanelVisible ? (
+          <DevNote
+            id="screen-right-panel"
+            title="右侧面板（统计信息/属性信息）"
+            summary="未选中对象时展示统计/实时状态/设备健康3个Tab；选中设备或管路后切换为基础信息/技术参数/运行数据/关联设备/操作记录5个Tab"
+            items={[
+              { label: "Tab切换规则", value: "selectedNode 为空 → OVERVIEW_TABS（统计/实时状态/设备健康），对应 overviewActiveTab；选中对象 → RIGHT_TABS（基础信息/技术参数/运行数据/关联设备/操作记录），对应 rightActiveTab；切换选中对象自动回到“基础信息”" },
+              { label: "基础信息", value: "按对象类型匹配属性模板（设备按 type、管路按 usage，见 inferTemplateClassifier），展示模板“基础信息”分类字段，值来自节点 basic+techParams；未匹配模板时橙色提示“请先在属性模板库维护”" },
+              { label: "技术参数/运行数据", value: "技术参数为模板“技术参数”分类表格；运行数据为随机抖动模拟值（压力MPa/温度℃/振动mm/s，无流量）加趋势曲线（压力/温度/振动三线）" },
+              { label: "关联设备/操作记录", value: "关联设备：管路组件显示其 linkedEquipments，否则按所属系统在 overallStats.bySystem 生成同系统设备/管路条目；操作记录：useMemo 随机生成5条（巡检/调参/保养/排障/录入）" },
+              { label: "统计Tab内容", value: "统计：系统设备分布玫瑰图（top8）、图纸总数186/编码挂接率75.0%/模型关联率82.3%、设备数量排行；实时状态：总功率612.3MW/当前出力585.6MW/机组运行4台等指标卡与机组运行状态表；设备健康：健康度分布饼图（健康85/亚健康10/告警5）、今日告警统计（共3/严重1/警告2）、健康度趋势" },
+              { label: "权限", value: "大屏所有已登录用户可查看；运行数据实时刷新（原型为随机值）" },
+              { label: "后续步骤", value: "正式系统：属性读取模板+实例值接口，运行数据由实时库每5秒推送，操作记录由操作日志服务返回" },
+            ]}
+            wrapClassName="flex-shrink-0"
+          >
           <div className="w-[300px] flex-shrink-0 bg-screen-panel border-l border-[#40A9FF]/25 flex flex-col relative">
             <button
               onClick={() => setRightPanelVisible(false)}
@@ -1340,6 +1461,7 @@ export default function Screen() {
               {selectedNode ? renderRightTabContent() : renderOverviewTabContent()}
             </div>
           </div>
+          </DevNote>
         ) : (
           <button
             onClick={() => setRightPanelVisible(true)}
@@ -1353,6 +1475,19 @@ export default function Screen() {
 
       <BottomBar key={`bottom-${sceneResetKey}`} onReset={handleGlobalReset} />
 
+      <DevNote
+        id="screen-drilldown"
+        title="数据钻取弹窗（数据溯源）"
+        summary="点击图表数据点后逐层下钻，最终层展示测点/设备/告警详情、计算公式、原始时序数据，支持导出与3D定位"
+        items={[
+          { label: "触发方式", value: "点击任一图表数据点（机组出力/水头流量/告警趋势/在线率/玫瑰图/健康图/运行趋势）→ useChartDrillDown 依据 chartId+seriesIndex+值生成 DrillDownSession 并打开弹窗" },
+          { label: "层级钻取", value: "面包屑导航 + 分类/对象表逐层下钻（drillInto/goToLevel），非最终层不可导出与定位；弹窗标题展示当前层级数值" },
+          { label: "最终层内容", value: "三个Tab：数据源测点信息（测点编号/名称/KKS编码/采集装置/采样频率/数据质量）、指标计算公式（公式与参与变量及来源）、原始明细数据（近10小时20条采样，异常行标红）；存在超标时顶部红条展示阈值与判定规则" },
+          { label: "操作", value: "跳转实时监测页面（仅测点类型）；导出原始时序数据 → 生成 CSV（含BOM，文件名 数据溯源_KKS编码_时间戳.csv）；3D模型定位 → 提示相机飞行定位到该测点所属模型" },
+          { label: "异常判定", value: "isAbnormal：按阈值规则判断（如机组出力>180MW、压力>2.0MPa、振动>4.5mm/s等），异常时附带报警记录（时间/级别/处理中）" },
+          { label: "后续步骤", value: "正式系统：钻取数据由测点元数据服务+历史数据库返回，3D定位联动 UE5 相机" },
+        ]}
+      >
       <DrillDownModal
         open={drillDownOpen}
         data={drillDownData}
@@ -1376,6 +1511,7 @@ export default function Screen() {
         }}
         onLocateBIM={handleLocateBIM}
       />
+      </DevNote>
     </div>
   );
 }

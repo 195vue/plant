@@ -27,7 +27,6 @@ import {
   Eye,
   GitBranch,
 } from "lucide-react";
-import { PageHeader } from "@/components/common/PageHeader";
 import { Modal, ConfirmModal } from "@/components/common/Modal";
 import { FormItem, UploadBox } from "@/components/common/UploadBox";
 import { Tag } from "@/components/common/Tag";
@@ -43,6 +42,7 @@ import {
   type NodeLevel,
   type TreeType,
 } from "@/mock/structureTree";
+import { DevNote } from "@/components/devNotes/DevNote";
 
 // 层级配置
 const levelConfig: Record<NodeLevel, { label: string; color: any; icon: React.ReactNode }> = {
@@ -52,16 +52,36 @@ const levelConfig: Record<NodeLevel, { label: string; color: any; icon: React.Re
   L4: { label: "四级", color: "orange", icon: <Cpu size={13} className="text-orange-500" /> },
 };
 
-// 导入模板 CSV 内容
-const TEMPLATE_CSV = `节点名称,KKS编码,父节点KKS,节点分类,层级,排序号
-1号机组,1,,,一级,1
-1号机组水泵水轮机,1MFA,1,,二级,1
-1号机组水泵水轮机转动部件,1MFA10,1MFA,,三级,1
-1号机组转轮,1MFA10HB001,1MFA10,设备,四级,1
-2号机组,2,,,一级,2
-2号机组水泵水轮机,2MFA,2,,二级,1
-技术供水系统,1SVA,,,一级,3
-技术供水泵,1SVA10BB001,1SVA,设备,四级,1`;
+const getCategoryColumnLabel = (treeType: TreeType) =>
+  treeType === "equipment" ? "设备分类" : "管路分类";
+
+const getNodeCategoryLabel = (category: TreeNode["category"]) => {
+  if (category === "equipment") return "设备";
+  if (category === "pipeline") return "管路";
+  return "系统目录";
+};
+
+const getTemplateCsv = (treeType: TreeType) => {
+  const objectCategory = treeType === "equipment" ? "设备" : "管路";
+  const examples = treeType === "equipment"
+    ? [
+        "1号机组,1,,系统目录,一级,1",
+        "1号机组水泵水轮机,1MFA,1,系统目录,二级,1",
+        "1号机组转动部件,1MFA10,1MFA,系统目录,三级,1",
+        `1号机组转轮,1MFA10HB001,1MFA10,${objectCategory},四级,1`,
+      ]
+    : [
+        "技术供水系统,1SVA,,系统目录,一级,1",
+        "1号机技术供水,1SVA10,1SVA,系统目录,二级,1",
+        "冷却水支路,1SVA10BR001,1SVA10,系统目录,三级,1",
+        `冷却水主管,1SVA10BR001A,1SVA10BR001,${objectCategory},四级,1`,
+      ];
+
+  return [
+    "节点名称,KKS编码,父节点KKS,节点分类,层级,排序号",
+    ...examples,
+  ].join("\n");
+};
 
 export default function StructureTreeManage() {
   const [treeType, setTreeType] = useState<TreeType>("equipment");
@@ -189,7 +209,7 @@ export default function StructureTreeManage() {
       : "system";
 
     if (isAddChild && editNode) {
-      message.success(`已在「${editNode.name}」下新增${levelConfig[level]?.label}节点「${form.name}」（分类：${category === "system" ? "系统目录" : leafLabel}）`);
+      message.success(`已在「${editNode.name}」下新增${levelConfig[level]?.label}节点「${form.name}」（分类：${getNodeCategoryLabel(category)}）`);
     } else if (isAddRoot) {
       message.success(`已新增一级节点「${form.name}」`);
     } else if (editNode) {
@@ -243,7 +263,7 @@ export default function StructureTreeManage() {
 
   // 导出导入模板
   const handleDownloadTemplate = () => {
-    const blob = new Blob(["\ufeff" + TEMPLATE_CSV], { type: "text/csv;charset=utf-8" });
+    const blob = new Blob(["\ufeff" + getTemplateCsv(treeType)], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
@@ -264,11 +284,17 @@ export default function StructureTreeManage() {
   const handleImportFileChange = (file: File | null) => {
     setImportFile(file);
     if (file) {
-      const sample = [
-        { name: "3号机组", kks: "3", parentKks: "", category: "系统目录", level: "一级", sort: 3, status: "✅ 新增" },
-        { name: "3号机组水泵水轮机", kks: "3MFA", parentKks: "3", category: "系统目录", level: "二级", sort: 1, status: "✅ 新增" },
-        { name: "3号机组转轮", kks: "3MFA10HB001", parentKks: "3MFA", category: "设备", level: "四级", sort: 1, status: "✅ 新增" },
-      ];
+      const sample = treeType === "equipment"
+        ? [
+            { name: "3号机组", kks: "3", parentKks: "", category: "系统目录", level: "一级", sort: 3, status: "可导入" },
+            { name: "3号机组水泵水轮机", kks: "3MFA", parentKks: "3", category: "系统目录", level: "二级", sort: 1, status: "可导入" },
+            { name: "3号机组转轮", kks: "3MFA10HB001", parentKks: "3MFA", category: "设备", level: "四级", sort: 1, status: "可导入" },
+          ]
+        : [
+            { name: "技术供水系统", kks: "3SVA", parentKks: "", category: "系统目录", level: "一级", sort: 3, status: "可导入" },
+            { name: "3号机技术供水", kks: "3SVA10", parentKks: "3SVA", category: "系统目录", level: "二级", sort: 1, status: "可导入" },
+            { name: "3号机冷却水主管", kks: "3SVA10BR001", parentKks: "3SVA10", category: "管路", level: "四级", sort: 1, status: "可导入" },
+          ];
       setImportPreview(sample);
       message.success(`已读取文件「${file.name}」，共 ${sample.length} 条待导入数据`);
     }
@@ -292,13 +318,19 @@ export default function StructureTreeManage() {
 
   return (
     <div className="h-full flex flex-col gap-3">
-      <PageHeader
-        title="结构树管理"
-        subtitle={treeType === "equipment" ? "设备结构树（位置→系统→子系统→设备，基于KKS编码体系）" : "管路结构树（位置→系统→用途→管路/管件，基于KKS编码体系）"}
-        className="flex-shrink-0"
-      />
-
       {/* Tab 切换 */}
+      <DevNote
+        id="structure-tab"
+        title="结构树类型Tab（设备/管路）"
+        summary="切换设备结构树与管路结构树两类层级配置"
+        items={[
+          { label: "数据来源", value: "treeType 状态（equipment/pipeline）；树数据由 buildStructureTree(treeType) 生成，统计由 getTreeStats(treeType) 计算" },
+          { label: "层级规则", value: "设备结构树：位置→系统→子系统→设备；管路结构树：位置→系统→用途→管路/管件（四级）" },
+          { label: "交互逻辑", value: "切换时清空选中节点/批量选中/搜索关键字并重置分页、展开前3个节点" },
+          { label: "权限", value: "管理员/操作人员可维护；浏览人员仅可查看（原型未区分，正式系统按角色）" },
+        ]}
+        wrapClassName="block flex-shrink-0"
+      >
       <div className="flex items-center gap-1 flex-shrink-0">
         <button
           className={`px-4 py-1.5 text-xs font-medium rounded-t border-b-2 transition-colors ${
@@ -321,8 +353,21 @@ export default function StructureTreeManage() {
           <GitBranch size={13} className="inline mr-1" /> 管路结构树
         </button>
       </div>
+      </DevNote>
 
       {/* 统计概览栏 + 操作按钮 */}
+      <DevNote
+        id="structure-toolbar"
+        title="统计概览与操作栏"
+        summary="展示节点分布统计，提供批量删除、新增一级节点、导入导出与重置"
+        items={[
+          { label: "数据来源", value: "stats（getTreeStats）：总节点/一级/二级/三级/四级/末级设备或管路数量" },
+          { label: "交互逻辑", value: "勾选列表节点后出现“已选N项+批量删除”；“新增一级节点”打开表单（默认层级一级、排序号=一级数+1）；“导入”下拉含 上传文件导入（弹窗）/下载导入模板（CSV，按设备/管路示例生成）；“导出”提示导出N个节点；“重置”清空全部筛选与选中" },
+          { label: "权限", value: "新增/批量删除/导入/导出：管理员/操作人员；浏览人员仅查看" },
+          { label: "后续步骤", value: "正式系统：导入导出由服务端批量处理并校验KKS唯一性" },
+        ]}
+        wrapClassName="block flex-shrink-0"
+      >
       <div className="flex items-center gap-4 px-4 py-2 bg-admin-card border border-admin-border rounded flex-shrink-0">
         <div className="flex items-center gap-1.5">
           <Building2 size={14} className="text-blue-500" />
@@ -393,9 +438,23 @@ export default function StructureTreeManage() {
           </button>
         </div>
       </div>
+      </DevNote>
 
       <div className="flex gap-3 flex-1 min-h-0">
         {/* 左侧：结构树 */}
+        <DevNote
+          id="structure-tree"
+          title="左侧结构树"
+          summary="按四层结构浏览节点，支持搜索、展开/折叠、选择联动中间列表"
+          items={[
+            { label: "数据来源", value: "tree（buildStructureTree(treeType)）；matchKeys 按关键字过滤名称/KKS并保留命中节点及祖先" },
+            { label: "交互逻辑", value: "搜索框实时过滤（保留命中节点与祖先链）；展开/折叠全部；点击节点 → handleSelect：选中并联动中间列表筛选（该节点及后代）、有子节点时自动展开；底部显示节点总数与“+新增一级节点”" },
+            { label: "节点标记", value: "行内显示 层级图标/名称/KKS编码/末级设备或管路数量" },
+            { label: "后续步骤", value: "正式系统：结构树由服务端按KKS体系返回" },
+            { label: "权限", value: "管理员/操作人员可维护" },
+          ]}
+          wrapClassName="flex flex-shrink-0"
+        >
         <div className="w-[300px] flex-shrink-0 admin-card flex flex-col overflow-hidden">
           <div className="px-3 py-2 border-b border-admin-border bg-gray-50">
             <div className="flex items-center justify-between mb-2">
@@ -421,6 +480,7 @@ export default function StructureTreeManage() {
               <Tree_node
                 key={node.id}
                 node={node}
+                objectLabel={leafLabel}
                 level={0}
                 selectedId={selectedId}
                 expandedKeys={expandedKeys}
@@ -437,8 +497,22 @@ export default function StructureTreeManage() {
             </button>
           </div>
         </div>
+        </DevNote>
 
         {/* 中间：节点列表（可交互树形 + 筛选 + 分页 + 批量操作） */}
+        <DevNote
+          id="structure-list"
+          title="中间节点列表"
+          summary="平铺展示全部节点，支持筛选/排序/分页/批量选择与行内操作"
+          items={[
+            { label: "数据来源", value: "flatNodes 递归平铺 tree；筛选链：左侧选中节点的后代集合 → 关键字（名称/KKS）→ 层级 → 分类 → 排序（排序号/名称/KKS，升降序切换）" },
+            { label: "行操作", value: "全选/反选（页级）；行内：上移/下移（handleMoveNode 提示）、复制（连同子节点）、编辑、删除、新增子节点（仅L1-L3）；点行选中联动右侧详情" },
+            { label: "批量操作", value: "顶部“删除(N)”与工具栏“批量删除” → 确认后删除选中集合；左侧选中节点时顶部蓝条提示“当前筛选：xxx（含N个节点）+路径”并可“显示全部”" },
+            { label: "权限", value: "管理员/操作人员可增删改；浏览人员仅查看" },
+            { label: "后续步骤", value: "正式系统：列表分页由服务端返回，排序/移动持久化" },
+          ]}
+          wrapClassName="block flex flex-1"
+        >
         <div className="flex-1 min-w-0 admin-card flex flex-col overflow-hidden">
           {/* 筛选指示器：左侧树选中时显示 */}
           {selectedNode && (
@@ -527,6 +601,7 @@ export default function StructureTreeManage() {
           <div className="flex-1 overflow-auto min-h-0">
             <InteractiveNodeList
               nodes={tree}
+              treeType={treeType}
               selectedId={selectedId}
               selectedIds={selectedIds}
               listKeyword={listKeyword}
@@ -549,12 +624,14 @@ export default function StructureTreeManage() {
             />
           </div>
         </div>
+        </DevNote>
 
         {/* 右侧：节点详情 */}
         <div className="w-[360px] flex-shrink-0 admin-card overflow-hidden flex flex-col">
           <NodeDetailPanel
             node={selectedNode}
             path={nodePath}
+            treeType={treeType}
             onEdit={handleEdit}
             onAddChild={handleAddChild}
             onDelete={setDeleteNode}
@@ -583,6 +660,19 @@ export default function StructureTreeManage() {
           </>
         }
       >
+        <DevNote
+          id="structure-edit-modal"
+          title="新增/编辑节点弹窗"
+          summary="新增一级/子节点或编辑节点，层级与分类由系统自动确定"
+          items={[
+            { label: "数据来源", value: "editNode/isAddChild/isAddRoot 区分模式；form（名称/KKS/排序号）打开时按场景初始化（新增子节点排序号=兄弟数+1，新增一级=一级数+1）" },
+            { label: "校验规则", value: "名称必填“请填写节点名称”；KKS 提示需遵循「机组号+系统代码+部件代码+编号」格式（如 1MFA10HB001），原型不做强校验" },
+            { label: "层级规则", value: "新增一级=层级L1分类系统目录；新增子节点=父层级+1（上限L4），L4 分类为设备/管路、其余为系统目录；编辑保留原层级" },
+            { label: "交互逻辑", value: "头部蓝条展示父节点与新节点层级（新增子节点时）；保存后提示新增/更新结果（原型不持久化）" },
+            { label: "权限", value: "管理员/操作人员" },
+          ]}
+          wrapClassName="block w-full"
+        >
         <div className="space-y-3">
           {isAddChild && editNode && (
             <div className="bg-blue-50 border border-blue-200 rounded p-2 text-xs text-blue-700 flex items-start gap-2">
@@ -628,6 +718,7 @@ export default function StructureTreeManage() {
             <b>提示：</b>KKS编码需遵循「机组号+系统代码+部件代码+编号」格式，如 1MFA10HB001
           </div>
         </div>
+        </DevNote>
       </Modal>
 
       {/* 单个删除确认 */}
@@ -686,6 +777,18 @@ export default function StructureTreeManage() {
           </>
         }
       >
+        <DevNote
+          id="structure-import-modal"
+          title="批量导入结构树弹窗"
+          summary="通过CSV/XLSX批量导入节点，导入前可预览校验结果"
+          items={[
+            { label: "校验规则", value: "支持 .csv/.xlsx；单次最多500条；必填列：节点名称/父节点KKS；KKS编码不可重复；模板列：节点名称/KKS编码/父节点KKS/节点分类/层级/排序号" },
+            { label: "交互逻辑", value: "选择文件后解析生成导入预览（名称/KKS/父节点KKS/分类/层级/排序/状态可导入）；底部显示“N条可导入”；确认导入 → 提示新增N个节点；下载模板 → 生成 结构树导入模板.csv（按设备/管路各自示例）" },
+            { label: "后续步骤", value: "正式系统：服务端校验KKS唯一性与父子关系并批量写入" },
+            { label: "权限", value: "管理员/操作人员" },
+          ]}
+          wrapClassName="block w-full"
+        >
         <div className="space-y-3">
           <div className="grid grid-cols-3 gap-3">
             <div className="col-span-1 border border-admin-border rounded p-3 bg-gray-50">
@@ -719,7 +822,7 @@ export default function StructureTreeManage() {
                 <div className="text-xs font-medium text-admin-text flex items-center gap-1">
                   <Eye size={13} /> 导入预览（{importPreview.length} 条）
                 </div>
-                <Tag color="green">{importPreview.filter(p => p.status?.includes("✅")).length} 条可导入</Tag>
+                <Tag color="green">{importPreview.filter(p => p.status === "可导入").length} 条可导入</Tag>
               </div>
               <div className="border border-admin-border rounded overflow-hidden max-h-[260px] overflow-y-auto">
                 <table className="w-full text-xs">
@@ -740,7 +843,7 @@ export default function StructureTreeManage() {
                         <td className="px-3 py-1.5">{row.name}</td>
                         <td className="px-3 py-1.5 font-mono text-admin-muted">{row.kks}</td>
                         <td className="px-3 py-1.5 font-mono text-admin-muted">{row.parentKks || "-"}</td>
-                        <td className="px-3 py-1.5"><Tag color={row.category === "设备" ? "green" : "gray"}>{row.category}</Tag></td>
+                        <td className="px-3 py-1.5"><Tag color={treeType === "equipment" ? "green" : "cyan"}>{row.category}</Tag></td>
                         <td className="px-3 py-1.5"><Tag color={row.level === "一级" ? "blue" : row.level === "二级" ? "cyan" : row.level === "三级" ? "purple" : "orange"}>{row.level}</Tag></td>
                       </tr>
                     ))}
@@ -750,6 +853,7 @@ export default function StructureTreeManage() {
             </div>
           )}
         </div>
+        </DevNote>
       </Modal>
     </div>
   );
@@ -758,6 +862,7 @@ export default function StructureTreeManage() {
 // ===== 树节点渲染组件 =====
 function Tree_node({
   node,
+  objectLabel,
   level,
   selectedId,
   expandedKeys,
@@ -766,6 +871,7 @@ function Tree_node({
   matchKeys,
 }: {
   node: TreeNode;
+  objectLabel: string;
   level: number;
   selectedId: number | null;
   expandedKeys: Set<number>;
@@ -802,7 +908,7 @@ function Tree_node({
         )}
         <span className="truncate flex-1 text-xs">{node.name}</span>
         {node.equipmentCount > 0 && (
-          <span className={`text-[10px] ${selected ? "text-blue-200" : "text-admin-muted"}`}>{node.equipmentCount}设备</span>
+          <span className={`text-[10px] ${selected ? "text-blue-200" : "text-admin-muted"}`}>{node.equipmentCount}{objectLabel}</span>
         )}
       </div>
       {hasChildren && expanded && (
@@ -811,6 +917,7 @@ function Tree_node({
             <Tree_node
               key={child.id}
               node={child}
+              objectLabel={objectLabel}
               level={level + 1}
               selectedId={selectedId}
               expandedKeys={expandedKeys}
@@ -828,6 +935,7 @@ function Tree_node({
 // ===== 可交互节点列表 =====
 function InteractiveNodeList({
   nodes,
+  treeType,
   selectedId,
   selectedIds,
   listKeyword,
@@ -849,6 +957,7 @@ function InteractiveNodeList({
   onCopy,
 }: {
   nodes: TreeNode[];
+  treeType: TreeType;
   selectedId: number | null;
   selectedIds: Set<number>;
   listKeyword: string;
@@ -954,9 +1063,11 @@ function InteractiveNodeList({
               <th className="px-3 py-2 text-left font-medium text-admin-muted border-b border-admin-border min-w-[200px]">所属路径</th>
               <th className="px-3 py-2 text-left font-medium text-admin-muted border-b border-admin-border w-32">KKS编码</th>
               <th className="px-3 py-2 text-left font-medium text-admin-muted border-b border-admin-border w-16">层级</th>
-              <th className="px-3 py-2 text-left font-medium text-admin-muted border-b border-admin-border w-20">分类</th>
+              <th className="px-3 py-2 text-left font-medium text-admin-muted border-b border-admin-border w-20">
+                {getCategoryColumnLabel(treeType)}
+              </th>
               <th className="px-3 py-2 text-right font-medium text-admin-muted border-b border-admin-border w-16">子节点</th>
-              <th className="px-3 py-2 text-right font-medium text-admin-muted border-b border-admin-border w-16">设备数</th>
+              <th className="px-3 py-2 text-right font-medium text-admin-muted border-b border-admin-border w-16">{treeType === "equipment" ? "设备数" : "管路数"}</th>
               <th className="px-3 py-2 text-right font-medium text-admin-muted border-b border-admin-border w-16">排序</th>
               <th className="px-3 py-2 text-center font-medium text-admin-muted border-b border-admin-border w-[180px]">操作</th>
             </tr>
@@ -1000,7 +1111,11 @@ function InteractiveNodeList({
                     )}
                   </td>
                   <td className="px-3 py-1.5"><Tag color={levelConfig[node.level].color} className="!text-[10px] !px-1.5 !py-0">{levelConfig[node.level].label}</Tag></td>
-                  <td className="px-3 py-1.5"><Tag color={node.category === 'equipment' ? 'green' : 'gray'} className="!text-[10px] !px-1.5 !py-0">{node.category === 'equipment' ? '设备' : '系统'}</Tag></td>
+                  <td className="px-3 py-1.5">
+                    <Tag color={node.category === "equipment" ? "green" : node.category === "pipeline" ? "cyan" : "gray"} className="!text-[10px] !px-1.5 !py-0">
+                      {getNodeCategoryLabel(node.category)}
+                    </Tag>
+                  </td>
                   <td className="px-3 py-1.5 text-right text-xs">{node.childCount > 0 ? <b className="text-blue-600">{node.childCount}</b> : "0"}</td>
                   <td className="px-3 py-1.5 text-right text-xs">{node.equipmentCount > 0 ? <b className="text-green-600">{node.equipmentCount}</b> : "0"}</td>
                   <td className="px-3 py-1.5 text-right text-xs font-mono text-admin-muted">{node.sort}</td>
@@ -1084,12 +1199,14 @@ function InteractiveNodeList({
 function NodeDetailPanel({
   node,
   path,
+  treeType,
   onEdit,
   onAddChild,
   onDelete,
 }: {
   node: TreeNode | null;
   path: TreeNode[];
+  treeType: TreeType;
   onEdit: (node: TreeNode) => void;
   onAddChild: (parent: TreeNode) => void;
   onDelete: (node: TreeNode) => void;
@@ -1112,6 +1229,19 @@ function NodeDetailPanel({
   }, [path, node]);
 
   return (
+    <DevNote
+      id="structure-detail"
+      title="右侧节点详情面板"
+      summary="展示选中节点的路径、基础信息、直接子节点与操作入口"
+      items={[
+        { label: "数据来源", value: "node（当前选中节点）与 path（节点路径链，getNodePath）；基础信息含 名称/KKS/层级（含同级数）/分类/排序号/直接子节点数/后代数/末级设备或管路数" },
+        { label: "交互逻辑", value: "无选中时显示“请选择节点查看详情”；有选中时头部显示图标+名称+KKS；面包屑路径；直接子节点列表（可点击进入下级，显示KKS/名称/数量/层级Tag）；L4节点无“新增子节点”按钮" },
+        { label: "底部操作", value: "新增子节点（L1-L3）/编辑节点/删除节点（删除提示含N个子节点一并删除）" },
+        { label: "使用说明", value: "固定提示：四级且分类为设备/管路=可关联末级节点；系统目录=仅分类用；修改结构树会同步影响设备数字化/管道数字化页筛选" },
+        { label: "权限", value: "管理员/操作人员可增删改；浏览人员仅查看" },
+      ]}
+      wrapClassName="block w-full h-full"
+    >
     <div className="h-full flex flex-col">
       <div className="px-4 py-2 border-b border-admin-border bg-gray-50 flex items-center justify-between">
         <div className="flex items-center gap-2 min-w-0">
@@ -1154,7 +1284,9 @@ function NodeDetailPanel({
               </div>
               <div className="p-2 bg-gray-50/60 border-b border-admin-border text-admin-muted text-right">节点分类</div>
               <div className="p-2 border-b border-admin-border">
-                <Tag color={node.category === 'equipment' ? 'green' : 'gray'}>{node.category === 'equipment' ? '设备' : '系统目录'}</Tag>
+                <Tag color={node.category === "equipment" ? "green" : node.category === "pipeline" ? "cyan" : "gray"}>
+                  {getNodeCategoryLabel(node.category)}
+                </Tag>
               </div>
               <div className="p-2 bg-gray-50/60 border-b border-admin-border text-admin-muted text-right">排序号</div>
               <div className="p-2 border-b border-admin-border font-mono">#{node.sort}</div>
@@ -1162,9 +1294,9 @@ function NodeDetailPanel({
               <div className="p-2 border-b border-admin-border"><b className="text-blue-600">{node.childCount}</b> 个</div>
               <div className="p-2 bg-gray-50/60 border-b border-admin-border text-admin-muted text-right">所有后代</div>
               <div className="p-2 border-b border-admin-border">{node.descendantCount} 个</div>
-              <div className="p-2 bg-gray-50/60 text-admin-muted text-right">末级设备</div>
+              <div className="p-2 bg-gray-50/60 text-admin-muted text-right">{treeType === "equipment" ? "末级设备" : "末级管路"}</div>
               <div className="p-2">
-                <span className="text-green-600 font-medium">{node.equipmentCount}</span> 台
+                <span className="text-green-600 font-medium">{node.equipmentCount}</span> {treeType === "equipment" ? "台" : "条"}
               </div>
             </div>
           </div>
@@ -1190,7 +1322,7 @@ function NodeDetailPanel({
                   <span className="font-mono text-admin-muted text-[10px] min-w-[90px]">{child.kks || "-"}</span>
                   <span className="flex-1 truncate">{child.name}</span>
                   {child.equipmentCount > 0 && (
-                    <span className="text-green-600 text-[10px]">{child.equipmentCount}台</span>
+                    <span className="text-green-600 text-[10px]">{child.equipmentCount}{treeType === "equipment" ? "台" : "条"}</span>
                   )}
                   <Tag color={levelConfig[child.level].color} className="!text-[10px] !px-1.5 !py-0">{levelConfig[child.level].label}</Tag>
                 </div>
@@ -1199,13 +1331,13 @@ function NodeDetailPanel({
           </div>
         )}
 
-        {/* 设备挂载说明 */}
+        {/* 分类说明 */}
         <div className="p-2 bg-purple-50 rounded border border-purple-100 text-xs text-purple-700">
-          <div className="font-medium mb-0.5">💡 使用说明</div>
+          <div className="font-medium mb-0.5">使用说明</div>
           <ul className="text-[11px] space-y-0.5 pl-3 list-disc">
-            <li>四级节点且分类为「设备」= 可在设备/管路页选中的末级节点</li>
-            <li>系统目录 = 仅用于分类组织结构，非实际设备</li>
-            <li>修改结构树会同步影响「设备管理/管路分类」页的筛选</li>
+            <li>四级节点且分类为「{treeType === "equipment" ? "设备" : "管路"}」= 可关联的末级节点</li>
+            <li>系统目录 = 仅用于分类组织结构，非实际{treeType === "equipment" ? "设备" : "管路"}</li>
+            <li>修改结构树会同步影响「{treeType === "equipment" ? "设备数字化" : "管道数字化"}」页的筛选</li>
           </ul>
         </div>
       </div>
@@ -1225,5 +1357,6 @@ function NodeDetailPanel({
         </button>
       </div>
     </div>
+    </DevNote>
   );
 }

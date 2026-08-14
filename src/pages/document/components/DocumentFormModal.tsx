@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { AlertCircle, CheckCircle } from "lucide-react";
 import { Modal } from "@/components/common/Modal";
 import { UploadBox, FormItem } from "@/components/common/UploadBox";
 import { message } from "@/components/common/Message";
@@ -195,18 +194,6 @@ export default function DocumentFormModal({
             </option>
           ))}
         </select>
-        {!isEdit && form.category && ["设计图纸", "竣工图纸"].includes(form.category) && (
-          <p className="text-xs text-orange-500 mt-1 flex items-center gap-1">
-            <AlertCircle size={11} />
-            该分类资料上传后需经管理员审批通过后方可查看
-          </p>
-        )}
-        {!isEdit && form.category && !["设计图纸", "竣工图纸"].includes(form.category) && (
-          <p className="text-xs text-green-500 mt-1 flex items-center gap-1">
-            <CheckCircle size={11} />
-            该分类资料上传后直接生效，无需审批
-          </p>
-        )}
       </FormItem>
 
       <FormItem label="关联对象类型" required>

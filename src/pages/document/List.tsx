@@ -218,7 +218,7 @@ export default function DocumentList() {
     message.success("删除成功");
   };
 
-  // 提交上传（上传后即时生效，无需审批）
+  // 提交上传，保存后即时生效。
   const submitUpload = (form: Record<string, any>) => {
     const newId = Math.max(...data.map((d) => d.id), 0) + 1;
     const now = new Date();

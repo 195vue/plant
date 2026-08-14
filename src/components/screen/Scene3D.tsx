@@ -25,15 +25,23 @@ import damBg from "@/assets/db.png";
 import panoramaBg from "@/assets/qj.png";
 import equipmentBg from "@/assets/sb.png";
 import pipelineBg from "@/assets/gd.png";
+import { DevNote } from "@/components/devNotes/DevNote";
 
 interface Scene3DProps {
   viewMode: "overview" | "interior";
   focusMode: "panorama" | "equipment" | "pipeline";
   selectedNode?: { title: string; code?: string };
-  onSelectNode?: (title: string) => void;
+  onSelectNode?: (title: string, kind?: "equipment" | "pipeline") => void;
   onEnterInterior?: (focus: "panorama" | "equipment" | "pipeline") => void;
-  onBackToOverview?: () => void;
 }
+
+type FloorKey =
+  | "all"
+  | "generator"
+  | "busbar"
+  | "turbine"
+  | "spiral"
+  | "drafttube";
 
 const sceneNames: Record<string, string> = {
   "overview-panorama": "工程总览",
@@ -65,7 +73,7 @@ const pipelineSystems = [
   { name: "消防水主管", y: 77, color: "red", width: "50%", data: "压力:0.5MPa 就绪" },
 ];
 
-export function Scene3D({ viewMode, focusMode, selectedNode, onSelectNode, onEnterInterior, onBackToOverview }: Scene3DProps) {
+export function Scene3D({ viewMode, focusMode, selectedNode, onSelectNode, onEnterInterior }: Scene3DProps) {
   const [fps, setFps] = useState(60);
   const [roamingMode, setRoamingMode] = useState<"none" | "free" | "path">(
     "none"
@@ -78,11 +86,14 @@ export function Scene3D({ viewMode, focusMode, selectedNode, onSelectNode, onEnt
     "none" | "clip" | "measure" | "stretch" | "rotate" | "hide" | "isolate"
   >("none");
   const [sceneTransition, setSceneTransition] = useState(false);
-  const [activeFloor, setActiveFloor] = useState<"generator" | "turbine" | "spiral" | "drafttube">("generator");
+  const [activeFloor, setActiveFloor] = useState<FloorKey>("all");
 
   // 场景切换过渡动画
   useEffect(() => {
     setSceneTransition(true);
+    if (viewMode === "interior" && focusMode === "panorama") {
+      setActiveFloor("all");
+    }
     const timer = setTimeout(() => setSceneTransition(false), 1200);
     return () => clearTimeout(timer);
   }, [viewMode, focusMode]);
@@ -95,9 +106,11 @@ export function Scene3D({ viewMode, focusMode, selectedNode, onSelectNode, onEnt
     return () => clearInterval(timer);
   }, []);
 
-  // 楼层信息 - 按需求文档表5.3-1，坝后厂房按四层划分
-  const floorInfo: Record<string, { name: string; elevation: string }> = {
+  // 厂房楼层信息
+  const floorInfo: Record<FloorKey, { name: string; elevation: string }> = {
+    all: { name: "全景视图", elevation: "全部楼层" },
     generator: { name: "发电机层", elevation: "EL.660.5m" },
+    busbar: { name: "母线层", elevation: "EL.650.5m" },
     turbine: { name: "水轮机层", elevation: "EL.645.0m" },
     spiral: { name: "蜗壳层", elevation: "EL.630.0m" },
     drafttube: { name: "尾水管层", elevation: "EL.615.0m" },
@@ -116,7 +129,7 @@ export function Scene3D({ viewMode, focusMode, selectedNode, onSelectNode, onEnt
   // 处理设备点点击
   const handleEquipmentClick = (eqName: string) => {
     if (onSelectNode) {
-      onSelectNode(eqName);
+      onSelectNode(eqName, "equipment");
     }
     message.info(
       `实际项目中：三维相机将飞行定位并高亮“${eqName}”，右侧自动打开基础信息，可继续查看技术参数、运行数据和操作记录。`
@@ -126,7 +139,7 @@ export function Scene3D({ viewMode, focusMode, selectedNode, onSelectNode, onEnt
   // 处理管路点击
   const handlePipelineClick = (pipeName: string) => {
     if (onSelectNode) {
-      onSelectNode(pipeName);
+      onSelectNode(pipeName, "pipeline");
     }
     message.info(
       `实际项目中：三维相机将沿管线定位并高亮“${pipeName}”，右侧自动打开基础信息、技术参数、运行数据和关联设备。`
@@ -464,20 +477,22 @@ export function Scene3D({ viewMode, focusMode, selectedNode, onSelectNode, onEnt
         </svg>
       </div>
 
-      {/* 场景标题 */}
-      <div className="absolute top-[5%] left-1/2 -translate-x-1/2 text-center z-10">
-        <div className="bg-black/40 backdrop-blur-sm px-6 py-2 rounded-none border border-[#40A9FF]/30">
-          <div className="text-cyan-300 text-xl font-bold tracking-widest" style={{ textShadow: "0 0 10px rgba(64,158,255,0.8)" }}>
-            乌江渡水电站工程总览
-          </div>
-          <div className="text-blue-400/60 text-xs mt-1">坝高 134m · 装机容量 630MW · 年均发电量 33.4亿kWh</div>
-        </div>
-      </div>
-
       {/* 大坝标记 - 点击展示大坝统计信息 */}
-      <div 
-        className="absolute cursor-pointer group z-20"
-        style={{ top: "38%", left: "50%", transform: "translateX(-50%)" }}
+      <DevNote
+        id="scene-overview-dam"
+        title="大坝标记点（工程总览）"
+        summary="工程总览场景中点击大坝标记，展示大坝基础信息与监测数据"
+        items={[
+          { label: "数据来源", value: "静态文案：坝高134m、上游水位608.5m、库容12.3亿m³" },
+          { label: "交互逻辑", value: "点击 → onSelectNode(\"大坝主体\") 选中该节点（右侧切回基础信息），并提示“相机飞行定位并高亮大坝主体，右侧打开大坝基础信息、上下游水位、坝体监测指标及关联告警”" },
+          { label: "联动", value: "选中后中央出现高亮框，右侧面板由“统计信息”切换为“属性信息”5Tab" },
+          { label: "后续步骤", value: "正式系统：点击后 UE5 相机飞行至大坝模型，右侧加载坝体监测面板" },
+          { label: "权限", value: "大屏所有已登录用户可用" },
+        ]}
+        wrapClassName="absolute z-20 top-[38%] left-1/2 -translate-x-1/2"
+      >
+      <div
+        className="cursor-pointer group"
         onClick={() =>
           handleOverviewMarkerClick(
             "大坝主体",
@@ -496,32 +511,24 @@ export function Scene3D({ viewMode, focusMode, selectedNode, onSelectNode, onEnt
           </div>
         </div>
       </div>
-
-      {/* 水库标记 */}
-      <div
-        className="absolute cursor-pointer group z-20"
-        style={{ top: "20%", left: "25%" }}
-        onClick={() =>
-          handleOverviewMarkerClick(
-            "上游水库",
-            "实时水位、库容、入库流量及变化趋势"
-          )
-        }
-      >
-        <div className="relative">
-          <div className="w-6 h-6 rounded-full bg-blue-400/30 animate-ping absolute -inset-1" />
-          <div className="w-3 h-3 rounded-full bg-blue-400 border-2 border-white shadow-lg shadow-blue-400/50" />
-          <div className="absolute top-5 left-1/2 -translate-x-1/2 whitespace-nowrap bg-black/75 backdrop-blur-sm px-2 py-1 border border-blue-500/30" style={{ borderRadius: 0 }}>
-            <div className="text-xs text-blue-300">上游水库</div>
-            <div className="text-[10px] text-blue-400/70 mt-0.5">入库流量 1280m³/s</div>
-          </div>
-        </div>
-      </div>
+      </DevNote>
 
       {/* 厂房标记 - 点击进入微观场景 */}
-      <div 
-        className="absolute cursor-pointer group z-20"
-        style={{ top: "50%", left: "50%", transform: "translateX(-50%)" }}
+      <DevNote
+        id="scene-overview-plant"
+        title="坝后厂房标记点（工程总览）"
+        summary="点击厂房标记从工程总览进入厂区模型（厂房全景）"
+        items={[
+          { label: "数据来源", value: "静态文案：4台机组、总出力612.3MW、机组4/4运行" },
+          { label: "交互逻辑", value: "点击 → onEnterInterior(\"panorama\")：viewMode 切为 interior、focusMode=panorama，提示“相机从工程总览飞行进入坝后厂房，加载建筑/设备/管网模型并默认定位发电机层”" },
+          { label: "联动", value: "进入后中央展示厂房融合场景，出现楼层切换器（全景视图+五层），右侧保持统计信息3Tab（未选中对象）" },
+          { label: "后续步骤", value: "正式系统：相机飞行过渡并流式加载 UE5 厂房场景资源" },
+          { label: "权限", value: "大屏所有已登录用户可用" },
+        ]}
+        wrapClassName="absolute z-20 top-[50%] left-1/2 -translate-x-1/2"
+      >
+      <div
+        className="cursor-pointer group"
         onClick={() => {
           if (onEnterInterior) {
             onEnterInterior("panorama" as any);
@@ -543,112 +550,11 @@ export function Scene3D({ viewMode, focusMode, selectedNode, onSelectNode, onEnt
           </div>
         </div>
       </div>
-
-      {/* 开关站标记 */}
-      <div
-        className="absolute cursor-pointer group z-20"
-        style={{ bottom: "22%", left: "15%" }}
-        onClick={() =>
-          handleOverviewMarkerClick(
-            "开关站",
-            "母线电压、开关状态、间隔设备和实时告警"
-          )
-        }
-      >
-        <div className="relative">
-          <div className="w-5 h-5 rounded-full bg-purple-400/30 animate-ping absolute -inset-1" />
-          <div className="w-2.5 h-2.5 rounded-full bg-purple-400 border-2 border-white shadow-lg" />
-          <div className="absolute top-5 left-1/2 -translate-x-1/2 whitespace-nowrap bg-black/75 backdrop-blur-sm px-2 py-1 border border-purple-500/30" style={{ borderRadius: 0 }}>
-            <div className="text-xs text-purple-300">开关站</div>
-            <div className="text-[10px] text-purple-400/70 mt-0.5">电压 220kV · 正常</div>
-          </div>
-        </div>
-      </div>
-
-      {/* 尾水渠标记 */}
-      <div
-        className="absolute cursor-pointer group z-20"
-        style={{ bottom: "20%", left: "50%", transform: "translateX(-50%)" }}
-        onClick={() =>
-          handleOverviewMarkerClick(
-            "尾水渠",
-            "尾水位、出库流量、变化趋势及关联测点"
-          )
-        }
-      >
-        <div className="relative">
-          <div className="w-5 h-5 rounded-full bg-cyan-300/30 animate-ping absolute -inset-1" />
-          <div className="w-2.5 h-2.5 rounded-full bg-cyan-300 border-2 border-white shadow-lg" />
-          <div className="absolute top-5 left-1/2 -translate-x-1/2 whitespace-nowrap bg-black/75 backdrop-blur-sm px-2 py-1 border border-cyan-400/30" style={{ borderRadius: 0 }}>
-            <div className="text-xs text-cyan-200">尾水渠</div>
-            <div className="text-[10px] text-cyan-300/70 mt-0.5">出库流量 1150m³/s</div>
-          </div>
-        </div>
-      </div>
-
-      {/* 数据指标浮窗 */}
-      <div className="absolute left-[3%] top-[18%] flex flex-col gap-2 z-10">
-        {[
-          { label: "入库流量", value: "1280 m³/s", color: "#36cfc9" },
-          { label: "出库流量", value: "1150 m³/s", color: "#40a9ff" },
-          { label: "水头", value: "120.5 m", color: "#73d13d" },
-        ].map((item) => (
-          <div key={item.label} className="bg-black/60 backdrop-blur-md border border-[#40A9FF]/30 rounded-none px-3 py-2 min-w-[110px]">
-            <div className="text-[10px] text-[#40A9FF]/70">{item.label}</div>
-            <div className="text-lg font-bold" style={{ color: item.color, textShadow: `0 0 8px ${item.color}50` }}>{item.value}</div>
-          </div>
-        ))}
-      </div>
-
-      {/* 右侧数据指标 */}
-      <div className="absolute right-[3%] top-[18%] flex flex-col gap-2 z-10">
-        {[
-          { label: "总有功", value: "612.3 MW", color: "#ffc53d" },
-          { label: "总无功", value: "85.2 MVar", color: "#ff85c0" },
-          { label: "机组状态", value: "4台运行", color: "#73d13d" },
-        ].map((item) => (
-          <div key={item.label} className="bg-black/60 backdrop-blur-md border border-[#40A9FF]/30 rounded-none px-3 py-2 min-w-[110px] text-right">
-            <div className="text-[10px] text-[#40A9FF]/70">{item.label}</div>
-            <div className="text-lg font-bold" style={{ color: item.color, textShadow: `0 0 8px ${item.color}50` }}>{item.value}</div>
-          </div>
-        ))}
-      </div>
-
-      {/* 快速入口 - 设备总览/管路总览 */}
-      <div className="absolute bottom-[10%] left-1/2 -translate-x-1/2 flex gap-3 z-10">
-        <button
-          onClick={() => {
-            if (onEnterInterior) {
-              onEnterInterior("equipment");
-              message.info(
-                "实际项目中：三维相机将进入厂房设备总览，淡化管网并按运行、告警和停机状态高亮设备。"
-              );
-            }
-          }}
-          className="flex items-center gap-2 px-5 py-2.5 bg-black/60 backdrop-blur-md border border-[#40A9FF]/40 rounded-none hover:bg-[#40A9FF]/20 hover:border-[#40A9FF] transition-all hover:shadow-lg hover:shadow-[#40A9FF]/20"
-        >
-          <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-          <span className="text-sm text-screen-text">设备总览 (156台在线)</span>
-        </button>
-        <button
-          onClick={() => {
-            if (onEnterInterior) {
-              onEnterInterior("pipeline");
-              message.info(
-                "实际项目中：三维相机将进入厂房管路总览，淡化设备并按系统颜色高亮管线及关键测点。"
-              );
-            }
-          }}
-          className="flex items-center gap-2 px-5 py-2.5 bg-black/60 backdrop-blur-md border border-[#40A9FF]/40 rounded-none hover:bg-[#40A9FF]/20 hover:border-[#40A9FF] transition-all hover:shadow-lg hover:shadow-[#40A9FF]/20"
-        >
-          <div className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
-          <span className="text-sm text-screen-text">管路总览 (56条系统)</span>
-        </button>
-      </div>
+      </DevNote>
 
       {/* 操作提示 */}
       <div className="absolute bottom-[5%] left-1/2 -translate-x-1/2 text-xs text-[#40A9FF]/70 bg-black/60 backdrop-blur-sm px-4 py-1.5 rounded-none border border-cyan-500/20 z-10">
-        点击标记查看详情 · 点击厂房进入内部场景
+        点击大坝查看详情 · 点击坝后厂房进入厂区模型
       </div>
     </div>
   );
@@ -701,9 +607,35 @@ export function Scene3D({ viewMode, focusMode, selectedNode, onSelectNode, onEnt
         <div className="text-[#40A9FF]/70 text-xs mt-1">{subtitleText}</div>
       </div>
 
-      {/* 楼层切换按钮 - 四层：发电机层、水轮机层、蜗壳层、尾水管层 */}
-      <div className="absolute top-[12%] left-1/2 -translate-x-1/2 flex gap-1 z-20">
-        {(["generator", "turbine", "spiral", "drafttube"] as const).map((floor) => (
+      {/* 全景及五层模型切换 */}
+      <DevNote
+        id="scene-floor-switch"
+        title="楼层切换器（全景视图/五层）"
+        summary="厂房内一键切换全景或五层楼：发电机层/母线层/水轮机层/蜗壳层/尾水管层"
+        items={[
+          { label: "数据来源", value: "floorInfo 静态配置：发电机层 EL.660.5m、母线层 EL.650.5m、水轮机层 EL.645.0m、蜗壳层 EL.630.0m、尾水管层 EL.615.0m；activeFloor 状态记录当前楼层" },
+          { label: "交互逻辑", value: "点击“全景视图”→ 恢复 all 展示全部楼层设备与管线；点击某层 → 相机垂直飞行至该层并只突出该层设备与管线（原型为 message 占位）；场景切换时（interior+panorama）自动重置为 all" },
+          { label: "视觉联动", value: "激活楼层按钮高亮（bg-[#40A9FF]/20）；楼层分隔虚线随 activeFloor 高亮对应层带" },
+          { label: "后续步骤", value: "正式系统：楼层切换由 UE5 相机控制并按楼层过滤模型显隐" },
+          { label: "权限", value: "大屏所有已登录用户可用" },
+        ]}
+        wrapClassName="absolute top-[12%] left-1/2 -translate-x-1/2 z-20"
+      >
+      <div className="flex gap-1">
+        <button
+          onClick={() => {
+            setActiveFloor("all");
+            message.info("实际项目中：三维相机将恢复厂房全景视角，并显示全部楼层的设备和管线。");
+          }}
+          className={`px-3 py-1.5 text-xs transition-colors rounded-none ${
+            activeFloor === "all"
+              ? "bg-[#40A9FF]/20 text-white border border-[#40A9FF]"
+              : "bg-black/50 text-[#8a94a6] border border-[#40A9FF]/20 hover:text-white hover:border-[#40A9FF]/50"
+          }`}
+        >
+          全景视图
+        </button>
+        {(["generator", "busbar", "turbine", "spiral", "drafttube"] as const).map((floor) => (
           <button
             key={floor}
             onClick={() => {
@@ -722,6 +654,7 @@ export function Scene3D({ viewMode, focusMode, selectedNode, onSelectNode, onEnt
           </button>
         ))}
       </div>
+      </DevNote>
 
       {/* 厂房融合视图 - 透明覆盖层 */}
       <div className="absolute inset-0 flex items-center justify-center" style={{ paddingTop: "16%" }}>
@@ -732,34 +665,62 @@ export function Scene3D({ viewMode, focusMode, selectedNode, onSelectNode, onEnt
             background: "transparent",
           }} />
 
-          {/* 楼层分隔线 - 四层划分 */}
-          <div className="absolute left-0 right-0" style={{ top: "25%", borderTop: "1px dashed rgba(64,158,255,0.3)" }}>
-            <span className="absolute left-3 -top-5 text-xs text-[#40A9FF]/70 font-medium">发电机层 (EL.660.5m)</span>
-          </div>
-          <div className="absolute left-0 right-0" style={{ top: "50%", borderTop: "1px dashed rgba(64,158,255,0.3)" }}>
-            <span className="absolute left-3 -top-5 text-xs text-[#40A9FF]/70 font-medium">水轮机层 (EL.645.0m)</span>
-          </div>
-          <div className="absolute left-0 right-0" style={{ top: "75%", borderTop: "1px dashed rgba(64,158,255,0.3)" }}>
-            <span className="absolute left-3 -top-5 text-xs text-[#40A9FF]/70 font-medium">蜗壳层 (EL.630.0m)</span>
-          </div>
+          {/* 五层分隔及楼层标签 */}
+          {[
+            { floor: "generator", top: 0 },
+            { floor: "busbar", top: 20 },
+            { floor: "turbine", top: 40 },
+            { floor: "spiral", top: 60 },
+            { floor: "drafttube", top: 80 },
+          ].map((item) => (
+            <div
+              key={item.floor}
+              className="absolute left-0 right-0"
+              style={{
+                top: `${item.top}%`,
+                borderTop:
+                  item.top === 0
+                    ? "none"
+                    : "1px dashed rgba(64,158,255,0.3)",
+              }}
+            >
+              <span className="absolute left-3 top-1 text-xs text-[#40A9FF]/70 font-medium">
+                {floorInfo[item.floor as FloorKey].name} ({floorInfo[item.floor as FloorKey].elevation})
+              </span>
+            </div>
+          ))}
 
-          {/* 当前楼层高亮指示 - 四层：每层25%高度 */}
-          <div className="absolute left-0 right-0 rounded-nonetransition-all" style={{
-            top: activeFloor === "generator" ? "0%" : 
-                 activeFloor === "turbine" ? "25%" : 
-                 activeFloor === "spiral" ? "50%" : "75%",
-            height: "25%",
-            background: activeFloor === "generator" ? "rgba(24,144,255,0.08)" : 
-                       activeFloor === "turbine" ? "rgba(82,196,26,0.08)" : 
-                       activeFloor === "spiral" ? "rgba(250,173,20,0.08)" : "rgba(24,144,255,0.12)",
-            borderTop: `2px solid ${
-              activeFloor === "generator" ? "rgba(24,144,255,0.5)" :
-              activeFloor === "turbine" ? "rgba(82,196,26,0.5)" :
-              activeFloor === "spiral" ? "rgba(250,173,20,0.5)" :
-              "rgba(24,144,255,0.6)"
-            }`,
-            pointerEvents: "none",
-          }} />
+          {/* 当前楼层高亮指示；全景模式不遮挡分层模型 */}
+          {activeFloor !== "all" && (
+            <div
+              className="absolute left-0 right-0 transition-all"
+              style={{
+                top: `${
+                  {
+                    generator: 0,
+                    busbar: 20,
+                    turbine: 40,
+                    spiral: 60,
+                    drafttube: 80,
+                  }[activeFloor]
+                }%`,
+                height: "20%",
+                background:
+                  activeFloor === "generator"
+                    ? "rgba(24,144,255,0.10)"
+                    : activeFloor === "busbar"
+                      ? "rgba(114,46,209,0.10)"
+                      : activeFloor === "turbine"
+                        ? "rgba(82,196,26,0.10)"
+                        : activeFloor === "spiral"
+                          ? "rgba(250,173,20,0.10)"
+                          : "rgba(24,144,255,0.12)",
+                borderTop: "2px solid rgba(64,169,255,0.65)",
+                borderBottom: "2px solid rgba(64,169,255,0.35)",
+                pointerEvents: "none",
+              }}
+            />
+          )}
 
           {/* ========== 第1层：管网系统（底层） ========== */}
           <div className="absolute inset-0" style={{ opacity: pipelineHighlight, transition: "opacity 0.5s" }}>
@@ -956,24 +917,66 @@ export function Scene3D({ viewMode, focusMode, selectedNode, onSelectNode, onEnt
       </div>
 
       {/* HUD - 左上角 场景名称 */}
-      <div className="absolute top-3 left-3 z-10">
+      <DevNote
+        id="scene-hud-name"
+        title="场景名称HUD（左上角）"
+        summary="显示当前场景名与楼层，选中对象时追加对象名称"
+        items={[
+          { label: "数据来源", value: "getCurrentSceneName()：interior 下按 focusMode+activeFloor 组合（如 厂房全景 - 发电机层），overview 下固定“工程总览”；选中对象后显示“场景名 - 对象名”" },
+          { label: "交互逻辑", value: "纯展示；随顶部导航、楼层切换、对象选中实时变化" },
+          { label: "后续步骤", value: "正式系统：场景名由 UE5 场景状态回调同步" },
+          { label: "权限", value: "大屏所有已登录用户可见" },
+        ]}
+        wrapClassName="absolute top-3 left-3 z-10"
+      >
+      <div>
         <div className="bg-black/60 text-white text-sm px-3 py-1 rounded-nonebackdrop-blur-sm">
           {selectedNode
             ? `${getCurrentSceneName().split(" - ")[0]} - ${selectedNode.title}`
             : getCurrentSceneName()}
         </div>
       </div>
+      </DevNote>
 
       {/* HUD - 左下角 操作提示 */}
-      <div className="absolute bottom-16 left-3 z-10">
+      <DevNote
+        id="scene-hud-hint"
+        title="操作提示HUD（左下角）"
+        summary="相机操作说明与运行状态（FPS/漫游/录制）"
+        items={[
+          { label: "数据来源", value: "fps 由 setInterval 每2秒在 58~62 间随机；roamingMode（none/free/path）与 recording 状态来自漫游控制" },
+          { label: "交互逻辑", value: "提示“左键旋转/右键平移/滚轮缩放”；自由漫游时追加“WASD 控制移动”；状态区显示 FPS 与 自由漫游中/路径漫游中/路径录制中/静止" },
+          { label: "后续步骤", value: "正式系统：FPS 由像素流性能统计回调；操作说明为固定文案" },
+          { label: "权限", value: "大屏所有已登录用户可见" },
+        ]}
+        wrapClassName="absolute bottom-3 left-3 z-10"
+      >
+      <div>
         <div className="text-screen-muted text-xs bg-black/40 px-2 py-1 rounded-nonebackdrop-blur-sm">
           左键拖拽旋转视角，右键拖拽平移，滚轮缩放
           {roamingMode === "free" && " | WASD 控制移动"}
+          <span className="ml-3 text-[#40A9FF]/70">
+            FPS: {fps} · {roamingMode === "free" ? "自由漫游中" : roamingMode === "path" ? "路径漫游中" : recording ? "路径录制中" : "静止"}
+          </span>
         </div>
       </div>
+      </DevNote>
 
       {/* HUD - 右下角 视角控制按钮组 */}
-      <div className="absolute bottom-16 right-3 z-10 flex gap-2">
+      <DevNote
+        id="scene-hud-camera"
+        title="视角控制按钮组（右下角）"
+        summary="重置视角、全屏、截图三个快捷操作"
+        items={[
+          { label: "重置视角", value: "点击提示“相机将平滑返回当前场景默认观察点，恢复初始朝向、缩放比例和旋转中心”（原型 message 占位）" },
+          { label: "全屏", value: "document.fullscreenElement 存在则 exitFullscreen()，否则 requestFullscreen()（原生浏览器全屏 API）" },
+          { label: "截图", value: "点击提示“截取当前UE5三维视角及数据标注，按场景名称和时间生成图片文件”（原型 message 占位）" },
+          { label: "权限", value: "大屏所有已登录用户可用" },
+          { label: "后续步骤", value: "正式系统：重置视角由 UE5 相机服务执行；截图由像素流抓帧导出" },
+        ]}
+        wrapClassName="absolute bottom-3 right-3 z-10"
+      >
+      <div className="flex gap-2">
         <button
           onClick={() =>
             message.info(
@@ -1010,9 +1013,24 @@ export function Scene3D({ viewMode, focusMode, selectedNode, onSelectNode, onEnt
           <ImageIcon size={16} />
         </button>
       </div>
+      </DevNote>
 
       {/* 右侧浮动工具栏 - 3D模型操作工具 */}
-      <div className="absolute right-3 top-1/2 -translate-y-1/2 z-10 flex flex-col gap-1.5 p-1.5 rounded-none bg-black/60 backdrop-blur-sm border border-screen-border">
+      <DevNote
+        id="scene-toolbar"
+        title="3D模型操作工具栏（右侧）"
+        summary="剖切/测量/伸缩/旋转/隐藏/孤立工具，漫游控制与重置"
+        items={[
+          { label: "模型工具", value: "剖切/测量无需先选模型；伸缩/旋转/隐藏/孤立需先选中对象，否则提示“请先选择设备或管件模型”；再次点击已激活工具退出该模式" },
+          { label: "漫游控制", value: "自由漫游：WASD移动/鼠标转向/滚轮调速；路径漫游：打开路径列表弹窗，播放默认或自定义路径；录制中显示红色“停止录制”，停止后本地生成“自定义路线N”追加到列表" },
+          { label: "重置", value: "清除剖切面、测量标记，恢复隐藏/孤立/伸缩/旋转前的模型状态（原型 message 占位）" },
+          { label: "数据来源", value: "activeTool/roamingMode/recording 本地状态；pathList 初始为 roamingPaths（mock），自定义路径 id=Date.now()" },
+          { label: "后续步骤", value: "正式系统：工具由 UE5 交互服务实现，漫游路径持久化到服务端" },
+          { label: "权限", value: "大屏所有已登录用户可用" },
+        ]}
+        wrapClassName="absolute right-3 top-1/2 -translate-y-1/2 z-10"
+      >
+      <div className="flex flex-col gap-1.5 p-1.5 rounded-none bg-black/60 backdrop-blur-sm border border-screen-border">
         <button
           onClick={() => handleToolToggle("clip")}
           title="剖切"
@@ -1081,6 +1099,38 @@ export function Scene3D({ viewMode, focusMode, selectedNode, onSelectNode, onEnt
         </button>
         <div className="w-full h-px bg-screen-border my-0.5" />
         <button
+          onClick={handleFreeRoam}
+          title={roamingMode === "free" ? "退出自由漫游" : "自由漫游"}
+          className={`w-9 h-9 rounded-none flex items-center justify-center transition-colors ${
+            roamingMode === "free"
+              ? "bg-cyan-600 text-white"
+              : "text-screen-text hover:bg-gray-700"
+          }`}
+        >
+          <Play size={18} />
+        </button>
+        <button
+          onClick={() => setShowPathModal(true)}
+          title="路径漫游"
+          className={`w-9 h-9 rounded-none flex items-center justify-center transition-colors ${
+            roamingMode === "path" || recording
+              ? "bg-cyan-600 text-white"
+              : "text-screen-text hover:bg-gray-700"
+          }`}
+        >
+          <Map size={18} />
+        </button>
+        {(roamingMode !== "none" || recording) && (
+          <button
+            onClick={recording ? handleStopRecord : handleStopRoam}
+            title={recording ? "停止录制" : "停止漫游"}
+            className="w-9 h-9 rounded-none flex items-center justify-center bg-red-600/80 text-white hover:bg-red-600 transition-colors"
+          >
+            <Square size={16} />
+          </button>
+        )}
+        <div className="w-full h-px bg-screen-border my-0.5" />
+        <button
           onClick={handleResetTools}
           title="重置"
           className="w-9 h-9 rounded-noneflex items-center justify-center text-screen-text hover:bg-red-600 hover:text-white transition-colors"
@@ -1088,55 +1138,21 @@ export function Scene3D({ viewMode, focusMode, selectedNode, onSelectNode, onEnt
           <RotateCcw size={18} />
         </button>
       </div>
-
-      {/* 底部漫游工具条 */}
-      <div className="absolute bottom-0 left-0 right-0 h-[50px] bg-black/70 backdrop-blur-sm border-t border-screen-border flex items-center justify-center gap-3 z-10">
-        <button
-          onClick={handleFreeRoam}
-          className={`flex items-center gap-1 px-4 py-1.5 rounded-nonetext-sm transition-colors ${
-            roamingMode === "free"
-              ? "bg-blue-600 text-white"
-              : "bg-gray-800/80 text-screen-text hover:bg-gray-700"
-          }`}
-        >
-          <Play size={14} />
-          自由漫游
-        </button>
-        <button
-          onClick={() => setShowPathModal(true)}
-          className={`flex items-center gap-1 px-4 py-1.5 rounded-nonetext-sm transition-colors ${
-            roamingMode === "path"
-              ? "bg-blue-600 text-white"
-              : "bg-gray-800/80 text-screen-text hover:bg-gray-700"
-          }`}
-        >
-          <Map size={14} />
-          路径漫游
-        </button>
-        {roamingMode !== "none" && (
-          <button
-            onClick={handleStopRoam}
-            className="flex items-center gap-1 px-4 py-1.5 rounded-nonetext-sm bg-red-600/80 text-white hover:bg-red-600 transition-colors"
-          >
-            <Square size={14} />
-            停止漫游
-          </button>
-        )}
-        {recording && (
-          <button
-            onClick={handleStopRecord}
-            className="flex items-center gap-1 px-4 py-1.5 rounded-nonetext-sm bg-orange-600 text-white hover:bg-orange-700 transition-colors animate-pulse"
-          >
-            <Square size={14} />
-            停止录制
-          </button>
-        )}
-        <span className="text-screen-muted text-xs ml-4">
-          FPS: {fps} | {roamingMode === "free" ? "自由漫游中" : roamingMode === "path" ? "路径漫游中" : "静止"}
-        </span>
-      </div>
+      </DevNote>
 
       {/* 漫游路径列表弹窗 */}
+      <DevNote
+        id="scene-roaming-modal"
+        title="漫游路径管理弹窗"
+        summary="查看/播放/编辑/删除漫游路径，并支持录制生成自定义路线"
+        items={[
+          { label: "数据来源", value: "pathList：初始为 roamingPaths（mock，含默认路线）；点击“新建路径/停止录制”后生成自定义路径（id=Date.now()，名称“自定义路线N”）" },
+          { label: "交互逻辑", value: "播放：进入 path 漫游模式并按关键帧自动飞行；编辑：仅自定义路径提供，点击提示打开编辑窗口（改名称/途经点/朝向/停留时长/速度）；删除：弹确认框，仅自定义路径可删" },
+          { label: "录制流程", value: "footer 在录制中显示橙色“停止录制”，否则显示“新建路径”；录制开始后 WASD 移动记录相机轨迹，停止后生成自定义路线" },
+          { label: "权限", value: "大屏所有已登录用户可用（浏览人员不可修改漫游路径——原型未限制，正式系统按角色控制）" },
+          { label: "后续步骤", value: "正式系统：路径数据持久化到服务端并支持多人共享；浏览人员仅可播放不可编辑" },
+        ]}
+      >
       <Modal
         open={showPathModal}
         onClose={() => setShowPathModal(false)}
@@ -1243,8 +1259,20 @@ export function Scene3D({ viewMode, focusMode, selectedNode, onSelectNode, onEnt
           </table>
         </div>
       </Modal>
+      </DevNote>
 
       {/* 删除确认弹窗 */}
+      <DevNote
+        id="scene-roaming-delete"
+        title="删除路径确认弹窗"
+        summary="删除自定义漫游路径前的二次确认"
+        items={[
+          { label: "触发条件", value: "仅自定义路径（type=custom）行内点击删除按钮 → 记录 deletePathId 并弹出确认框" },
+          { label: "交互逻辑", value: "确认 → pathList.filter 移除该路径并提示“路径已删除”；取消 → 关闭弹窗" },
+          { label: "数据来源", value: "pathList 本地状态（原型不持久化）" },
+          { label: "权限", value: "大屏所有已登录用户可用" },
+        ]}
+      >
       <ConfirmModal
         open={deletePathId !== null}
         content="确定删除该漫游路径吗？"
@@ -1253,6 +1281,7 @@ export function Scene3D({ viewMode, focusMode, selectedNode, onSelectNode, onEnt
         onConfirm={handleDeletePath}
         onCancel={() => setDeletePathId(null)}
       />
+      </DevNote>
     </div>
   );
 }

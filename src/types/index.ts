@@ -182,8 +182,7 @@ export interface Drawing {
   fileSize: string;
   uploadUser: string;
   uploadTime: string;
-  approvalStatus: "pending" | "approved" | "rejected";
-  approvalComment?: string;
+  directoryId?: number;
   remark?: string;
   versions?: DrawingVersion[];
 }
@@ -195,10 +194,7 @@ export interface DrawingVersion {
   uploadTime: string;
   uploadUser: string;
   fileSize: string;
-  approvalStatus: "pending" | "approved" | "rejected";
-  approver?: string;
-  approveTime?: string;
-  approveOpinion?: string;
+  fileFormat?: string;
   remark?: string;
 }
 
@@ -216,8 +212,6 @@ export interface DocumentItem {
   uploadTime: string;
   remark?: string;
   version?: string;
-  approvalStatus?: "draft" | "pending" | "approving" | "approved" | "archived" | "rejected";
-  approvalComment?: string;
   versions?: DocumentVersion[];
   // 资料管理四件套
   archiveNo?: string;          // 档号/归档编号
@@ -243,19 +237,7 @@ export interface DocumentVersion {
   uploadTime: string;
   uploadUser: string;
   fileSize: string;
-  approvalStatus: "pending" | "approved" | "rejected";
   remark?: string;
-}
-
-// 工作流相关类型
-export interface Workflow {
-  id: number;
-  name: string;
-  category: string;
-  module: string;
-  nodeCount: number;
-  status: "enabled" | "disabled";
-  createTime: string;
 }
 
 // 日志相关类型

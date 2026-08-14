@@ -11,6 +11,16 @@
   },
   {
     "id": 2,
+    "parentId": 0,
+    "level": "一级",
+    "category": "系统目录",
+    "name": "地下厂房",
+    "typeCode": "",
+    "kks": "",
+    "sort": 1
+  },
+  {
+    "id": 3,
     "parentId": 1,
     "level": "二级",
     "category": "系统目录",
@@ -20,8 +30,68 @@
     "sort": 1
   },
   {
-    "id": 3,
+    "id": 4,
+    "parentId": 1,
+    "level": "二级",
+    "category": "系统目录",
+    "name": "机组供水系统",
+    "typeCode": "",
+    "kks": "",
+    "sort": 1
+  },
+  {
+    "id": 5,
     "parentId": 2,
+    "level": "二级",
+    "category": "系统目录",
+    "name": "公用供水系统",
+    "typeCode": "",
+    "kks": "",
+    "sort": 1
+  },
+  {
+    "id": 6,
+    "parentId": 2,
+    "level": "二级",
+    "category": "系统目录",
+    "name": "检修排水系统",
+    "typeCode": "",
+    "kks": "",
+    "sort": 1
+  },
+  {
+    "id": 7,
+    "parentId": 2,
+    "level": "二级",
+    "category": "系统目录",
+    "name": "渗漏排水系统",
+    "typeCode": "",
+    "kks": "",
+    "sort": 1
+  },
+  {
+    "id": 8,
+    "parentId": 2,
+    "level": "二级",
+    "category": "系统目录",
+    "name": "充排油系统",
+    "typeCode": "",
+    "kks": "",
+    "sort": 1
+  },
+  {
+    "id": 9,
+    "parentId": 2,
+    "level": "二级",
+    "category": "系统目录",
+    "name": "消防水系统",
+    "typeCode": "",
+    "kks": "",
+    "sort": 1
+  },
+  {
+    "id": 10,
+    "parentId": 3,
     "level": "三级",
     "category": "系统目录",
     "name": "技术供水管路",
@@ -30,98 +100,28 @@
     "sort": 1
   },
   {
-    "id": 4,
+    "id": 11,
     "parentId": 3,
-    "level": "四级",
-    "category": "管路",
-    "name": "1号机组技术供水",
-    "typeCode": "",
-    "kks": "1PAC10",
-    "sort": 1
-  },
-  {
-    "id": 5,
-    "parentId": 3,
-    "level": "四级",
-    "category": "管路",
-    "name": "1号机组技术供水阀组",
-    "typeCode": "",
-    "kks": "1PAC10AA",
-    "sort": 2
-  },
-  {
-    "id": 6,
-    "parentId": 3,
-    "level": "四级",
-    "category": "管路",
-    "name": "1号机组技术供水自动化元件",
-    "typeCode": "",
-    "kks": "1PAC10C",
-    "sort": 3
-  },
-  {
-    "id": 7,
-    "parentId": 2,
     "level": "三级",
     "category": "系统目录",
     "name": "冷却水管路",
     "typeCode": "",
     "kks": "",
-    "sort": 2
-  },
-  {
-    "id": 8,
-    "parentId": 7,
-    "level": "四级",
-    "category": "管路",
-    "name": "1号机组水导轴承冷却水管路系统",
-    "typeCode": "",
-    "kks": "1PAC13",
     "sort": 1
   },
   {
-    "id": 9,
-    "parentId": 7,
-    "level": "四级",
-    "category": "管路",
-    "name": "1号机组推力及下导轴承冷却水管路系统",
-    "typeCode": "",
-    "kks": "1PAC14",
-    "sort": 2
-  },
-  {
-    "id": 10,
-    "parentId": 7,
-    "level": "四级",
-    "category": "管路",
-    "name": "1号机组上导轴承冷却水管路系统",
-    "typeCode": "",
-    "kks": "1PAC15",
-    "sort": 3
-  },
-  {
-    "id": 11,
-    "parentId": 7,
-    "level": "四级",
-    "category": "管路",
-    "name": "1号机组空气冷却器冷却水管路系统",
-    "typeCode": "",
-    "kks": "1PAC16",
-    "sort": 4
-  },
-  {
     "id": 12,
-    "parentId": 1,
-    "level": "二级",
+    "parentId": 4,
+    "level": "三级",
     "category": "系统目录",
-    "name": "机组供水系统",
+    "name": "技术供水管路",
     "typeCode": "",
     "kks": "",
-    "sort": 2
+    "sort": 1
   },
   {
     "id": 13,
-    "parentId": 12,
+    "parentId": 5,
     "level": "三级",
     "category": "系统目录",
     "name": "技术供水管路",
@@ -131,207 +131,27 @@
   },
   {
     "id": 14,
-    "parentId": 13,
-    "level": "四级",
-    "category": "管路",
-    "name": "1号机组上下止漏环供水管路系统",
-    "typeCode": "",
-    "kks": "1MFA20A",
-    "sort": 1
-  },
-  {
-    "id": 15,
-    "parentId": 3,
-    "level": "四级",
-    "category": "管路",
-    "name": "2号机组技术供水",
-    "typeCode": "",
-    "kks": "2PAC10",
-    "sort": 4
-  },
-  {
-    "id": 16,
-    "parentId": 3,
-    "level": "四级",
-    "category": "管路",
-    "name": "2号机组技术供水阀组",
-    "typeCode": "",
-    "kks": "2PAC10AA",
-    "sort": 5
-  },
-  {
-    "id": 17,
-    "parentId": 3,
-    "level": "四级",
-    "category": "管路",
-    "name": "2号机组技术供水自动化元件",
-    "typeCode": "",
-    "kks": "2PAC10C",
-    "sort": 6
-  },
-  {
-    "id": 18,
-    "parentId": 7,
-    "level": "四级",
-    "category": "管路",
-    "name": "2号机组水导轴承冷却水管路系统",
-    "typeCode": "",
-    "kks": "2PAC13",
-    "sort": 5
-  },
-  {
-    "id": 19,
-    "parentId": 7,
-    "level": "四级",
-    "category": "管路",
-    "name": "2号机组推力及下导轴承冷却水管路系统",
-    "typeCode": "",
-    "kks": "2PAC14",
-    "sort": 6
-  },
-  {
-    "id": 20,
-    "parentId": 7,
-    "level": "四级",
-    "category": "管路",
-    "name": "2号机组上导轴承冷却水管路系统",
-    "typeCode": "",
-    "kks": "2PAC15",
-    "sort": 7
-  },
-  {
-    "id": 21,
-    "parentId": 7,
-    "level": "四级",
-    "category": "管路",
-    "name": "2号机组空气冷却器冷却水管路系统",
-    "typeCode": "",
-    "kks": "2PAC16",
-    "sort": 8
-  },
-  {
-    "id": 22,
-    "parentId": 13,
-    "level": "四级",
-    "category": "管路",
-    "name": "2号机组上下止漏环供水管路系统",
-    "typeCode": "",
-    "kks": "2MFA20A",
-    "sort": 2
-  },
-  {
-    "id": 23,
-    "parentId": 0,
-    "level": "一级",
-    "category": "系统目录",
-    "name": "地下厂房",
-    "typeCode": "",
-    "kks": "",
-    "sort": 2
-  },
-  {
-    "id": 24,
-    "parentId": 23,
-    "level": "二级",
-    "category": "系统目录",
-    "name": "公用供水系统",
-    "typeCode": "",
-    "kks": "",
-    "sort": 1
-  },
-  {
-    "id": 25,
-    "parentId": 24,
-    "level": "三级",
-    "category": "系统目录",
-    "name": "技术供水管路",
-    "typeCode": "",
-    "kks": "",
-    "sort": 1
-  },
-  {
-    "id": 26,
-    "parentId": 25,
-    "level": "四级",
-    "category": "管路",
-    "name": "公用供水系统总管阀组",
-    "typeCode": "",
-    "kks": "YPAA10AA",
-    "sort": 1
-  },
-  {
-    "id": 27,
-    "parentId": 25,
-    "level": "四级",
-    "category": "管路",
-    "name": "公用供水系统总管自动化元件",
-    "typeCode": "",
-    "kks": "YPAA10C",
-    "sort": 2
-  },
-  {
-    "id": 28,
-    "parentId": 24,
+    "parentId": 5,
     "level": "三级",
     "category": "系统目录",
     "name": "消防水管路",
     "typeCode": "",
     "kks": "",
-    "sort": 2
-  },
-  {
-    "id": 29,
-    "parentId": 28,
-    "level": "四级",
-    "category": "管路",
-    "name": "全厂消防水(供水母管段)",
-    "typeCode": "",
-    "kks": "YPAA11",
     "sort": 1
   },
   {
-    "id": 30,
-    "parentId": 24,
+    "id": 15,
+    "parentId": 5,
     "level": "三级",
     "category": "系统目录",
     "name": "冷却水管路",
     "typeCode": "",
     "kks": "",
-    "sort": 3
-  },
-  {
-    "id": 31,
-    "parentId": 30,
-    "level": "四级",
-    "category": "管路",
-    "name": "空压机冷却水系统(供水母管段)",
-    "typeCode": "",
-    "kks": "YPAA12",
     "sort": 1
   },
   {
-    "id": 32,
-    "parentId": 30,
-    "level": "四级",
-    "category": "管路",
-    "name": "通风空调冷却水系统(供水母管段）",
-    "typeCode": "",
-    "kks": "YPAA14",
-    "sort": 2
-  },
-  {
-    "id": 33,
-    "parentId": 23,
-    "level": "二级",
-    "category": "系统目录",
-    "name": "检修排水系统",
-    "typeCode": "",
-    "kks": "",
-    "sort": 2
-  },
-  {
-    "id": 34,
-    "parentId": 33,
+    "id": 16,
+    "parentId": 6,
     "level": "三级",
     "category": "系统目录",
     "name": "排水管路",
@@ -340,38 +160,8 @@
     "sort": 1
   },
   {
-    "id": 35,
-    "parentId": 34,
-    "level": "四级",
-    "category": "管路",
-    "name": "检修排水系统阀组",
-    "typeCode": "",
-    "kks": "YGMA10AA",
-    "sort": 1
-  },
-  {
-    "id": 36,
-    "parentId": 34,
-    "level": "四级",
-    "category": "管路",
-    "name": "检修排水系统自动化元件",
-    "typeCode": "",
-    "kks": "YGMA10C",
-    "sort": 2
-  },
-  {
-    "id": 37,
-    "parentId": 23,
-    "level": "二级",
-    "category": "系统目录",
-    "name": "渗漏排水系统",
-    "typeCode": "",
-    "kks": "",
-    "sort": 3
-  },
-  {
-    "id": 38,
-    "parentId": 37,
+    "id": 17,
+    "parentId": 7,
     "level": "三级",
     "category": "系统目录",
     "name": "排水管路",
@@ -380,38 +170,8 @@
     "sort": 1
   },
   {
-    "id": 39,
-    "parentId": 38,
-    "level": "四级",
-    "category": "管路",
-    "name": "渗漏排水系统阀组",
-    "typeCode": "",
-    "kks": "YGMB10AA",
-    "sort": 1
-  },
-  {
-    "id": 40,
-    "parentId": 38,
-    "level": "四级",
-    "category": "管路",
-    "name": "渗漏排水系统自动化元件",
-    "typeCode": "",
-    "kks": "YGMB10C",
-    "sort": 2
-  },
-  {
-    "id": 41,
-    "parentId": 23,
-    "level": "二级",
-    "category": "系统目录",
-    "name": "充排油系统",
-    "typeCode": "",
-    "kks": "",
-    "sort": 4
-  },
-  {
-    "id": 42,
-    "parentId": 41,
+    "id": 18,
+    "parentId": 8,
     "level": "三级",
     "category": "系统目录",
     "name": "供油管路",
@@ -420,28 +180,8 @@
     "sort": 1
   },
   {
-    "id": 43,
-    "parentId": 42,
-    "level": "四级",
-    "category": "管路",
-    "name": "充排油系统管路",
-    "typeCode": "",
-    "kks": "YQSA10BR001-F01",
-    "sort": 1
-  },
-  {
-    "id": 44,
-    "parentId": 23,
-    "level": "二级",
-    "category": "系统目录",
-    "name": "消防水系统",
-    "typeCode": "",
-    "kks": "",
-    "sort": 5
-  },
-  {
-    "id": 45,
-    "parentId": 44,
+    "id": 19,
+    "parentId": 9,
     "level": "三级",
     "category": "系统目录",
     "name": "其他管路",
@@ -450,13 +190,273 @@
     "sort": 1
   },
   {
+    "id": 20,
+    "parentId": 10,
+    "level": "四级",
+    "category": "管路",
+    "name": "1号机组技术供水",
+    "typeCode": "",
+    "kks": "1PAC10",
+    "sort": 1
+  },
+  {
+    "id": 21,
+    "parentId": 10,
+    "level": "四级",
+    "category": "管路",
+    "name": "1号机组技术供水阀组",
+    "typeCode": "",
+    "kks": "1PAC10AA",
+    "sort": 2
+  },
+  {
+    "id": 22,
+    "parentId": 10,
+    "level": "四级",
+    "category": "管路",
+    "name": "1号机组技术供水自动化元件",
+    "typeCode": "",
+    "kks": "1PAC10C",
+    "sort": 3
+  },
+  {
+    "id": 23,
+    "parentId": 11,
+    "level": "四级",
+    "category": "管路",
+    "name": "1号机组水导轴承冷却水管路系统",
+    "typeCode": "",
+    "kks": "1PAC13",
+    "sort": 4
+  },
+  {
+    "id": 24,
+    "parentId": 11,
+    "level": "四级",
+    "category": "管路",
+    "name": "1号机组推力及下导轴承冷却水管路系统",
+    "typeCode": "",
+    "kks": "1PAC14",
+    "sort": 5
+  },
+  {
+    "id": 25,
+    "parentId": 11,
+    "level": "四级",
+    "category": "管路",
+    "name": "1号机组上导轴承冷却水管路系统",
+    "typeCode": "",
+    "kks": "1PAC15",
+    "sort": 6
+  },
+  {
+    "id": 26,
+    "parentId": 11,
+    "level": "四级",
+    "category": "管路",
+    "name": "1号机组空气冷却器冷却水管路系统",
+    "typeCode": "",
+    "kks": "1PAC16",
+    "sort": 7
+  },
+  {
+    "id": 27,
+    "parentId": 12,
+    "level": "四级",
+    "category": "管路",
+    "name": "1号机组上下止漏环供水管路系统",
+    "typeCode": "",
+    "kks": "1MFA20A",
+    "sort": 8
+  },
+  {
+    "id": 28,
+    "parentId": 10,
+    "level": "四级",
+    "category": "管路",
+    "name": "2号机组技术供水",
+    "typeCode": "",
+    "kks": "2PAC10",
+    "sort": 9
+  },
+  {
+    "id": 29,
+    "parentId": 10,
+    "level": "四级",
+    "category": "管路",
+    "name": "2号机组技术供水阀组",
+    "typeCode": "",
+    "kks": "2PAC10AA",
+    "sort": 10
+  },
+  {
+    "id": 30,
+    "parentId": 10,
+    "level": "四级",
+    "category": "管路",
+    "name": "2号机组技术供水自动化元件",
+    "typeCode": "",
+    "kks": "2PAC10C",
+    "sort": 11
+  },
+  {
+    "id": 31,
+    "parentId": 11,
+    "level": "四级",
+    "category": "管路",
+    "name": "2号机组水导轴承冷却水管路系统",
+    "typeCode": "",
+    "kks": "2PAC13",
+    "sort": 12
+  },
+  {
+    "id": 32,
+    "parentId": 11,
+    "level": "四级",
+    "category": "管路",
+    "name": "2号机组推力及下导轴承冷却水管路系统",
+    "typeCode": "",
+    "kks": "2PAC14",
+    "sort": 13
+  },
+  {
+    "id": 33,
+    "parentId": 11,
+    "level": "四级",
+    "category": "管路",
+    "name": "2号机组上导轴承冷却水管路系统",
+    "typeCode": "",
+    "kks": "2PAC15",
+    "sort": 14
+  },
+  {
+    "id": 34,
+    "parentId": 11,
+    "level": "四级",
+    "category": "管路",
+    "name": "2号机组空气冷却器冷却水管路系统",
+    "typeCode": "",
+    "kks": "2PAC16",
+    "sort": 15
+  },
+  {
+    "id": 35,
+    "parentId": 12,
+    "level": "四级",
+    "category": "管路",
+    "name": "2号机组上下止漏环供水管路系统",
+    "typeCode": "",
+    "kks": "2MFA20A",
+    "sort": 16
+  },
+  {
+    "id": 36,
+    "parentId": 13,
+    "level": "四级",
+    "category": "管路",
+    "name": "公用供水系统总管阀组",
+    "typeCode": "",
+    "kks": "YPAA10AA",
+    "sort": 17
+  },
+  {
+    "id": 37,
+    "parentId": 13,
+    "level": "四级",
+    "category": "管路",
+    "name": "公用供水系统总管自动化元件",
+    "typeCode": "",
+    "kks": "YPAA10C",
+    "sort": 18
+  },
+  {
+    "id": 38,
+    "parentId": 14,
+    "level": "四级",
+    "category": "管路",
+    "name": "全厂消防水(供水母管段)",
+    "typeCode": "",
+    "kks": "YPAA11",
+    "sort": 19
+  },
+  {
+    "id": 39,
+    "parentId": 15,
+    "level": "四级",
+    "category": "管路",
+    "name": "空压机冷却水系统(供水母管段)",
+    "typeCode": "",
+    "kks": "YPAA12",
+    "sort": 20
+  },
+  {
+    "id": 40,
+    "parentId": 15,
+    "level": "四级",
+    "category": "管路",
+    "name": "通风空调冷却水系统(供水母管段）",
+    "typeCode": "",
+    "kks": "YPAA14",
+    "sort": 21
+  },
+  {
+    "id": 41,
+    "parentId": 16,
+    "level": "四级",
+    "category": "管路",
+    "name": "检修排水系统阀组",
+    "typeCode": "",
+    "kks": "YGMA10AA",
+    "sort": 22
+  },
+  {
+    "id": 42,
+    "parentId": 16,
+    "level": "四级",
+    "category": "管路",
+    "name": "检修排水系统自动化元件",
+    "typeCode": "",
+    "kks": "YGMA10C",
+    "sort": 23
+  },
+  {
+    "id": 43,
+    "parentId": 17,
+    "level": "四级",
+    "category": "管路",
+    "name": "渗漏排水系统阀组",
+    "typeCode": "",
+    "kks": "YGMB10AA",
+    "sort": 24
+  },
+  {
+    "id": 44,
+    "parentId": 17,
+    "level": "四级",
+    "category": "管路",
+    "name": "渗漏排水系统自动化元件",
+    "typeCode": "",
+    "kks": "YGMB10C",
+    "sort": 25
+  },
+  {
+    "id": 45,
+    "parentId": 18,
+    "level": "四级",
+    "category": "管路",
+    "name": "充排油系统管路",
+    "typeCode": "",
+    "kks": "YQSA10BR001-F01",
+    "sort": 26
+  },
+  {
     "id": 46,
-    "parentId": 45,
+    "parentId": 19,
     "level": "四级",
     "category": "管路",
     "name": "水喷雾灭火系统",
     "typeCode": "",
     "kks": "YSGC",
-    "sort": 1
+    "sort": 27
   }
 ]

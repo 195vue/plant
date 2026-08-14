@@ -12,7 +12,6 @@ import {
   AlertCircle,
   Activity,
   Network,
-  TrendingUp as TrendingUpIcon,
 } from "lucide-react";
 import {
   screenStats,
@@ -25,10 +24,21 @@ import {
   drawings,
 } from "@/mock";
 import { message } from "@/components/common/Message";
+import { APP_TITLE } from "@/lib/appConfig";
+import { DevNote } from "@/components/devNotes/DevNote";
+
+const MOCK_REALTIME_POINTS = [
+  { type: "压力", count: 186, color: "#3b82f6" },
+  { type: "温度", count: 154, color: "#f97316" },
+  { type: "振动", count: 96, color: "#8b5cf6" },
+  { type: "液位", count: 48, color: "#06b6d4" },
+  { type: "电气量", count: 132, color: "#eab308" },
+  { type: "开关量", count: 214, color: "#10b981" },
+];
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const [todoTab, setTodoTab] = useState<"all" | "approval" | "alert">("all");
+  const [todoTab, setTodoTab] = useState<"all" | "data" | "alert">("all");
 
   const today = new Date();
   const weekdays = ["星期日", "星期一", "星期二", "星期三", "星期四", "星期五", "星期六"];
@@ -47,9 +57,7 @@ export default function Dashboard() {
   const linkedPipelines = pipelines.filter((p) => p.codeStatus === "linked").length;
   const unlinkedPipelines = pipelines.filter((p) => p.codeStatus === "unlinked").length;
 
-  const approvedDocs = documents.filter((d) => d.approvalStatus === "approved").length;
-  const pendingDocs = documents.filter((d) => d.approvalStatus === "pending").length;
-  const rejectedDocs = documents.filter((d) => d.approvalStatus === "rejected").length;
+  const linkedDocuments = documents.filter((d) => d.linkedId).length;
 
   const runningEquipments = equipments.filter((e) => e.status === "running").length;
   const faultEquipments = equipments.filter((e) => e.status === "fault").length;
@@ -87,7 +95,7 @@ export default function Dashboard() {
       bg: "bg-purple-50",
       trend: "+5",
       trendUp: true,
-      sub: `待审批 ${pendingDocs}份`,
+      sub: `已关联 ${linkedDocuments}份`,
     },
     {
       name: "编码挂接率",
@@ -173,89 +181,50 @@ export default function Dashboard() {
     };
   }, [linkedCodes, unlinkedCodes, codeLinkRate]);
 
-  // ===== 图表2: 机组运行状态概览 (与大屏数据保持一致) =====
-  const units = [
-    { id: "1#机组", status: "运行", output: 153.2, pf: 0.92, capacity: 150 },
-    { id: "2#机组", status: "运行", output: 148.7, pf: 0.90, capacity: 150 },
-    { id: "3#机组", status: "运行", output: 152.1, pf: 0.91, capacity: 150 },
-    { id: "4#机组", status: "检修", output: 0, pf: 0, capacity: 150 },
-  ];
-  const totalOutput = units.reduce((s, u) => s + u.output, 0);
-  const runningCount = units.filter((u) => u.status === "运行").length;
-  const unitStatusOption = useMemo(() => {
+  // 本阶段尚未接入实时数据，使用 Mock 数据展示模型测点类型和数量。
+  const totalRealtimePoints = MOCK_REALTIME_POINTS.reduce(
+    (sum, item) => sum + item.count,
+    0,
+  );
+  const realtimePointOption = useMemo(() => {
     return {
       tooltip: {
         trigger: "axis",
         axisPointer: { type: "shadow" },
-        formatter: (params: any) => {
-          const idx = params[0].dataIndex;
-          const u = units[idx];
-          const loadRate = u.capacity > 0 ? ((u.output / u.capacity) * 100).toFixed(1) : "0.0";
-          return `${u.id}<br/>状态: ${u.status}<br/>实时出力: ${u.output} MW<br/>额定容量: ${u.capacity} MW<br/>负荷率: ${loadRate}%`;
-        },
+        formatter: (params: any) =>
+          `${params[0].name}<br/>已接入测点：${params[0].value} 个`,
       },
-      grid: { top: 25, right: 20, bottom: 30, left: 45 },
+      grid: { top: 10, right: 30, bottom: 25, left: 58 },
       xAxis: {
-        type: "category",
-        data: units.map((u) => u.id),
-        axisLine: { lineStyle: { color: "#e5e7eb" } },
-        axisLabel: { color: "#6b7280", fontSize: 11 },
-        axisTick: { show: false },
-      },
-      yAxis: {
         type: "value",
-        name: "MW",
+        name: "点",
         nameTextStyle: { color: "#9ca3af", fontSize: 10 },
-        max: 180,
+        axisLine: { lineStyle: { color: "#e5e7eb" } },
         axisLabel: { color: "#6b7280", fontSize: 10 },
         splitLine: { lineStyle: { color: "#f3f4f6" } },
       },
+      yAxis: {
+        type: "category",
+        data: MOCK_REALTIME_POINTS.map((item) => item.type),
+        axisLine: { lineStyle: { color: "#e5e7eb" } },
+        axisLabel: { color: "#4b5563", fontSize: 11 },
+        axisTick: { show: false },
+      },
       series: [
         {
-          name: "实时出力",
+          name: "已接入测点",
           type: "bar",
-          barWidth: "38%",
-          data: units.map((u) => ({
-            value: u.output,
-            itemStyle: {
-              color:
-                u.status === "运行"
-                  ? { type: "linear", x: 0, y: 0, x2: 0, y2: 1, colorStops: [
-                      { offset: 0, color: "#34d399" },
-                      { offset: 1, color: "#10b981" },
-                    ] }
-                  : u.status === "备用"
-                  ? "#3b82f6"
-                  : { type: "linear", x: 0, y: 0, x2: 0, y2: 1, colorStops: [
-                      { offset: 0, color: "#fbbf24" },
-                      { offset: 1, color: "#f59e0b" },
-                    ] },
-              borderRadius: [4, 4, 0, 0],
-            },
+          barWidth: 14,
+          data: MOCK_REALTIME_POINTS.map((item) => ({
+            value: item.count,
+            itemStyle: { color: item.color, borderRadius: [0, 4, 4, 0] },
           })),
           label: {
             show: true,
-            position: "top",
-            formatter: (params: any) => `${params.value} MW`,
-            fontSize: 11,
-            color: "#1f2937",
-            fontWeight: "bold",
-          },
-          markLine: {
-            silent: true,
-            symbol: "none",
-            data: [
-              {
-                yAxis: 150,
-                lineStyle: { color: "#ef4444", type: "dashed", width: 1 },
-                label: {
-                  formatter: "额定 150MW",
-                  color: "#ef4444",
-                  fontSize: 10,
-                  position: "insideEndTop",
-                },
-              },
-            ],
+            position: "right",
+            formatter: "{c}",
+            fontSize: 10,
+            color: "#374151",
           },
         },
       ],
@@ -263,31 +232,36 @@ export default function Dashboard() {
   }, []);
 
   // ===== 待办事项数据 =====
-  const approvalTodos = documents
-    .filter((d) => d.approvalStatus === "pending")
-    .map((d, i) => ({
-      id: `approval-${i}`,
-      type: "资料审批",
-      typeColor: "bg-orange-100 text-orange-600",
-      description: `${d.name} 待审批`,
-      initiator: d.uploadUser,
-      time: d.uploadTime,
-      level: ("pending" as const),
-      module: "drawing",
-    }));
-
-  const drawingApprovalTodos = drawings
-    .filter((d) => d.approvalStatus === "pending")
-    .map((d, i) => ({
-      id: `drawing-approval-${i}`,
-      type: "图纸审批",
-      typeColor: "bg-purple-100 text-purple-600",
-      description: `${d.name} 待审批`,
-      initiator: d.uploadUser,
-      time: d.uploadTime,
-      level: ("pending" as const),
-      module: "drawing",
-    }));
+  const dataTodos = [
+    ...(unlinkedEquipments > 0
+      ? [
+          {
+            id: "data-equipment-link",
+            type: "设备挂接",
+            typeColor: "bg-blue-100 text-blue-600",
+            description: `${unlinkedEquipments}台设备尚未完成编码挂接`,
+            initiator: "系统",
+            time: new Date().toLocaleString("zh-CN"),
+            level: "pending" as const,
+            module: "equipment",
+          },
+        ]
+      : []),
+    ...(unlinkedPipelines > 0
+      ? [
+          {
+            id: "data-pipeline-link",
+            type: "管路挂接",
+            typeColor: "bg-cyan-100 text-cyan-700",
+            description: `${unlinkedPipelines}条管路尚未完成编码挂接`,
+            initiator: "系统",
+            time: new Date().toLocaleString("zh-CN"),
+            level: "pending" as const,
+            module: "pipeline",
+          },
+        ]
+      : []),
+  ];
 
   const alertTodos = [
     ...(faultEquipments > 0
@@ -320,432 +294,357 @@ export default function Dashboard() {
       : []),
   ];
 
-  const allTodos = [...approvalTodos, ...drawingApprovalTodos, ...alertTodos];
+  const allTodos = [...dataTodos, ...alertTodos];
 
   const filteredTodos =
     todoTab === "all"
       ? allTodos
-      : todoTab === "approval"
-      ? [...approvalTodos, ...drawingApprovalTodos]
+      : todoTab === "data"
+      ? dataTodos
       : alertTodos;
 
   const todoTabs = [
     { key: "all", label: "全部", count: allTodos.length },
-    { key: "approval", label: "待审批", count: approvalTodos.length + drawingApprovalTodos.length },
+    { key: "data", label: "数据完善", count: dataTodos.length },
     { key: "alert", label: "数据提醒", count: alertTodos.length },
   ];
 
   return (
     <div className="space-y-4">
       {/* 顶部欢迎卡片 */}
-      <div className="admin-card p-5 flex items-center justify-between bg-gradient-to-r from-blue-50 to-indigo-50">
-        <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-xl font-bold">
-            管
+      <DevNote
+        id="dashboard-welcome"
+        title="欢迎信息卡片"
+        summary="展示登录用户、日期星期、平台名称和今日操作次数"
+        items={[
+          { label: "数据来源", value: "operationLogs（mock）长度作为今日操作次数；日期星期由前端 new Date() 实时生成；平台名称 APP_TITLE" },
+          { label: "校验规则", value: "无输入校验；昵称固定「你好，系统管理员」" },
+          { label: "交互逻辑", value: "纯信息展示；右侧「进入大屏」按钮跳转 /screen" },
+          { label: "后续步骤", value: "正式系统：今日操作次数应调用后台「操作日志统计接口」按当天统计" },
+          { label: "权限", value: "管理员/操作人员/浏览人员可见" },
+        ]}
+        wrapClassName="block"
+      >
+        <div className="admin-card p-5 flex items-center justify-between bg-gradient-to-r from-blue-50 to-indigo-50">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-xl font-bold">
+              管
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-admin-text">你好，系统管理员 👋</h2>
+              <p className="text-xs text-admin-muted mt-0.5">
+                {dateStr} · {weekday} · {APP_TITLE}
+              </p>
+            </div>
           </div>
-          <div>
-            <h2 className="text-lg font-bold text-admin-text">你好，系统管理员 👋</h2>
-            <p className="text-xs text-admin-muted mt-0.5">
-              {dateStr} · {weekday} · 乌江渡水电站数字孪生管理平台
-            </p>
+          <div className="flex items-center gap-3">
+            <div className="text-right">
+              <div className="text-xs text-admin-muted">今日操作</div>
+              <div className="text-lg font-bold text-blue-500">{operationLogs.length} 次</div>
+            </div>
+            <DevNote
+              id="dashboard-enter-screen"
+              title="进入大屏按钮"
+              summary="跳转至孪生全景大屏"
+              items={[
+                { label: "数据来源", value: "无数据依赖，路由跳转 /screen" },
+                { label: "交互逻辑", value: "onClick 调用 navigate('/screen')" },
+                { label: "后续步骤", value: "正式系统：跳转时携带当前用户权限，进入工程总览视图" },
+                { label: "权限", value: "管理员/操作人员/浏览人员可见" },
+              ]}
+            >
+              <button
+                onClick={() => navigate("/screen")}
+                className="btn-primary flex items-center gap-2 px-4 py-2 text-sm"
+              >
+                进入大屏
+                <ArrowRight size={14} />
+              </button>
+            </DevNote>
           </div>
         </div>
-        <div className="flex items-center gap-3">
-          <div className="text-right">
-            <div className="text-xs text-admin-muted">今日操作</div>
-            <div className="text-lg font-bold text-blue-500">{operationLogs.length} 次</div>
-          </div>
-          <button
-            onClick={() => navigate("/screen")}
-            className="btn-primary flex items-center gap-2 px-4 py-2 text-sm"
-          >
-            进入大屏
-            <ArrowRight size={14} />
-          </button>
-        </div>
-      </div>
+      </DevNote>
 
       {/* 统计卡片区 */}
-      <div className="grid grid-cols-5 gap-4">
-        {statCards.map((stat) => (
-          <div
-            key={stat.name}
-            className="admin-card p-4 hover:shadow-md transition-shadow cursor-pointer"
-            onClick={() => {
-              if (stat.name === "设备总数") navigate("/admin/equipment");
-              else if (stat.name === "管路总数") navigate("/admin/pipeline/category");
-              else if (stat.name === "资料总数") navigate("/admin/drawing");
-              else if (stat.name === "编码挂接率") navigate("/admin/system/structure-tree");
-              else if (stat.name === "告警信息") navigate("/screen");
-            }}
-          >
-            <div className="flex items-start justify-between mb-2">
-              <div
-                className={`w-9 h-9 rounded-lg ${stat.bg} ${stat.color} flex items-center justify-center`}
-              >
-                {stat.icon}
-              </div>
-              <div
-                className={`flex items-center gap-0.5 text-xs font-medium ${
-                  stat.trendUp ? "text-green-500" : "text-red-500"
-                }`}
-              >
-                {stat.trendUp ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
-                {stat.trend}
-              </div>
-            </div>
-            <div className="text-xs text-admin-muted mb-1">{stat.name}</div>
-            <div className="flex items-baseline gap-1">
-              <span className="text-2xl font-bold text-admin-text">{stat.value}</span>
-              <span className="text-xs text-admin-muted">{stat.unit}</span>
-            </div>
-            <div className="text-[10px] text-admin-muted mt-1">{stat.sub}</div>
-          </div>
-        ))}
-      </div>
-
-      {/* 图表区域：数字化进度总览 + 机组运行状态 并排 */}
-      <div className="grid grid-cols-2 gap-4">
-        {/* 图表1: 数字化进度总览 */}
-        <div className="admin-card p-4">
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-lg bg-blue-50 text-blue-500 flex items-center justify-center">
-                <Network size={14} />
-              </div>
-              <span className="text-sm font-medium text-admin-text">数字化进度总览</span>
-            </div>
-            <button
-              className="text-xs text-blue-500 hover:text-blue-700"
-              onClick={() => navigate("/admin/system/structure-tree")}
+      <DevNote
+        id="dashboard-stat-cards"
+        title="统计卡片区（5张）"
+        summary="设备总数/管路总数/资料总数/编码挂接率/告警信息，点击跳转对应模块"
+        items={[
+          { label: "数据来源", value: "设备总数=screenStats.equipmentTotal；管路总数=screenStats.pipelineTotal；资料总数=documents.length+drawings.length；编码挂接率=linkedCodes/totalCodes×100%；告警信息=alarms.length" },
+          { label: "校验规则", value: "编码挂接率≥80%绿色，否则橙色；告警>0红色" },
+          { label: "交互逻辑", value: "点击跳转：设备总数→/admin/equipment；管路总数→/admin/pipeline/category；资料总数→/admin/drawing；编码挂接率→/admin/system/structure-tree；告警信息→/screen" },
+          { label: "后续步骤", value: "正式系统：各卡片数值由对应业务模块统计接口返回" },
+          { label: "权限", value: "管理员/操作人员可见；浏览人员仅告警信息可点" },
+        ]}
+        wrapClassName="block"
+      >
+        <div className="grid grid-cols-5 gap-4">
+          {statCards.map((stat) => (
+            <div
+              key={stat.name}
+              className="admin-card p-4 hover:shadow-md transition-shadow cursor-pointer"
+              onClick={() => {
+                if (stat.name === "设备总数") navigate("/admin/equipment");
+                else if (stat.name === "管路总数") navigate("/admin/pipeline/category");
+                else if (stat.name === "资料总数") navigate("/admin/drawing");
+                else if (stat.name === "编码挂接率") navigate("/admin/system/structure-tree");
+                else if (stat.name === "告警信息") navigate("/screen");
+              }}
             >
-              查看详情 →
-            </button>
-          </div>
-          <div style={{ height: 220 }}>
-            <ReactECharts option={progressOption} style={{ height: "100%" }} />
-          </div>
-          <div className="flex items-center justify-center gap-6 pt-2 border-t border-admin-border">
-            <div className="text-center">
-              <div className="text-lg font-bold text-blue-500">{linkedCodes}</div>
-              <div className="text-[10px] text-admin-muted">已挂接编码</div>
-            </div>
-            <div className="w-px h-8 bg-admin-border"></div>
-            <div className="text-center">
-              <div className="text-lg font-bold text-orange-500">{unlinkedCodes}</div>
-              <div className="text-[10px] text-admin-muted">待挂接编码</div>
-            </div>
-            <div className="w-px h-8 bg-admin-border"></div>
-            <div className="text-center">
-              <div className="text-lg font-bold text-green-500">{linkedEquipments}</div>
-              <div className="text-[10px] text-admin-muted">已挂接设备</div>
-            </div>
-          </div>
-        </div>
-
-        {/* 图表2: 机组运行状态概览 */}
-        <div className="admin-card p-4">
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-lg bg-green-50 text-green-500 flex items-center justify-center">
-                <Activity size={14} />
-              </div>
-              <span className="text-sm font-medium text-admin-text">机组运行状态</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] text-green-500">● 运行</span>
-              <span className="text-[10px] text-orange-500">● 检修</span>
-            </div>
-          </div>
-          {/* 4台机组状态徽章 */}
-          <div className="grid grid-cols-4 gap-2 mb-2">
-            {units.map((u) => (
-              <div
-                key={u.id}
-                className={`px-2 py-1.5 rounded text-center border ${
-                  u.status === "运行"
-                    ? "bg-green-50 border-green-200"
-                    : u.status === "备用"
-                    ? "bg-blue-50 border-blue-200"
-                    : "bg-orange-50 border-orange-200"
-                }`}
-              >
-                <div className="text-[10px] text-admin-muted">{u.id}</div>
+              <div className="flex items-start justify-between mb-2">
                 <div
-                  className={`text-xs font-medium ${
-                    u.status === "运行"
-                      ? "text-green-600"
-                      : u.status === "备用"
-                      ? "text-blue-600"
-                      : "text-orange-600"
+                  className={`w-9 h-9 rounded-lg ${stat.bg} ${stat.color} flex items-center justify-center`}
+                >
+                  {stat.icon}
+                </div>
+                <div
+                  className={`flex items-center gap-0.5 text-xs font-medium ${
+                    stat.trendUp ? "text-green-500" : "text-red-500"
                   }`}
                 >
-                  {u.status}
-                </div>
-                <div className="text-[10px] text-admin-text font-medium mt-0.5">
-                  {u.output > 0 ? `${u.output} MW` : "—"}
+                  {stat.trendUp ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
+                  {stat.trend}
                 </div>
               </div>
-            ))}
-          </div>
-          <div style={{ height: 180 }}>
-            <ReactECharts option={unitStatusOption} style={{ height: "100%" }} />
-          </div>
-          <div className="flex items-center justify-center gap-6 pt-2 border-t border-admin-border">
-            <div className="text-center">
-              <div className="text-lg font-bold text-green-500">{runningCount}/4</div>
-              <div className="text-[10px] text-admin-muted">运行机组</div>
-            </div>
-            <div className="w-px h-8 bg-admin-border"></div>
-            <div className="text-center">
-              <div className="text-lg font-bold text-blue-500">{totalOutput.toFixed(1)}</div>
-              <div className="text-[10px] text-admin-muted">总有功(MW)</div>
-            </div>
-            <div className="w-px h-8 bg-admin-border"></div>
-            <div className="text-center">
-              <div className="text-lg font-bold text-orange-500">
-                {((totalOutput / (4 * 150)) * 100).toFixed(1)}%
+              <div className="text-xs text-admin-muted mb-1">{stat.name}</div>
+              <div className="flex items-baseline gap-1">
+                <span className="text-2xl font-bold text-admin-text">{stat.value}</span>
+                <span className="text-xs text-admin-muted">{stat.unit}</span>
               </div>
-              <div className="text-[10px] text-admin-muted">综合负荷率</div>
+              <div className="text-[10px] text-admin-muted mt-1">{stat.sub}</div>
             </div>
-          </div>
+          ))}
         </div>
+      </DevNote>
+
+      {/* 图表区域：数字化进度总览 + 模型实时数据点统计 并排 */}
+      <div className="grid grid-cols-2 gap-4">
+        {/* 图表1: 数字化进度总览 */}
+        <DevNote
+          id="dashboard-progress"
+          title="数字化进度总览"
+          summary="环形图展示编码挂接进度，下方统计已挂接/待挂接编码与已挂接设备"
+          items={[
+            { label: "数据来源", value: "linkedCodes/unlinkedCodes/linkedEquipments：由 codes、equipments（mock）统计；环形图 center 显示编码挂接率 codeLinkRate" },
+            { label: "交互逻辑", value: "右上角「查看详情 →」跳转 /admin/system/structure-tree" },
+            { label: "后续步骤", value: "正式系统：编码挂接率=已挂接编码数÷编码总数×100%，由编码关联接口返回" },
+            { label: "权限", value: "管理员/操作人员可见，可点击查看详情" },
+          ]}
+          wrapClassName="block"
+        >
+          <div className="admin-card p-4">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-lg bg-blue-50 text-blue-500 flex items-center justify-center">
+                  <Network size={14} />
+                </div>
+                <span className="text-sm font-medium text-admin-text">数字化进度总览</span>
+              </div>
+              <button
+                className="text-xs text-blue-500 hover:text-blue-700"
+                onClick={() => navigate("/admin/system/structure-tree")}
+              >
+                查看详情 →
+              </button>
+            </div>
+            <div style={{ height: 220 }}>
+              <ReactECharts option={progressOption} style={{ height: "100%" }} />
+            </div>
+            <div className="flex items-center justify-center gap-6 pt-2 border-t border-admin-border">
+              <div className="text-center">
+                <div className="text-lg font-bold text-blue-500">{linkedCodes}</div>
+                <div className="text-[10px] text-admin-muted">已挂接编码</div>
+              </div>
+              <div className="w-px h-8 bg-admin-border"></div>
+              <div className="text-center">
+                <div className="text-lg font-bold text-orange-500">{unlinkedCodes}</div>
+                <div className="text-[10px] text-admin-muted">待挂接编码</div>
+              </div>
+              <div className="w-px h-8 bg-admin-border"></div>
+              <div className="text-center">
+                <div className="text-lg font-bold text-green-500">{linkedEquipments}</div>
+                <div className="text-[10px] text-admin-muted">已挂接设备</div>
+              </div>
+            </div>
+          </div>
+        </DevNote>
+
+        {/* 模型实时数据点统计 */}
+        <DevNote
+          id="dashboard-realtime-points"
+          title="模型实时数据点统计"
+          summary="按测点类型统计已接入测点数，柱状图展示分布"
+          items={[
+            { label: "数据来源", value: "MOCK_REALTIME_POINTS（mock）：压力186/温度154/振动96/液位48/电气量132/开关量214；右上角标注「Mock 数据」" },
+            { label: "校验规则", value: "暂无真实数据接入，原型阶段使用 mock" },
+            { label: "交互逻辑", value: "无点击操作；6类测点以卡片+横向柱状图展示，下方统计已接入测点总数/数据类型数/关联模型数" },
+            { label: "后续步骤", value: "正式系统：已接入测点数由实时数据服务按测点类型统计接口返回；关联模型数由模型关联接口返回" },
+            { label: "权限", value: "管理员/操作人员可见" },
+          ]}
+          wrapClassName="block"
+        >
+          <div className="admin-card p-4">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-lg bg-cyan-50 text-cyan-600 flex items-center justify-center">
+                  <Network size={14} />
+                </div>
+                <span className="text-sm font-medium text-admin-text">模型实时数据点统计</span>
+              </div>
+              <span className="rounded border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] text-amber-700">
+                Mock 数据
+              </span>
+            </div>
+            <div className="grid grid-cols-6 gap-2 mb-2">
+              {MOCK_REALTIME_POINTS.map((item) => (
+                <div
+                  key={item.type}
+                  className="rounded border border-admin-border bg-gray-50/60 px-2 py-1.5 text-center"
+                >
+                  <div className="text-[10px] text-admin-muted">{item.type}</div>
+                  <div className="mt-0.5 text-sm font-semibold" style={{ color: item.color }}>
+                    {item.count}
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div style={{ height: 180 }}>
+              <ReactECharts option={realtimePointOption} style={{ height: "100%" }} />
+            </div>
+            <div className="flex items-center justify-center gap-6 pt-2 border-t border-admin-border">
+              <div className="text-center">
+                <div className="text-lg font-bold text-cyan-600">{totalRealtimePoints}</div>
+                <div className="text-[10px] text-admin-muted">已接入测点</div>
+              </div>
+              <div className="w-px h-8 bg-admin-border"></div>
+              <div className="text-center">
+                <div className="text-lg font-bold text-blue-500">{MOCK_REALTIME_POINTS.length}</div>
+                <div className="text-[10px] text-admin-muted">数据类型</div>
+              </div>
+              <div className="w-px h-8 bg-admin-border"></div>
+              <div className="text-center">
+                <div className="text-lg font-bold text-violet-500">82</div>
+                <div className="text-[10px] text-admin-muted">关联模型数</div>
+              </div>
+            </div>
+          </div>
+        </DevNote>
       </div>
 
-      {/* 底部区域：待办事项(2列) + 核心运行速览(1列) 并排 */}
-      <div className="grid grid-cols-3 gap-4">
-        {/* 待办事项 (占2列) */}
-        <div className="admin-card col-span-2">
-          <div className="flex items-center justify-between px-4 py-3 border-b border-admin-border">
-            <div className="flex items-center gap-2">
-              <Activity size={16} className="text-blue-500" />
-              <span className="text-sm font-medium text-admin-text">待办事项</span>
-              {allTodos.length > 0 && (
-                <span className="px-1.5 py-0.5 bg-red-100 text-red-600 text-xs rounded-full">
-                  {allTodos.length}
-                </span>
-              )}
-            </div>
-            <button className="text-xs text-blue-500 hover:text-blue-700">
-              查看全部
-            </button>
-          </div>
-
-          {/* Tab切换 */}
-          <div className="flex gap-1 px-4 py-2 border-b border-admin-border">
-            {todoTabs.map((tab) => (
-              <button
-                key={tab.key}
-                onClick={() => setTodoTab(tab.key as any)}
-                className={`px-3 py-1 text-xs rounded transition-colors flex items-center gap-1 ${
-                  todoTab === tab.key
-                    ? "bg-blue-500 text-white"
-                    : "text-admin-muted hover:text-admin-text"
-                }`}
-              >
-                {tab.label}
-                {tab.count > 0 && (
-                  <span
-                    className={`px-1 py-0 rounded-full text-[10px] ${
-                      todoTab === tab.key
-                        ? "bg-white/20 text-white"
-                        : "bg-red-100 text-red-500"
-                    }`}
-                  >
-                    {tab.count}
+      {/* 待办事项 */}
+      <DevNote
+        id="dashboard-todos"
+        title="待办事项"
+        summary="按全部/数据完善/数据提醒分类展示待办，支持点击跳转处理"
+        items={[
+          { label: "数据来源", value: "dataTodos（设备挂接/管路挂接：按 equipments/pipelines 中未挂接数量生成）+ alertTodos（设备告警：faultEquipments>0；编码提醒：unlinkedCodes>5）" },
+          { label: "校验规则", value: "无待办时显示「暂无待办事项 🎉」；页签计数角标显示各分类数量" },
+          { label: "交互逻辑", value: "三个页签切换 filteredTodos；点击整行或「去处理」跳转 /admin/{module}（equipment→设备数字化、pipeline→结构树管理、code→结构树管理）" },
+          { label: "后续步骤", value: "正式系统：待办事项由待办服务按用户权限返回，含审批类待办（资料/图纸审批）" },
+          { label: "权限", value: "管理员/操作人员可见；浏览人员不显示" },
+        ]}
+        wrapClassName="block"
+      >
+        <div>
+          <div className="admin-card">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-admin-border">
+              <div className="flex items-center gap-2">
+                <Activity size={16} className="text-blue-500" />
+                <span className="text-sm font-medium text-admin-text">待办事项</span>
+                {allTodos.length > 0 && (
+                  <span className="px-1.5 py-0.5 bg-red-100 text-red-600 text-xs rounded-full">
+                    {allTodos.length}
                   </span>
                 )}
-              </button>
-            ))}
-          </div>
-
-          {/* 待办列表 */}
-          <div className="p-2 max-h-[320px] overflow-auto">
-            {filteredTodos.length === 0 ? (
-              <div className="text-center py-8 text-sm text-admin-muted">
-                暂无待办事项 🎉
               </div>
-            ) : (
-              <div className="space-y-1">
-                {filteredTodos.map((todo) => (
-                  <div
-                    key={todo.id}
-                    className="flex items-center gap-3 p-3 rounded hover:bg-gray-50 transition-colors cursor-pointer"
-                    onClick={() => {
-                      message.info(`跳转到${todo.module}页面`);
-                      navigate(`/admin/${todo.module}`);
-                    }}
-                  >
+            </div>
+
+            {/* Tab切换 */}
+            <div className="flex gap-1 px-4 py-2 border-b border-admin-border">
+              {todoTabs.map((tab) => (
+                <button
+                  key={tab.key}
+                  onClick={() => setTodoTab(tab.key as any)}
+                  className={`px-3 py-1 text-xs rounded transition-colors flex items-center gap-1 ${
+                    todoTab === tab.key
+                      ? "bg-blue-500 text-white"
+                      : "text-admin-muted hover:text-admin-text"
+                  }`}
+                >
+                  {tab.label}
+                  {tab.count > 0 && (
                     <span
-                      className={`px-2 py-0.5 text-xs rounded ${todo.typeColor}`}
+                      className={`px-1 py-0 rounded-full text-[10px] ${
+                        todoTab === tab.key
+                          ? "bg-white/20 text-white"
+                          : "bg-red-100 text-red-500"
+                      }`}
                     >
-                      {todo.type}
+                      {tab.count}
                     </span>
-                    <div className="flex-1 min-w-0">
-                      <div className="text-sm text-admin-text truncate">
-                        {todo.description}
-                      </div>
-                      <div className="text-xs text-admin-muted mt-0.5">
-                        {todo.initiator} · {todo.time}
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2 flex-shrink-0">
-                      {todo.level === "pending" && (
-                        <span className="text-xs text-orange-500 font-medium">待处理</span>
-                      )}
-                      {todo.level === "alert" && (
-                        <span className="text-xs text-red-500 font-medium">告警</span>
-                      )}
-                      <button
-                        className="text-xs text-blue-500 hover:text-blue-700 flex items-center gap-0.5"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          navigate(`/admin/${todo.module}`);
-                        }}
+                  )}
+                </button>
+              ))}
+            </div>
+
+            {/* 待办列表 */}
+            <div className="p-2 max-h-[320px] overflow-auto">
+              {filteredTodos.length === 0 ? (
+                <div className="text-center py-8 text-sm text-admin-muted">
+                  暂无待办事项 🎉
+                </div>
+              ) : (
+                <div className="space-y-1">
+                  {filteredTodos.map((todo) => (
+                    <div
+                      key={todo.id}
+                      className="flex items-center gap-3 p-3 rounded hover:bg-gray-50 transition-colors cursor-pointer"
+                      onClick={() => {
+                        message.info(`跳转到${todo.module}页面`);
+                        navigate(`/admin/${todo.module}`);
+                      }}
+                    >
+                      <span
+                        className={`px-2 py-0.5 text-xs rounded ${todo.typeColor}`}
                       >
-                        去处理
-                        <ArrowRight size={12} />
-                      </button>
+                        {todo.type}
+                      </span>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm text-admin-text truncate">
+                          {todo.description}
+                        </div>
+                        <div className="text-xs text-admin-muted mt-0.5">
+                          {todo.initiator} · {todo.time}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        {todo.level === "pending" && (
+                          <span className="text-xs text-orange-500 font-medium">待处理</span>
+                        )}
+                        {todo.level === "alert" && (
+                          <span className="text-xs text-red-500 font-medium">告警</span>
+                        )}
+                        <button
+                          className="text-xs text-blue-500 hover:text-blue-700 flex items-center gap-0.5"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/admin/${todo.module}`);
+                          }}
+                        >
+                          去处理
+                          <ArrowRight size={12} />
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-            )}
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
+
         </div>
-
-        {/* 核心运行速览 (占1列) */}
-        <div className="admin-card flex flex-col">
-          <div className="flex items-center justify-between px-4 py-3 border-b border-admin-border">
-            <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-lg bg-indigo-50 text-indigo-500 flex items-center justify-center">
-                <TrendingUpIcon size={14} />
-              </div>
-              <span className="text-sm font-medium text-admin-text">核心运行速览</span>
-            </div>
-          </div>
-
-          {/* 4项核心指标 2x2 */}
-          <div className="grid grid-cols-2 gap-px bg-admin-border">
-            <div className="bg-white p-3 text-center">
-              <div className="text-[10px] text-admin-muted mb-0.5">总有功</div>
-              <div className="text-base font-bold text-blue-500">
-                {totalOutput.toFixed(1)}
-                <span className="text-[10px] font-normal text-admin-muted ml-0.5">MW</span>
-              </div>
-            </div>
-            <div className="bg-white p-3 text-center">
-              <div className="text-[10px] text-admin-muted mb-0.5">今日发电量</div>
-              <div className="text-base font-bold text-green-500">
-                721.6
-                <span className="text-[10px] font-normal text-admin-muted ml-0.5">万kWh</span>
-              </div>
-            </div>
-            <div className="bg-white p-3 text-center">
-              <div className="text-[10px] text-admin-muted mb-0.5">净水头</div>
-              <div className="text-base font-bold text-orange-500">
-                137.8
-                <span className="text-[10px] font-normal text-admin-muted ml-0.5">m</span>
-              </div>
-            </div>
-            <div className="bg-white p-3 text-center">
-              <div className="text-[10px] text-admin-muted mb-0.5">综合负荷率</div>
-              <div className="text-base font-bold text-indigo-500">
-                {((totalOutput / (4 * 150)) * 100).toFixed(1)}
-                <span className="text-[10px] font-normal text-admin-muted ml-0.5">%</span>
-              </div>
-            </div>
-          </div>
-
-          {/* 3项辅助指标 3列 */}
-          <div className="grid grid-cols-3 gap-px bg-admin-border border-t border-admin-border">
-            <div className="bg-white p-2.5 text-center">
-              <div className="text-[10px] text-admin-muted">机组可用率</div>
-              <div className="text-sm font-bold text-green-500 mt-0.5">
-                {runningCount}/4
-              </div>
-            </div>
-            <div className="bg-white p-2.5 text-center">
-              <div className="text-[10px] text-admin-muted">设备在线率</div>
-              <div className="text-sm font-bold text-blue-500 mt-0.5">92.7%</div>
-            </div>
-            <div className="bg-white p-2.5 text-center">
-              <div className="text-[10px] text-admin-muted">当前告警</div>
-              <div className="text-sm font-bold text-red-500 mt-0.5">{alarms.length}条</div>
-            </div>
-          </div>
-
-          {/* 最新动态 */}
-          <div className="flex-1 px-4 py-3 border-t border-admin-border overflow-hidden flex flex-col min-h-0">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-medium text-admin-text flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse inline-block" />
-                最新动态
-              </span>
-              <button
-                className="text-[10px] text-blue-500 hover:text-blue-700"
-                onClick={() => navigate("/admin/system/log")}
-              >
-                全部日志
-              </button>
-            </div>
-            <div className="space-y-1.5 flex-1 overflow-auto pr-1 text-xs">
-              <div className="flex items-start gap-2">
-                <span className="text-[10px] text-admin-muted mt-0.5 shrink-0 w-28">
-                  {new Date().getHours() - 1 < 10 ? `0${new Date().getHours() - 1}` : new Date().getHours() - 1}:23
-                </span>
-                <div className="flex-1 min-w-0">
-                  <span className="inline-block px-1.5 py-px bg-yellow-100 text-yellow-600 text-[10px] rounded mr-1 align-middle">
-                    参数
-                  </span>
-                  <span className="text-admin-text align-middle">
-                    1#机组推力瓦温波动 72.5℃
-                  </span>
-                </div>
-              </div>
-              <div className="flex items-start gap-2">
-                <span className="text-[10px] text-admin-muted mt-0.5 shrink-0 w-28">
-                  {new Date().getHours() - 2 < 10 ? `0${new Date().getHours() - 2}` : new Date().getHours() - 2}:15
-                </span>
-                <div className="flex-1 min-w-0">
-                  <span className="inline-block px-1.5 py-px bg-green-100 text-green-600 text-[10px] rounded mr-1 align-middle">
-                    巡检
-                  </span>
-                  <span className="text-admin-text align-middle">
-                    冷却水泵日常巡检完成，无异常
-                  </span>
-                </div>
-              </div>
-              <div className="flex items-start gap-2">
-                <span className="text-[10px] text-admin-muted mt-0.5 shrink-0 w-28">
-                  08:40
-                </span>
-                <div className="flex-1 min-w-0">
-                  <span className="inline-block px-1.5 py-px bg-orange-100 text-orange-600 text-[10px] rounded mr-1 align-middle">
-                    审批
-                  </span>
-                  <span className="text-admin-text align-middle">
-                    3份图纸资料待管理员审批
-                  </span>
-                </div>
-              </div>
-              <div className="flex items-start gap-2">
-                <span className="text-[10px] text-admin-muted mt-0.5 shrink-0 w-28">
-                  08:02
-                </span>
-                <div className="flex-1 min-w-0">
-                  <span className="inline-block px-1.5 py-px bg-red-100 text-red-600 text-[10px] rounded mr-1 align-middle">
-                    告警
-                  </span>
-                  <span className="text-admin-text align-middle">
-                    4#机组有功跌落0MW，已转检修状态
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+      </DevNote>
     </div>
   );
 }

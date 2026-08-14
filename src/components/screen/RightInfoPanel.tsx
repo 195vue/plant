@@ -374,11 +374,12 @@ export function RightInfoPanel({
         </div>
       </div>
 
-      {/* 楼层信息 - 按需求文档表5.3-1，坝后厂房按四层划分 */}
+      {/* 坝后厂房五层信息 */}
       <div className="space-y-2">
         <div className="text-xs text-screen-muted font-medium">楼层信息</div>
         {[
           { name: "发电机层", elevation: "EL.660.5m", color: "blue", equipment: 12, pipeline: 8 },
+          { name: "母线层", elevation: "EL.650.5m", color: "purple", equipment: 9, pipeline: 6 },
           { name: "水轮机层", elevation: "EL.645.0m", color: "green", equipment: 18, pipeline: 12 },
           { name: "蜗壳层", elevation: "EL.630.0m", color: "yellow", equipment: 6, pipeline: 5 },
           { name: "尾水管层", elevation: "EL.615.0m", color: "cyan", equipment: 4, pipeline: 3 },
