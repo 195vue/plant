@@ -1,5 +1,4 @@
 import { useState, useMemo } from "react";
-import { Box, AlertCircle, Wrench, Power } from "lucide-react";
 import { equipments as mockEquipments } from "@/mock";
 import type { Equipment } from "@/types";
 import { StatusTag } from "@/components/common/Tag";
@@ -90,64 +89,8 @@ export default function EquipmentList() {
     setTreeFilter({ equipmentId: id });
   };
 
-  // 设备状态统计
-  const statusStats = useMemo(() => {
-    const total = filteredData.length;
-    const running = filteredData.filter((e) => e.status === "running").length;
-    const stopped = filteredData.filter((e) => e.status === "stopped").length;
-    const fault = filteredData.filter((e) => e.status === "fault").length;
-    const maintenance = filteredData.filter((e) => e.status === "maintenance").length;
-    return { total, running, stopped, fault, maintenance };
-  }, [filteredData]);
-
   return (
     <div className="h-full flex flex-col gap-3">
-      {/* 统计栏 */}
-      <DevNote
-        id="equipment-status-bar"
-        title="设备状态统计栏"
-        summary="展示当前筛选范围设备总数及运行/停止/故障/检修数量"
-        items={[
-          { label: "数据来源", value: "statusStats：由 filteredData（当前筛选结果）按 status 字段统计 total/running/stopped/fault/maintenance" },
-          { label: "交互逻辑", value: "纯统计展示，不设置点击；统计值随结构树节点选择和单设备选择同步变化" },
-          { label: "后续步骤", value: "正式系统：由设备数字化后台接口按筛选条件返回状态计数" },
-          { label: "权限", value: "管理员/操作人员可见" },
-        ]}
-        wrapClassName="block flex-shrink-0"
-      >
-        <div className="flex items-center gap-4 px-4 py-2 admin-card flex-shrink-0">
-          <div className="flex items-center gap-1.5">
-            <Box size={14} className="text-blue-500" />
-            <span className="text-xs text-admin-muted">设备总数</span>
-            <span className="text-sm font-semibold text-admin-text">{statusStats.total}</span>
-          </div>
-          <span className="text-admin-border">|</span>
-          <div className="flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-green-500" />
-            <span className="text-xs text-admin-muted">运行中</span>
-            <span className="text-sm font-semibold text-green-600">{statusStats.running}</span>
-          </div>
-          <span className="text-admin-border">|</span>
-          <div className="flex items-center gap-1.5">
-            <Power size={14} className="text-gray-400" />
-            <span className="text-xs text-admin-muted">已停机</span>
-            <span className="text-sm font-semibold text-gray-600">{statusStats.stopped}</span>
-          </div>
-          <span className="text-admin-border">|</span>
-          <div className="flex items-center gap-1.5">
-            <AlertCircle size={14} className="text-red-500" />
-            <span className="text-xs text-admin-muted">故障</span>
-            <span className="text-sm font-semibold text-red-600">{statusStats.fault}</span>
-          </div>
-          <span className="text-admin-border">|</span>
-          <div className="flex items-center gap-1.5">
-            <Wrench size={14} className="text-orange-500" />
-            <span className="text-xs text-admin-muted">检修中</span>
-            <span className="text-sm font-semibold text-orange-600">{statusStats.maintenance}</span>
-          </div>
-        </div>
-      </DevNote>
-
       {/* 三栏布局：结构树 + 表格 + 详情 */}
       <div className="flex gap-3 flex-1 min-h-0">
         {/* 左侧：结构树 */}
@@ -187,8 +130,8 @@ export default function EquipmentList() {
           summary="展示当前筛选结果设备，支持选择单设备查看详情"
           items={[
             { label: "数据来源", value: "filteredData：按 treeFilter 规则筛选 mockEquipments（设备ID精确/前缀集合/节点名称匹配/全部）" },
-            { label: "字段", value: "设备编码/设备名称/运行状态（运行/停止/故障/检修）/编码状态（已挂接/未挂接）/操作（查看）" },
-            { label: "交互逻辑", value: "标题区显示「共N条·筛选说明」（全部设备/节点名称（结构树节点）/设备名称（单设备））；点击行或「查看」→ handleSelectEquipment 进入单设备筛选，右侧详情与底部5卡联动" },
+            { label: "字段", value: "设备编码/设备名称/编码状态（已挂接/未挂接）/操作（查看）" },
+            { label: "交互逻辑", value: "标题区显示「共N条·筛选说明」（全部设备/节点名称（结构树节点）/设备名称（单设备））；点击行或「查看」→ handleSelectEquipment 进入单设备筛选，右侧详情与底部统计卡联动" },
             { label: "后续步骤", value: "正式系统：设备列表由设备数字化后台接口按筛选条件分页返回" },
             { label: "权限", value: "管理员/操作人员可查看；本页不提供新增/编辑/删除/导入/导出" },
           ]}
@@ -205,7 +148,6 @@ export default function EquipmentList() {
                   <tr className="text-admin-muted border-b border-admin-border">
                     <th className="px-3 py-2 text-left font-medium whitespace-nowrap">设备编码</th>
                     <th className="px-3 py-2 text-left font-medium whitespace-nowrap">设备名称</th>
-                    <th className="px-3 py-2 text-center font-medium whitespace-nowrap">运行状态</th>
                     <th className="px-3 py-2 text-center font-medium whitespace-nowrap">编码状态</th>
                     <th className="px-3 py-2 text-center font-medium whitespace-nowrap">操作</th>
                   </tr>
@@ -213,7 +155,7 @@ export default function EquipmentList() {
                 <tbody>
                   {filteredData.length === 0 ? (
                     <tr>
-                      <td colSpan={5} className="text-center py-12 text-admin-muted">暂无设备数据</td>
+                      <td colSpan={4} className="text-center py-12 text-admin-muted">暂无设备数据</td>
                     </tr>
                   ) : filteredData.map((eq) => (
                     <tr
@@ -225,7 +167,6 @@ export default function EquipmentList() {
                     >
                       <td className="px-3 py-2 font-mono text-admin-text">{eq.code}</td>
                       <td className="px-3 py-2 text-admin-text">{eq.name}</td>
-                      <td className="px-3 py-2 text-center"><StatusTag status={eq.status} /></td>
                       <td className="px-3 py-2 text-center"><StatusTag status={eq.codeStatus} /></td>
                       <td className="px-3 py-2 text-center">
                         <button className="text-blue-500 hover:underline" onClick={(e) => { e.stopPropagation(); handleSelectEquipment(eq.id); }}>查看</button>
@@ -264,11 +205,11 @@ export default function EquipmentList() {
       <DevNote
         id="equipment-bottom"
         title="底部关联信息区（层级统计）"
-        summary="按当前筛选范围统计模型图/清单统计/设备类型构成/运行状态/KKS编码挂接"
+        summary="按当前筛选范围统计模型图/清单统计/设备类型构成/所属系统"
         items={[
-          { label: "数据来源", value: "scopeEquipments（当前筛选结果）+ scopeLabel（全部设备或节点名称）；管件/类型/系统/挂接率由数组 reduce 实时计算" },
+          { label: "数据来源", value: "scopeEquipments（当前筛选结果）+ scopeLabel（全部设备或节点名称）；类型/系统由数组 reduce 实时计算" },
           { label: "交互逻辑", value: "标题栏「层级统计」+ 收起/展开统计按钮（默认展开）；模型图卡片点击提示「查看3D模型大图」，其余卡片仅展示" },
-          { label: "后续步骤", value: "正式系统：按选中层级统计设备总数/类型数/系统数/运行状态分布/编码挂接率" },
+          { label: "后续步骤", value: "正式系统：按选中层级统计设备总数/类型数/系统数" },
           { label: "权限", value: "管理员/操作人员可见" },
         ]}
         wrapClassName="block flex-shrink-0"

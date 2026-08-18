@@ -8,22 +8,21 @@ import {
   Package,
   GitBranch,
   FileText,
-  Link2,
   AlertCircle,
-  Activity,
   Network,
+  Layers3,
+  Settings,
+  Activity,
 } from "lucide-react";
 import {
   screenStats,
   documents,
-  codes,
-  equipments,
-  pipelines,
   operationLogs,
   alarms,
   drawings,
+  equipments,
+  pipelines,
 } from "@/mock";
-import { message } from "@/components/common/Message";
 import { APP_TITLE } from "@/lib/appConfig";
 import { DevNote } from "@/components/devNotes/DevNote";
 
@@ -38,7 +37,6 @@ const MOCK_REALTIME_POINTS = [
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const [todoTab, setTodoTab] = useState<"all" | "data" | "alert">("all");
 
   const today = new Date();
   const weekdays = ["星期日", "星期一", "星期二", "星期三", "星期四", "星期五", "星期六"];
@@ -46,21 +44,7 @@ export default function Dashboard() {
   const weekday = weekdays[today.getDay()];
 
   // ===== 统计计算 =====
-  const totalCodes = codes.length;
-  const linkedCodes = codes.filter((c) => c.isLinked).length;
-  const unlinkedCodes = totalCodes - linkedCodes;
-  const codeLinkRate = totalCodes > 0 ? Math.round((linkedCodes / totalCodes) * 100) : 0;
-
-  const linkedEquipments = equipments.filter((e) => e.codeStatus === "linked").length;
-  const unlinkedEquipments = equipments.filter((e) => e.codeStatus === "unlinked").length;
-
-  const linkedPipelines = pipelines.filter((p) => p.codeStatus === "linked").length;
-  const unlinkedPipelines = pipelines.filter((p) => p.codeStatus === "unlinked").length;
-
   const linkedDocuments = documents.filter((d) => d.linkedId).length;
-
-  const runningEquipments = equipments.filter((e) => e.status === "running").length;
-  const faultEquipments = equipments.filter((e) => e.status === "fault").length;
 
   // ===== 统计卡片数据 =====
   const statCards = [
@@ -73,7 +57,6 @@ export default function Dashboard() {
       bg: "bg-blue-50",
       trend: "+3",
       trendUp: true,
-      sub: `运行中 ${runningEquipments}台`,
     },
     {
       name: "管路总数",
@@ -84,7 +67,6 @@ export default function Dashboard() {
       bg: "bg-green-50",
       trend: "+2",
       trendUp: true,
-      sub: `已挂接 ${linkedPipelines}条`,
     },
     {
       name: "资料总数",
@@ -98,88 +80,16 @@ export default function Dashboard() {
       sub: `已关联 ${linkedDocuments}份`,
     },
     {
-      name: "编码挂接率",
-      value: codeLinkRate,
-      unit: "%",
-      icon: <Link2 size={20} />,
-      color: codeLinkRate >= 80 ? "text-green-500" : "text-orange-500",
-      bg: codeLinkRate >= 80 ? "bg-green-50" : "bg-orange-50",
-      trend: `${unlinkedCodes}条待挂`,
-      trendUp: unlinkedCodes <= 5,
-      sub: `已挂接 ${linkedCodes}条`,
-    },
-    {
       name: "告警信息",
       value: alarms.length,
       unit: "条",
       icon: <AlertCircle size={20} />,
       color: alarms.length > 0 ? "text-red-500" : "text-green-500",
       bg: alarms.length > 0 ? "bg-red-50" : "bg-green-50",
-      trend: `${faultEquipments}台故障`,
+      trend: alarms.length > 0 ? "+0" : "0",
       trendUp: false,
-      sub: `运行正常 ${runningEquipments}台`,
     },
   ];
-
-  // ===== 图表1: 数字化进度总览 (环形图) =====
-  const progressOption = useMemo(() => {
-    return {
-      tooltip: { trigger: "item", formatter: "{b}: {c} ({d}%)" },
-      legend: {
-        bottom: 0,
-        left: "center",
-        itemWidth: 8,
-        itemHeight: 8,
-        textStyle: { fontSize: 11, color: "#6b7280" },
-      },
-      series: [
-        {
-          name: "数字化进度",
-          type: "pie",
-          radius: ["42%", "68%"],
-          center: ["50%", "42%"],
-          avoidLabelOverlap: false,
-          label: {
-            show: true,
-            position: "center",
-            formatter: () => {
-              return `{total|${codeLinkRate}%}\n{label|编码挂接率}`;
-            },
-            rich: {
-              total: {
-                fontSize: 24,
-                fontWeight: "bold",
-                color: "#1f2937",
-                lineHeight: 30,
-              },
-              label: {
-                fontSize: 11,
-                color: "#6b7280",
-                lineHeight: 20,
-              },
-            },
-          },
-          labelLine: { show: false },
-          itemStyle: {
-            borderWidth: 2,
-            borderColor: "#fff",
-          },
-          data: [
-            {
-              value: linkedCodes,
-              name: "已挂接编码",
-              itemStyle: { color: "#3b82f6" },
-            },
-            {
-              value: unlinkedCodes,
-              name: "未挂接编码",
-              itemStyle: { color: "#f59e0b" },
-            },
-          ],
-        },
-      ],
-    };
-  }, [linkedCodes, unlinkedCodes, codeLinkRate]);
 
   // 本阶段尚未接入实时数据，使用 Mock 数据展示模型测点类型和数量。
   const totalRealtimePoints = MOCK_REALTIME_POINTS.reduce(
@@ -231,83 +141,97 @@ export default function Dashboard() {
     };
   }, []);
 
-  // ===== 待办事项数据 =====
+  // ===== 快捷入口 =====
+  const quickEntries = [
+    { name: "设备数字化", desc: "设备台账与属性管理", icon: <Package size={20} />, color: "text-blue-600", bg: "bg-blue-50", gradient: "from-blue-50 to-blue-50/40", border: "hover:border-blue-300", path: "/admin/equipment" },
+    { name: "管道数字化", desc: "管路台账与属性管理", icon: <GitBranch size={20} />, color: "text-green-600", bg: "bg-green-50", gradient: "from-green-50 to-green-50/40", border: "hover:border-green-300", path: "/admin/pipeline/category" },
+    { name: "资料管理", desc: "图纸资料与模型挂接", icon: <FileText size={20} />, color: "text-purple-600", bg: "bg-purple-50", gradient: "from-purple-50 to-purple-50/40", border: "hover:border-purple-300", path: "/admin/drawing" },
+    { name: "结构树管理", desc: "编码与结构树维护", icon: <Network size={20} />, color: "text-cyan-600", bg: "bg-cyan-50", gradient: "from-cyan-50 to-cyan-50/40", border: "hover:border-cyan-300", path: "/admin/system/structure-tree" },
+    { name: "属性模板库", desc: "属性模板与字段配置", icon: <Layers3 size={20} />, color: "text-amber-600", bg: "bg-amber-50", gradient: "from-amber-50 to-amber-50/40", border: "hover:border-amber-300", path: "/admin/system/attribute-template" },
+    { name: "系统管理", desc: "用户组织与权限配置", icon: <Settings size={20} />, color: "text-slate-600", bg: "bg-slate-100", gradient: "from-slate-50 to-slate-50/40", border: "hover:border-slate-300", path: "/admin/system/user" },
+  ];
+
+  // ===== 待办事项数据（资料/模型完善类提醒，基于挂接数据统计） =====
+  const [todoTab, setTodoTab] = useState<"all" | "data" | "model">("all");
+
+  const linkedEquipIds = new Set(
+    documents.filter((d) => d.linkedType === "equipment" && d.linkedId).map((d) => d.linkedId),
+  );
+  const linkedPipeIds = new Set(
+    documents.filter((d) => d.linkedType === "pipeline" && d.linkedId).map((d) => d.linkedId),
+  );
+  const unlinkedDrawings = drawings.length; // 原型图纸库当前均未挂接
+  const unlinkedDocs = documents.filter((d) => !d.linkedId).length;
+  const unlinkedEquipCount = equipments.filter((e) => !linkedEquipIds.has(e.id)).length;
+  const unlinkedPipeCount = pipelines.filter((p) => !linkedPipeIds.has(p.id)).length;
+
   const dataTodos = [
-    ...(unlinkedEquipments > 0
-      ? [
-          {
-            id: "data-equipment-link",
-            type: "设备挂接",
-            typeColor: "bg-blue-100 text-blue-600",
-            description: `${unlinkedEquipments}台设备尚未完成编码挂接`,
-            initiator: "系统",
-            time: new Date().toLocaleString("zh-CN"),
-            level: "pending" as const,
-            module: "equipment",
-          },
-        ]
+    ...(unlinkedDrawings > 0
+      ? [{
+          id: "todo-drawing",
+          type: "图纸挂接",
+          typeColor: "bg-blue-100 text-blue-600",
+          description: `${unlinkedDrawings}份图纸尚未挂接至设备/管路`,
+          initiator: "系统",
+          time: new Date().toLocaleString("zh-CN"),
+          level: "pending" as const,
+          module: "drawing",
+        }]
       : []),
-    ...(unlinkedPipelines > 0
-      ? [
-          {
-            id: "data-pipeline-link",
-            type: "管路挂接",
-            typeColor: "bg-cyan-100 text-cyan-700",
-            description: `${unlinkedPipelines}条管路尚未完成编码挂接`,
-            initiator: "系统",
-            time: new Date().toLocaleString("zh-CN"),
-            level: "pending" as const,
-            module: "pipeline",
-          },
-        ]
+    ...(unlinkedDocs > 0
+      ? [{
+          id: "todo-doc",
+          type: "资料挂接",
+          typeColor: "bg-cyan-100 text-cyan-700",
+          description: `${unlinkedDocs}份资料尚未挂接模型`,
+          initiator: "系统",
+          time: new Date().toLocaleString("zh-CN"),
+          level: "pending" as const,
+          module: "drawing",
+        }]
       : []),
   ];
 
-  const alertTodos = [
-    ...(faultEquipments > 0
-      ? [
-          {
-            id: "alert-fault",
-            type: "设备告警",
-            typeColor: "bg-red-100 text-red-600",
-            description: `${faultEquipments}台设备处于故障状态，请及时处理`,
-            initiator: "系统",
-            time: new Date().toLocaleString("zh-CN"),
-            level: ("alert" as const),
-            module: "equipment",
-          },
-        ]
+  const modelTodos = [
+    ...(unlinkedEquipCount > 0
+      ? [{
+          id: "todo-equip-doc",
+          type: "设备资料缺失",
+          typeColor: "bg-amber-100 text-amber-700",
+          description: `${unlinkedEquipCount}台设备尚无关联资料，请补充完善`,
+          initiator: "系统",
+          time: new Date().toLocaleString("zh-CN"),
+          level: "pending" as const,
+          module: "equipment",
+        }]
       : []),
-    ...(unlinkedCodes > 5
-      ? [
-          {
-            id: "alert-code",
-            type: "编码提醒",
-            typeColor: "bg-blue-100 text-blue-600",
-            description: `${unlinkedCodes}条编码未挂接实体设备，请前往手动挂接`,
-            initiator: "系统",
-            time: new Date().toLocaleString("zh-CN"),
-            level: ("alert" as const),
-            module: "code",
-          },
-        ]
+    ...(unlinkedPipeCount > 0
+      ? [{
+          id: "todo-pipe-doc",
+          type: "管路资料缺失",
+          typeColor: "bg-orange-100 text-orange-700",
+          description: `${unlinkedPipeCount}条管路尚无关联资料，请补充完善`,
+          initiator: "系统",
+          time: new Date().toLocaleString("zh-CN"),
+          level: "pending" as const,
+          module: "pipeline",
+        }]
       : []),
   ];
 
-  const allTodos = [...dataTodos, ...alertTodos];
-
-  const filteredTodos =
-    todoTab === "all"
-      ? allTodos
-      : todoTab === "data"
-      ? dataTodos
-      : alertTodos;
-
+  const allTodos = [...dataTodos, ...modelTodos];
+  const filteredTodos = todoTab === "all" ? allTodos : todoTab === "data" ? dataTodos : modelTodos;
   const todoTabs = [
-    { key: "all", label: "全部", count: allTodos.length },
-    { key: "data", label: "数据完善", count: dataTodos.length },
-    { key: "alert", label: "数据提醒", count: alertTodos.length },
+    { key: "all" as const, label: "全部", count: allTodos.length },
+    { key: "data" as const, label: "资料完善", count: dataTodos.length },
+    { key: "model" as const, label: "模型完善", count: modelTodos.length },
   ];
+
+  const todoModulePath = (module: string) => {
+    if (module === "equipment") return "/admin/equipment";
+    if (module === "pipeline") return "/admin/pipeline/category";
+    return "/admin/drawing";
+  };
 
   return (
     <div className="space-y-4">
@@ -368,18 +292,18 @@ export default function Dashboard() {
       {/* 统计卡片区 */}
       <DevNote
         id="dashboard-stat-cards"
-        title="统计卡片区（5张）"
-        summary="设备总数/管路总数/资料总数/编码挂接率/告警信息，点击跳转对应模块"
+        title="统计卡片区（4张）"
+        summary="设备总数/管路总数/资料总数/告警信息，点击跳转对应模块"
         items={[
-          { label: "数据来源", value: "设备总数=screenStats.equipmentTotal；管路总数=screenStats.pipelineTotal；资料总数=documents.length+drawings.length；编码挂接率=linkedCodes/totalCodes×100%；告警信息=alarms.length" },
-          { label: "校验规则", value: "编码挂接率≥80%绿色，否则橙色；告警>0红色" },
-          { label: "交互逻辑", value: "点击跳转：设备总数→/admin/equipment；管路总数→/admin/pipeline/category；资料总数→/admin/drawing；编码挂接率→/admin/system/structure-tree；告警信息→/screen" },
+          { label: "数据来源", value: "设备总数=screenStats.equipmentTotal；管路总数=screenStats.pipelineTotal；资料总数=documents.length+drawings.length；告警信息=alarms.length" },
+          { label: "校验规则", value: "告警>0红色" },
+          { label: "交互逻辑", value: "点击跳转：设备总数→/admin/equipment；管路总数→/admin/pipeline/category；资料总数→/admin/drawing；告警信息→/screen" },
           { label: "后续步骤", value: "正式系统：各卡片数值由对应业务模块统计接口返回" },
           { label: "权限", value: "管理员/操作人员可见；浏览人员仅告警信息可点" },
         ]}
         wrapClassName="block"
       >
-        <div className="grid grid-cols-5 gap-4">
+        <div className="grid grid-cols-4 gap-4">
           {statCards.map((stat) => (
             <div
               key={stat.name}
@@ -388,7 +312,6 @@ export default function Dashboard() {
                 if (stat.name === "设备总数") navigate("/admin/equipment");
                 else if (stat.name === "管路总数") navigate("/admin/pipeline/category");
                 else if (stat.name === "资料总数") navigate("/admin/drawing");
-                else if (stat.name === "编码挂接率") navigate("/admin/system/structure-tree");
                 else if (stat.name === "告警信息") navigate("/screen");
               }}
             >
@@ -398,79 +321,74 @@ export default function Dashboard() {
                 >
                   {stat.icon}
                 </div>
-                <div
-                  className={`flex items-center gap-0.5 text-xs font-medium ${
-                    stat.trendUp ? "text-green-500" : "text-red-500"
-                  }`}
-                >
-                  {stat.trendUp ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
-                  {stat.trend}
-                </div>
+                {stat.trend && (
+                  <div
+                    className={`flex items-center gap-0.5 text-xs font-medium ${
+                      stat.trendUp ? "text-green-500" : "text-red-500"
+                    }`}
+                  >
+                    {stat.trendUp ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
+                    {stat.trend}
+                  </div>
+                )}
               </div>
               <div className="text-xs text-admin-muted mb-1">{stat.name}</div>
               <div className="flex items-baseline gap-1">
                 <span className="text-2xl font-bold text-admin-text">{stat.value}</span>
                 <span className="text-xs text-admin-muted">{stat.unit}</span>
               </div>
-              <div className="text-[10px] text-admin-muted mt-1">{stat.sub}</div>
+              {stat.sub && <div className="text-[10px] text-admin-muted mt-1">{stat.sub}</div>}
             </div>
           ))}
         </div>
       </DevNote>
 
-      {/* 图表区域：数字化进度总览 + 模型实时数据点统计 并排 */}
+      {/* 快捷入口 + 模型实时数据点统计（横向排列，55分） */}
       <div className="grid grid-cols-2 gap-4">
-        {/* 图表1: 数字化进度总览 */}
         <DevNote
-          id="dashboard-progress"
-          title="数字化进度总览"
-          summary="环形图展示编码挂接进度，下方统计已挂接/待挂接编码与已挂接设备"
+          id="dashboard-quick-entries"
+          title="快捷入口"
+          summary="常用模块一键直达"
           items={[
-            { label: "数据来源", value: "linkedCodes/unlinkedCodes/linkedEquipments：由 codes、equipments（mock）统计；环形图 center 显示编码挂接率 codeLinkRate" },
-            { label: "交互逻辑", value: "右上角「查看详情 →」跳转 /admin/system/structure-tree" },
-            { label: "后续步骤", value: "正式系统：编码挂接率=已挂接编码数÷编码总数×100%，由编码关联接口返回" },
-            { label: "权限", value: "管理员/操作人员可见，可点击查看详情" },
+            { label: "数据来源", value: "静态配置（名称/描述/图标/路由）" },
+            { label: "交互逻辑", value: "点击卡片跳转对应模块：设备数字化→/admin/equipment；管道数字化→/admin/pipeline/category；资料管理→/admin/drawing；结构树管理→/admin/system/structure-tree；属性模板库→/admin/system/attribute-template；系统管理→/admin/system/user" },
+            { label: "后续步骤", value: "正式系统：入口列表由后台按用户权限动态返回" },
+            { label: "权限", value: "全部角色可见；无权限模块自动隐藏" },
           ]}
           wrapClassName="block"
         >
-          <div className="admin-card p-4">
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-lg bg-blue-50 text-blue-500 flex items-center justify-center">
-                  <Network size={14} />
-                </div>
-                <span className="text-sm font-medium text-admin-text">数字化进度总览</span>
+          <div className="admin-card">
+            <div className="flex items-center gap-2 px-4 py-3 border-b border-admin-border">
+              <div className="w-6 h-6 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
+                <ArrowRight size={13} />
               </div>
-              <button
-                className="text-xs text-blue-500 hover:text-blue-700"
-                onClick={() => navigate("/admin/system/structure-tree")}
-              >
-                查看详情 →
-              </button>
+              <span className="text-sm font-medium text-admin-text">快捷入口</span>
             </div>
-            <div style={{ height: 220 }}>
-              <ReactECharts option={progressOption} style={{ height: "100%" }} />
-            </div>
-            <div className="flex items-center justify-center gap-6 pt-2 border-t border-admin-border">
-              <div className="text-center">
-                <div className="text-lg font-bold text-blue-500">{linkedCodes}</div>
-                <div className="text-[10px] text-admin-muted">已挂接编码</div>
-              </div>
-              <div className="w-px h-8 bg-admin-border"></div>
-              <div className="text-center">
-                <div className="text-lg font-bold text-orange-500">{unlinkedCodes}</div>
-                <div className="text-[10px] text-admin-muted">待挂接编码</div>
-              </div>
-              <div className="w-px h-8 bg-admin-border"></div>
-              <div className="text-center">
-                <div className="text-lg font-bold text-green-500">{linkedEquipments}</div>
-                <div className="text-[10px] text-admin-muted">已挂接设备</div>
+            <div className="p-3">
+              <div className="grid grid-cols-3 gap-3">
+                {quickEntries.map((entry) => (
+                  <div
+                    key={entry.name}
+                    className={`group flex items-center gap-3 p-4 rounded-xl border border-admin-border bg-gradient-to-br ${entry.gradient} hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer ${entry.border}`}
+                    onClick={() => navigate(entry.path)}
+                  >
+                    <div
+                      className={`w-11 h-11 rounded-lg ${entry.bg} ${entry.color} flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform`}
+                    >
+                      {entry.icon}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-base font-medium text-admin-text">{entry.name}</div>
+                      <div className="text-xs text-admin-muted truncate mt-1">{entry.desc}</div>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
         </DevNote>
 
-        {/* 模型实时数据点统计 */}
+        {/* 图表区域：模型实时数据点统计 */}
         <DevNote
           id="dashboard-realtime-points"
           title="模型实时数据点统计"
@@ -529,18 +447,18 @@ export default function Dashboard() {
               </div>
             </div>
           </div>
-        </DevNote>
+          </DevNote>
       </div>
 
       {/* 待办事项 */}
       <DevNote
         id="dashboard-todos"
         title="待办事项"
-        summary="按全部/数据完善/数据提醒分类展示待办，支持点击跳转处理"
+        summary="按全部/资料完善/模型完善分类展示数据完善类提醒，支持点击跳转处理"
         items={[
-          { label: "数据来源", value: "dataTodos（设备挂接/管路挂接：按 equipments/pipelines 中未挂接数量生成）+ alertTodos（设备告警：faultEquipments>0；编码提醒：unlinkedCodes>5）" },
-          { label: "校验规则", value: "无待办时显示「暂无待办事项 🎉」；页签计数角标显示各分类数量" },
-          { label: "交互逻辑", value: "三个页签切换 filteredTodos；点击整行或「去处理」跳转 /admin/{module}（equipment→设备数字化、pipeline→结构树管理、code→结构树管理）" },
+          { label: "数据来源", value: "dataTodos（图纸挂接：drawings 未挂接数；资料挂接：documents 无 linkedId 数）+ modelTodos（设备/管路资料缺失：documents 挂接对象集合反查 equipments/pipelines 中无关联的数量）" },
+          { label: "校验规则", value: "对应数量为 0 时该待办不生成；无任何待办时显示「暂无待办事项 🎉」；页签计数角标显示各分类数量" },
+          { label: "交互逻辑", value: "三个页签切换 filteredTodos；点击整行或「去处理」跳转：图纸/资料→/admin/drawing；设备→/admin/equipment；管路→/admin/pipeline/category" },
           { label: "后续步骤", value: "正式系统：待办事项由待办服务按用户权限返回，含审批类待办（资料/图纸审批）" },
           { label: "权限", value: "管理员/操作人员可见；浏览人员不显示" },
         ]}
@@ -565,7 +483,7 @@ export default function Dashboard() {
               {todoTabs.map((tab) => (
                 <button
                   key={tab.key}
-                  onClick={() => setTodoTab(tab.key as any)}
+                  onClick={() => setTodoTab(tab.key)}
                   className={`px-3 py-1 text-xs rounded transition-colors flex items-center gap-1 ${
                     todoTab === tab.key
                       ? "bg-blue-500 text-white"
@@ -600,14 +518,9 @@ export default function Dashboard() {
                     <div
                       key={todo.id}
                       className="flex items-center gap-3 p-3 rounded hover:bg-gray-50 transition-colors cursor-pointer"
-                      onClick={() => {
-                        message.info(`跳转到${todo.module}页面`);
-                        navigate(`/admin/${todo.module}`);
-                      }}
+                      onClick={() => navigate(todoModulePath(todo.module))}
                     >
-                      <span
-                        className={`px-2 py-0.5 text-xs rounded ${todo.typeColor}`}
-                      >
+                      <span className={`px-2 py-0.5 text-xs rounded ${todo.typeColor}`}>
                         {todo.type}
                       </span>
                       <div className="flex-1 min-w-0">
@@ -619,17 +532,12 @@ export default function Dashboard() {
                         </div>
                       </div>
                       <div className="flex items-center gap-2 flex-shrink-0">
-                        {todo.level === "pending" && (
-                          <span className="text-xs text-orange-500 font-medium">待处理</span>
-                        )}
-                        {todo.level === "alert" && (
-                          <span className="text-xs text-red-500 font-medium">告警</span>
-                        )}
+                        <span className="text-xs text-orange-500 font-medium">待处理</span>
                         <button
                           className="text-xs text-blue-500 hover:text-blue-700 flex items-center gap-0.5"
                           onClick={(e) => {
                             e.stopPropagation();
-                            navigate(`/admin/${todo.module}`);
+                            navigate(todoModulePath(todo.module));
                           }}
                         >
                           去处理
@@ -642,7 +550,6 @@ export default function Dashboard() {
               )}
             </div>
           </div>
-
         </div>
       </DevNote>
     </div>

@@ -56,28 +56,6 @@ export default function EquipmentDetailPanel({
     { label: "型号", value: equipment.model || "-" },
     { label: "厂家", value: equipment.manufacturer || "-" },
     { label: "投运日期", value: equipment.commissionDate || "-" },
-    {
-      label: "运行状态",
-      value: (
-        <Tag
-          color={
-            equipment.status === "running"
-              ? "green"
-              : equipment.status === "fault"
-              ? "red"
-              : "gray"
-          }
-        >
-          {equipment.status === "running"
-            ? "运行中"
-            : equipment.status === "stopped"
-            ? "已停机"
-            : equipment.status === "fault"
-            ? "故障"
-            : "检修中"}
-        </Tag>
-      ),
-    },
   ];
 
   const relatedDocs = documents.filter(

@@ -267,13 +267,11 @@ const initialUsers: SystemUser[] = [
 ];
 
 const initialDictionaryTypes: DictionaryType[] = [
-  { id: 1, name: "设备运行状态", type: "equipment_run_status", status: "enabled", remark: "设备运行状态分类", createdAt: "2026-01-02 09:00:00" },
-  { id: 2, name: "管路运行状态", type: "pipeline_run_status", status: "enabled", remark: "管路运行状态分类", createdAt: "2026-01-02 09:05:00" },
-  { id: 3, name: "资料分类", type: "document_category", status: "enabled", remark: "图纸及资料分类", createdAt: "2026-01-02 09:10:00" },
-  { id: 4, name: "所属专业", type: "discipline_type", status: "enabled", remark: "资料所属专业", createdAt: "2026-01-02 09:15:00" },
-  { id: 5, name: "模型挂接状态", type: "model_link_status", status: "enabled", remark: "资料与模型的挂接状态", createdAt: "2026-01-02 09:20:00" },
-  { id: 6, name: "属性分类", type: "attribute_category", status: "enabled", remark: "设备及管路属性分类", createdAt: "2026-01-02 09:25:00" },
-  { id: 7, name: "日志操作类型", type: "log_operation_type", status: "enabled", remark: "系统操作日志分类", createdAt: "2026-01-02 09:30:00" },
+  { id: 1, name: "资料分类", type: "document_category", status: "enabled", remark: "图纸及资料分类", createdAt: "2026-01-02 09:10:00" },
+  { id: 2, name: "所属专业", type: "discipline_type", status: "enabled", remark: "资料所属专业", createdAt: "2026-01-02 09:15:00" },
+  { id: 3, name: "模型挂接状态", type: "model_link_status", status: "enabled", remark: "资料与模型的挂接状态", createdAt: "2026-01-02 09:20:00" },
+  { id: 4, name: "属性分类", type: "attribute_category", status: "enabled", remark: "设备及管路属性分类", createdAt: "2026-01-02 09:25:00" },
+  { id: 5, name: "日志操作类型", type: "log_operation_type", status: "enabled", remark: "系统操作日志分类", createdAt: "2026-01-02 09:30:00" },
 ];
 
 const dictionaryItem = (
@@ -298,29 +296,21 @@ const dictionaryItem = (
 });
 
 const initialDictionaryItems: DictionaryItem[] = [
-  dictionaryItem(1, "equipment_run_status", "运行", "running", 1, "success"),
-  dictionaryItem(2, "equipment_run_status", "停止", "stopped", 2, "info"),
-  dictionaryItem(3, "equipment_run_status", "故障", "fault", 3, "danger"),
-  dictionaryItem(4, "equipment_run_status", "检修", "maintenance", 4, "warning"),
-  dictionaryItem(5, "pipeline_run_status", "运行", "running", 1, "success"),
-  dictionaryItem(6, "pipeline_run_status", "备用", "standby", 2, "primary"),
-  dictionaryItem(7, "pipeline_run_status", "停止", "stopped", 3, "info"),
-  dictionaryItem(8, "pipeline_run_status", "检修", "maintenance", 4, "warning"),
-  dictionaryItem(9, "document_category", "设备图纸", "equipment_drawing", 1, "primary"),
-  dictionaryItem(10, "document_category", "管路图纸", "pipeline_drawing", 2, "success"),
-  dictionaryItem(11, "document_category", "技术资料", "technical_document", 3, "warning"),
-  dictionaryItem(12, "discipline_type", "机械", "mechanical", 1, "primary"),
-  dictionaryItem(13, "discipline_type", "电气", "electrical", 2, "warning"),
-  dictionaryItem(14, "discipline_type", "水工", "hydraulic", 3, "success"),
-  dictionaryItem(15, "model_link_status", "已挂接", "linked", 1, "success"),
-  dictionaryItem(16, "model_link_status", "未挂接", "unlinked", 2, "info"),
-  dictionaryItem(17, "attribute_category", "基本参数", "basic", 1, "primary"),
-  dictionaryItem(18, "attribute_category", "技术参数", "technical", 2, "success"),
-  dictionaryItem(19, "attribute_category", "其他", "other", 3, "info"),
-  dictionaryItem(20, "log_operation_type", "新增", "create", 1, "success"),
-  dictionaryItem(21, "log_operation_type", "修改", "update", 2, "primary"),
-  dictionaryItem(22, "log_operation_type", "删除", "delete", 3, "danger"),
-  dictionaryItem(23, "log_operation_type", "导出", "export", 4, "warning"),
+  dictionaryItem(1, "document_category", "设备图纸", "equipment_drawing", 1, "primary"),
+  dictionaryItem(2, "document_category", "管路图纸", "pipeline_drawing", 2, "success"),
+  dictionaryItem(3, "document_category", "技术资料", "technical_document", 3, "warning"),
+  dictionaryItem(4, "discipline_type", "机械", "mechanical", 1, "primary"),
+  dictionaryItem(5, "discipline_type", "电气", "electrical", 2, "warning"),
+  dictionaryItem(6, "discipline_type", "水工", "hydraulic", 3, "success"),
+  dictionaryItem(7, "model_link_status", "已挂接", "linked", 1, "success"),
+  dictionaryItem(8, "model_link_status", "未挂接", "unlinked", 2, "info"),
+  dictionaryItem(9, "attribute_category", "基本参数", "basic", 1, "primary"),
+  dictionaryItem(10, "attribute_category", "技术参数", "technical", 2, "success"),
+  dictionaryItem(11, "attribute_category", "其他", "other", 3, "info"),
+  dictionaryItem(12, "log_operation_type", "新增", "create", 1, "success"),
+  dictionaryItem(13, "log_operation_type", "修改", "update", 2, "primary"),
+  dictionaryItem(14, "log_operation_type", "删除", "delete", 3, "danger"),
+  dictionaryItem(15, "log_operation_type", "导出", "export", 4, "warning"),
 ];
 
 const initialOperationLogs: OperationAuditLog[] = [
@@ -328,7 +318,7 @@ const initialOperationLogs: OperationAuditLog[] = [
   { id: 10002, operatorId: 2, operator: "张操作", ip: "192.168.10.35", userAgent: "Edge 127 / Windows 11", module: "设备数字化", action: "查看设备", content: "查看1号水轮发电机组设备详情", requestUrl: "/api/equipment/WJD-01", operatedAt: "2026-08-10 15:38:42", businessNo: "WJD-01" },
   { id: 10003, operatorId: 1, operator: "系统管理员", ip: "192.168.10.21", userAgent: "Chrome 127 / Windows 11", module: "角色管理", action: "菜单权限", content: "更新操作人员角色菜单权限", requestUrl: "/api/system/roles/2/menus", operatedAt: "2026-08-10 14:20:16", businessNo: "ROLE_OPERATOR" },
   { id: 10004, operatorId: 3, operator: "张三", ip: "192.168.10.41", userAgent: "Chrome 126 / Windows 10", module: "图纸管理", action: "上传资料", content: "上传1号机组技术供水系统图纸", requestUrl: "/api/drawings/upload", operatedAt: "2026-08-10 11:06:53", businessNo: "DWG-20260810-012" },
-  { id: 10005, operatorId: 1, operator: "系统管理员", ip: "192.168.10.21", userAgent: "Chrome 127 / Windows 11", module: "数据字典", action: "修改字典", content: "更新设备运行状态字典说明", requestUrl: "/api/system/dictionaries/1", operatedAt: "2026-08-09 17:32:09", businessNo: "equipment_run_status" },
+  { id: 10005, operatorId: 1, operator: "系统管理员", ip: "192.168.10.21", userAgent: "Chrome 127 / Windows 11", module: "数据字典", action: "修改字典", content: "更新资料分类字典说明", requestUrl: "/api/system/dictionaries/1", operatedAt: "2026-08-09 17:32:09", businessNo: "document_category" },
   { id: 10006, operatorId: 6, operator: "赵工", ip: "192.168.10.52", userAgent: "Edge 126 / Windows 10", module: "属性管理", action: "保存属性", content: "保存主进水阀设备技术参数", requestUrl: "/api/attributes/equipment/save", operatedAt: "2026-08-09 15:11:24", businessNo: "WJD-VALVE-001" },
 ];
 

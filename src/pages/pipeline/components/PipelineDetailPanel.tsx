@@ -57,28 +57,6 @@ export default function PipelineDetailPanel({
     { label: "长度", value: pipeline.length ? `${pipeline.length} m` : "-" },
     { label: "起点设备", value: pipeline.startDevice || "-" },
     { label: "终点设备", value: pipeline.endDevice || "-" },
-    {
-      label: "运行状态",
-      value: (
-        <Tag
-          color={
-            pipeline.status === "running"
-              ? "green"
-              : pipeline.status === "maintenance"
-              ? "orange"
-              : "gray"
-          }
-        >
-          {pipeline.status === "running"
-            ? "运行中"
-            : pipeline.status === "standby"
-            ? "备用"
-            : pipeline.status === "maintenance"
-            ? "检修中"
-            : "已停止"}
-        </Tag>
-      ),
-    },
   ];
 
   const techAttrs = [

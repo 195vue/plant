@@ -3,7 +3,6 @@ import {
   pipelines as mockPipelines,
 } from "@/mock";
 import type { Pipeline } from "@/types";
-import { StatusTag } from "@/components/common/Tag";
 import PipelineDetailPanel from "./components/PipelineDetailPanel";
 import PipelineBottomPanel from "./components/PipelineBottomPanel";
 import StructureTreeSelect, { type TreeSelectFilter } from "@/components/common/StructureTreeSelect";
@@ -136,8 +135,8 @@ export default function PipelineCategory() {
           summary="展示当前筛选结果管路，支持选择单管路查看详情"
           items={[
             { label: "数据来源", value: "filteredData：按 treeFilter 规则筛选 mockPipelines（管路ID精确/前缀集合/节点名称匹配/全部）" },
-            { label: "字段", value: "管路编码/管路名称/所属系统/运行状态（运行/备用/停止/检修，未设置时按停止）/操作（查看）" },
-            { label: "交互逻辑", value: "标题区显示「共N条·筛选说明」（全部管路/节点名称（结构树节点）/管路名称（单管路））；点击行或「查看」→ handleSelectPipeline 进入单管路筛选，右侧详情与底部5卡联动" },
+            { label: "字段", value: "管路编码/管路名称/所属系统/操作（查看）" },
+            { label: "交互逻辑", value: "标题区显示「共N条·筛选说明」（全部管路/节点名称（结构树节点）/管路名称（单管路））；点击行或「查看」→ handleSelectPipeline 进入单管路筛选，右侧详情与底部统计卡联动" },
             { label: "后续步骤", value: "正式系统：管路列表由管道数字化后台接口按筛选条件分页返回" },
             { label: "权限", value: "管理员/操作人员可查看；本页不提供新增/编辑/删除/导入/导出" },
           ]}
@@ -155,14 +154,13 @@ export default function PipelineCategory() {
                     <th className="px-3 py-2 text-left font-medium whitespace-nowrap">管路编码</th>
                     <th className="px-3 py-2 text-left font-medium whitespace-nowrap">管路名称</th>
                     <th className="px-3 py-2 text-left font-medium whitespace-nowrap">所属系统</th>
-                    <th className="px-3 py-2 text-center font-medium whitespace-nowrap">运行状态</th>
                     <th className="px-3 py-2 text-center font-medium whitespace-nowrap">操作</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filteredData.length === 0 ? (
                     <tr>
-                      <td colSpan={5} className="text-center py-12 text-admin-muted">暂无管路数据</td>
+                      <td colSpan={4} className="text-center py-12 text-admin-muted">暂无管路数据</td>
                     </tr>
                   ) : filteredData.map((p) => (
                     <tr
@@ -175,7 +173,6 @@ export default function PipelineCategory() {
                       <td className="px-3 py-2 font-mono text-admin-text">{p.code}</td>
                       <td className="px-3 py-2 text-admin-text">{p.name}</td>
                       <td className="px-3 py-2 text-admin-muted">{p.system}</td>
-                      <td className="px-3 py-2 text-center"><StatusTag status={p.status || "stopped"} /></td>
                       <td className="px-3 py-2 text-center">
                         <button className="text-blue-500 hover:underline" onClick={(e) => { e.stopPropagation(); handleSelectPipeline(p.id); }}>查看</button>
                       </td>

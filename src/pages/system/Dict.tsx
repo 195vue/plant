@@ -263,7 +263,7 @@ export default function DictManage() {
             value={form.type}
             disabled={!!editing}
             onChange={(event) => setForm((current) => ({ ...current, type: event.target.value }))}
-            placeholder="例如 equipment_run_status"
+            placeholder="例如 document_category"
           />
         </FormItem>
         <FormItem label="状态" required>

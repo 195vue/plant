@@ -114,19 +114,6 @@ export default function EquipmentFormModal({
             ))}
           </select>
         </FormItem>
-        <FormItem label="运行状态" required>
-          <select
-            className="input-base"
-            value={form.status || ""}
-            onChange={(e) => set("status", e.target.value)}
-          >
-            <option value="">请选择</option>
-            <option value="running">运行中</option>
-            <option value="stopped">已停机</option>
-            <option value="maintenance">检修中</option>
-            <option value="fault">故障</option>
-          </select>
-        </FormItem>
         <FormItem label="所属专业" required>
           <select
             className="input-base"

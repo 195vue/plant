@@ -1,11 +1,10 @@
 import { useState } from "react";
 import {
-  Activity,
   Boxes,
   ChevronDown,
   ChevronUp,
-  Link2,
   ListTree,
+  Ruler,
 } from "lucide-react";
 import { message } from "@/components/common/Message";
 import equipImg from "@/assets/设备.png";
@@ -57,16 +56,12 @@ export default function EquipmentBottomPanel({
     }, new Map<string, number>()),
   ).sort((a, b) => b[1] - a[1]);
   const systemCount = new Set(scopeEquipments.map((item) => item.system)).size;
-  const statusStats = [
-    { label: "运行", value: scopeEquipments.filter((item) => item.status === "running").length, color: "bg-green-500" },
-    { label: "停止", value: scopeEquipments.filter((item) => item.status === "stopped").length, color: "bg-gray-400" },
-    { label: "检修", value: scopeEquipments.filter((item) => item.status === "maintenance").length, color: "bg-orange-500" },
-    { label: "故障", value: scopeEquipments.filter((item) => item.status === "fault").length, color: "bg-red-500" },
-  ];
-  const linkedCount = scopeEquipments.filter(
-    (item) => item.codeStatus === "linked",
-  ).length;
-  const linkedRate = total === 0 ? 0 : Math.round((linkedCount / total) * 100);
+
+  const keyAttrs = equipment
+    ? equipment.attributes?.filter((attr) => ["规格", "材质"].includes(attr.name)) || []
+    : [];
+  const specValue = keyAttrs.find((attr) => attr.name === "规格")?.value || "";
+  const materialValue = keyAttrs.find((attr) => attr.name === "材质")?.value || "";
 
   return (
     <div
@@ -92,7 +87,7 @@ export default function EquipmentBottomPanel({
       </div>
 
       {expanded && (
-        <div className="grid min-h-0 flex-1 grid-cols-5 gap-2 p-2">
+        <div className="grid min-h-0 flex-1 grid-cols-4 gap-2 p-2">
           <CardItem
             title="模型图"
             icon={<img src={equipImg} alt="model" className="h-3.5 w-3.5 object-contain" />}
@@ -166,45 +161,38 @@ export default function EquipmentBottomPanel({
           </CardItem>
 
           <CardItem
-            title="运行状态统计"
-            icon={<Activity size={14} />}
-            subtitle={scopeLabel}
-            accent="text-green-500"
+            title="规格与材质"
+            icon={<Ruler size={14} />}
+            subtitle={equipment?.name || "请选择设备"}
+            accent="text-amber-500"
           >
-            <div className="grid h-full grid-cols-2 gap-2">
-              {statusStats.map((item) => (
-                <div key={item.label} className="rounded border border-admin-border bg-gray-50/60 p-2">
-                  <div className="flex items-center gap-1 text-[10px] text-admin-muted">
-                    <span className={`h-1.5 w-1.5 rounded-full ${item.color}`} />
-                    {item.label}
+            {equipment ? (
+              <div className="grid h-full grid-cols-2 content-center gap-2">
+                {[
+                  { label: "规格", value: specValue || "—" },
+                  { label: "材质", value: materialValue || "—" },
+                  { label: "型号", value: equipment.model || "—" },
+                  { label: "制造厂家", value: equipment.manufacturer || "—" },
+                ].map((item) => (
+                  <div
+                    key={item.label}
+                    className="rounded border border-admin-border bg-gray-50/60 px-2 py-2"
+                  >
+                    <div className="text-[10px] text-admin-muted">{item.label}</div>
+                    <div
+                      className="mt-0.5 truncate text-xs font-semibold text-admin-text"
+                      title={item.value}
+                    >
+                      {item.value}
+                    </div>
                   </div>
-                  <div className="mt-1 text-lg font-semibold text-admin-text">{item.value}</div>
-                </div>
-              ))}
-            </div>
-          </CardItem>
-
-          <CardItem
-            title="KKS编码挂接"
-            icon={<Link2 size={14} />}
-            subtitle={scopeLabel}
-            accent="text-violet-500"
-          >
-            <div className="flex h-full flex-col justify-center">
-              <div className="flex items-end justify-between">
-                <div>
-                  <div className="text-[10px] text-admin-muted">当前层级挂接率</div>
-                  <div className="mt-1 text-2xl font-semibold text-violet-600">{linkedRate}%</div>
-                </div>
-                <div className="text-right text-[10px] leading-5 text-admin-muted">
-                  <div>已挂接 <span className="font-semibold text-green-600">{linkedCount}</span> 台</div>
-                  <div>未挂接 <span className="font-semibold text-orange-600">{total - linkedCount}</span> 台</div>
-                </div>
+                ))}
               </div>
-              <div className="mt-3 h-2 overflow-hidden rounded bg-gray-100">
-                <div className="h-full rounded bg-violet-500" style={{ width: `${linkedRate}%` }} />
+            ) : (
+              <div className="flex h-full items-center justify-center text-xs text-admin-muted">
+                请选择设备
               </div>
-            </div>
+            )}
           </CardItem>
         </div>
       )}

@@ -63,12 +63,6 @@ export function StatusTag({
     // 待办状态
     todo: { color: "yellow", label: "待处理" },
     done: { color: "green", label: "已处理" },
-    // 设备/管路运行状态
-    running: { color: "green", label: "运行" },
-    standby: { color: "blue", label: "备用" },
-    maintenance: { color: "orange", label: "检修" },
-    stopped: { color: "gray", label: "停止" },
-    fault: { color: "red", label: "故障" },
   };
 
   const config = statusConfig[status] || { color: "gray", label: status };
