@@ -41,10 +41,12 @@ import {
   collectSubtreeIds,
   buildSubTreeFromNodes,
   countNodes,
+  findNodeByKks,
   type TreeNode,
   type NodeLevel,
   type TreeType,
 } from "@/mock/structureTree";
+import { dictCategories, dictItems } from "@/mock";
 import { DevNote } from "@/components/devNotes/DevNote";
 
 // 层级配置
@@ -79,39 +81,138 @@ const getTreeLeafLabel = (treeType: TreeType) => {
 const getTemplateCsv = (treeType: TreeType) => {
   if (treeType === "total") {
     return [
-      "节点名称,KKS编码,父节点KKS,节点分类,层级,排序号",
-      "1号机组,1,,系统目录,一级,1",
-      "1号机组水泵水轮机,1MFA,1,系统目录,二级,1",
-      "1号机组转轮,1MFA10HB001,1MFA,设备,四级,1",
-      "技术供水系统,1SVA,,系统目录,一级,2",
-      "1号机冷却水主管,1SVA10BR001A,1SVA10BR001,管路,四级,1",
+      "节点名称,KKS编码,父节点KKS,节点分类,层级,排序号,对象类型",
+      "1号机组,1,,系统目录,一级,1,",
+      "1号机组水泵水轮机,1MFA,1,系统目录,二级,1,",
+      "1号机组转轮,1MFA10HB001,1MFA,设备,四级,1,水泵水轮机",
+      "技术供水系统,1SVA,,系统目录,一级,2,",
+      "1号机冷却水主管,1SVA10BR001A,1SVA10BR001,管路,四级,1,技术供水管路",
     ].join("\n");
   }
   const objectCategory = treeType === "equipment" ? "设备" : "管路";
+  const matchType = treeType === "equipment" ? "水泵水轮机" : "技术供水管路";
   const examples = treeType === "equipment"
     ? [
-        "1号机组,1,,系统目录,一级,1",
-        "1号机组水泵水轮机,1MFA,1,系统目录,二级,1",
-        "1号机组转动部件,1MFA10,1MFA,系统目录,三级,1",
-        `1号机组转轮,1MFA10HB001,1MFA10,${objectCategory},四级,1`,
+        "1号机组,1,,系统目录,一级,1,",
+        "1号机组水泵水轮机,1MFA,1,系统目录,二级,1,",
+        "1号机组转动部件,1MFA10,1MFA,系统目录,三级,1,",
+        `1号机组转轮,1MFA10HB001,1MFA10,${objectCategory},四级,1,${matchType}`,
       ]
     : [
-        "技术供水系统,1SVA,,系统目录,一级,1",
-        "1号机技术供水,1SVA10,1SVA,系统目录,二级,1",
-        "冷却水支路,1SVA10BR001,1SVA10,系统目录,三级,1",
-        `冷却水主管,1SVA10BR001A,1SVA10BR001,${objectCategory},四级,1`,
+        "技术供水系统,1SVA,,系统目录,一级,1,",
+        "1号机技术供水,1SVA10,1SVA,系统目录,二级,1,",
+        "冷却水支路,1SVA10BR001,1SVA10,系统目录,三级,1,",
+        `冷却水主管,1SVA10BR001A,1SVA10BR001,${objectCategory},四级,1,${matchType}`,
       ];
 
   return [
-    "节点名称,KKS编码,父节点KKS,节点分类,层级,排序号",
+    "节点名称,KKS编码,父节点KKS,节点分类,层级,排序号,对象类型",
     ...examples,
   ].join("\n");
 };
 
+// ===== 总结构树更新辅助函数（不可变更新，新增/编辑/删除后自动重算统计） =====
+const getNextNodeId = (nodes: TreeNode[]): number => {
+  let max = 0;
+  const walk = (ns: TreeNode[]) =>
+    ns.forEach((n) => {
+      max = Math.max(max, n.id);
+      if (n.children) walk(n.children);
+    });
+  walk(nodes);
+  return max + 1;
+};
+
+// 重算节点统计：descendantCount=子节点总数；equipmentCount=末级设备/管路数
+const recomputeNode = (node: TreeNode, children: TreeNode[]): TreeNode => {
+  const descendantCount = children.reduce((s, c) => s + 1 + c.descendantCount, 0);
+  const equipmentCount = children.reduce((s, c) => s + c.equipmentCount, 0);
+  return {
+    ...node,
+    children: children.length > 0 ? children : undefined,
+    childCount: children.length,
+    descendantCount,
+    equipmentCount: children.length > 0 ? equipmentCount : node.equipmentCount,
+  };
+};
+
+// 编辑节点字段
+const patchNode = (nodes: TreeNode[], id: number, patch: Partial<TreeNode>): TreeNode[] =>
+  nodes.map((n) => {
+    if (n.id === id) return { ...n, ...patch };
+    if (n.children) return { ...n, children: patchNode(n.children, id, patch) };
+    return n;
+  });
+
+// 在指定父节点下追加子节点
+const appendChildNode = (nodes: TreeNode[], parentId: number, child: TreeNode): TreeNode[] =>
+  nodes.map((n) => {
+    if (n.id === parentId) return recomputeNode(n, [...(n.children || []), child]);
+    if (n.children) return { ...n, children: appendChildNode(n.children, parentId, child) };
+    return n;
+  });
+
+// 删除节点及其子树
+const removeNode = (nodes: TreeNode[], id: number): TreeNode[] =>
+  nodes
+    .filter((n) => n.id !== id)
+    .map((n) => (n.children ? recomputeNode(n, removeNode(n.children, id)) : n));
+
+// 导入行层级中文 → 节点层级
+const IMPORT_LEVEL_MAP: Record<string, NodeLevel> = {
+  "一级": "L1",
+  "二级": "L2",
+  "三级": "L3",
+  "四级": "L4",
+};
+
 export default function StructureTreeManage() {
   const [treeType, setTreeType] = useState<TreeType>("total");
-  // 总结构树（设备+管路合并）与由勾选节点派生的设备/管路子树
-  const totalTree = useMemo(() => buildStructureTree("total"), []);
+  // 对象类型下拉选项：取自数据字典「设备类型/管路用途」（对象类型唯一权威源），与模板库自动匹配类型同源
+  const templateMatchOptions = useMemo(() => {
+    const byCode = (code: string) => {
+      const category = dictCategories.find((c) => c.code === code);
+      return category
+        ? dictItems
+            .filter((item) => item.categoryId === category.id && item.status === "enabled")
+            .sort((a, b) => a.sort - b.sort)
+            .map((item) => item.name)
+        : [];
+    };
+    return { equipment: byCode("equipment_type"), pipeline: byCode("pipeline_usage") };
+  }, []);
+  // 总结构树（设备+管路合并）与由勾选节点派生的设备/管路子树；总树支持页面上新增/编辑/删除并持久化
+  const [totalTree, setTotalTree] = useState<TreeNode[]>(() => {
+    try {
+      const saved = localStorage.getItem("structureTree.total");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) return parsed as TreeNode[];
+      }
+    } catch { /* 忽略异常 */ }
+    return buildStructureTree("total");
+  });
+  // 总树变更持久化
+  useEffect(() => {
+    localStorage.setItem("structureTree.total", JSON.stringify(totalTree));
+  }, [totalTree]);
+  // 总结构树版本标识：基于节点数量与节点内容（名称/KKS/排序）生成，总树发生增删改/重新上传后自动变化，用于检测已生成子树是否过期
+  const totalTreeVersion = useMemo(() => {
+    let count = 0;
+    let sig = "";
+    const walk = (ns: TreeNode[]) =>
+      ns.forEach((n) => {
+        count += 1;
+        sig += `${n.id}:${n.name}:${n.kks}:${n.sort};`;
+        if (n.children) walk(n.children);
+      });
+    walk(totalTree);
+    let hash = 0;
+    for (let i = 0; i < sig.length; i++) {
+      hash = ((hash << 5) - hash + sig.charCodeAt(i)) | 0;
+    }
+    return `${count}-${hash}`;
+  }, [totalTree]);
   // 勾选节点集合（级联：勾选上级节点时其下所有子孙节点一并纳入）
   const [selectedNodeIds, setSelectedNodeIds] = useState<Set<number>>(new Set());
   const [deriveMode, setDeriveMode] = useState<"select" | "result">("select");
@@ -168,19 +269,20 @@ export default function StructureTreeManage() {
         return {
           ids: new Set<number>(Array.isArray(parsed.ids) ? parsed.ids : []),
           mode: parsed.mode === "result" ? "result" as const : "select" as const,
+          version: typeof parsed.version === "string" ? parsed.version : "",
         };
       }
     } catch { /* 忽略异常 */ }
-    return { ids: new Set<number>(), mode: "select" as const };
+    return { ids: new Set<number>(), mode: "select" as const, version: "" };
   };
 
   useEffect(() => {
     if (treeType === "total") return;
     localStorage.setItem(
       `structureTree.${treeType}`,
-      JSON.stringify({ ids: [...selectedNodeIds], mode: deriveMode })
+      JSON.stringify({ ids: [...selectedNodeIds], mode: deriveMode, version: totalTreeVersion })
     );
-  }, [selectedNodeIds, deriveMode, treeType]);
+  }, [selectedNodeIds, deriveMode, treeType, totalTreeVersion]);
 
   const stats = useMemo(() => getTreeStats(treeType), [treeType]);
   const leafLabel = getTreeLeafLabel(treeType);
@@ -200,7 +302,7 @@ export default function StructureTreeManage() {
   const [editNode, setEditNode] = useState<TreeNode | null>(null);
   const [isAddChild, setIsAddChild] = useState(false);
   const [isAddRoot, setIsAddRoot] = useState(false);
-  const [form, setForm] = useState({ name: "", kks: "", sort: 0 });
+  const [form, setForm] = useState({ name: "", kks: "", sort: 0, matchType: "" });
   const [deleteNode, setDeleteNode] = useState<TreeNode | null>(null);
   const [batchDeleteIds, setBatchDeleteIds] = useState<number[]>([]);
   const [importOpen, setImportOpen] = useState(false);
@@ -262,7 +364,7 @@ export default function StructureTreeManage() {
     setIsAddChild(true);
     setIsAddRoot(false);
     const siblings = parent.children || [];
-    setForm({ name: "", kks: "", sort: siblings.length + 1 });
+    setForm({ name: "", kks: "", sort: siblings.length + 1, matchType: "" });
     setEditOpen(true);
   };
 
@@ -270,7 +372,7 @@ export default function StructureTreeManage() {
     setEditNode(null);
     setIsAddChild(false);
     setIsAddRoot(true);
-    setForm({ name: "", kks: "", sort: stats.l1 + 1 });
+    setForm({ name: "", kks: "", sort: stats.l1 + 1, matchType: "" });
     setEditOpen(true);
   };
 
@@ -282,6 +384,7 @@ export default function StructureTreeManage() {
       name: node.name,
       kks: node.kks,
       sort: node.sort,
+      matchType: node.matchType || "",
     });
     setEditOpen(true);
   };
@@ -302,14 +405,55 @@ export default function StructureTreeManage() {
       level = "L1";
     }
     const category: TreeNode["category"] = level === "L4"
-      ? (treeType === "equipment" ? "equipment" : "pipeline")
+      ? (treeType === "total" ? "equipment" : treeType === "equipment" ? "equipment" : "pipeline")
       : "system";
 
     if (isAddChild && editNode) {
+      // 在总结构树下新增子节点，真实写入并持久化
+      const newId = getNextNodeId(totalTree);
+      const newNode: TreeNode = {
+        id: newId,
+        parentId: editNode.id,
+        level,
+        category,
+        name: form.name.trim(),
+        kks: form.kks.trim(),
+        sort: form.sort,
+        matchType: form.matchType.trim() || undefined,
+        childCount: 0,
+        descendantCount: 0,
+        equipmentCount: category === "equipment" || category === "pipeline" ? 1 : 0,
+      };
+      setTotalTree((prev) => appendChildNode(prev, editNode.id, newNode));
       message.success(`已在「${editNode.name}」下新增${levelConfig[level]?.label}节点「${form.name}」（分类：${getNodeCategoryLabel(category)}）`);
     } else if (isAddRoot) {
+      // 新增一级节点
+      const newId = getNextNodeId(totalTree);
+      const newNode: TreeNode = {
+        id: newId,
+        parentId: 0,
+        level,
+        category,
+        name: form.name.trim(),
+        kks: form.kks.trim(),
+        sort: form.sort,
+        matchType: form.matchType.trim() || undefined,
+        childCount: 0,
+        descendantCount: 0,
+        equipmentCount: 0,
+      };
+      setTotalTree((prev) => [...prev, newNode].sort((a, b) => a.sort - b.sort));
       message.success(`已新增一级节点「${form.name}」`);
     } else if (editNode) {
+      // 编辑节点
+      setTotalTree((prev) =>
+        patchNode(prev, editNode.id, {
+          name: form.name.trim(),
+          kks: form.kks.trim(),
+          sort: form.sort,
+          matchType: form.matchType.trim() || undefined,
+        })
+      );
       message.success(`节点「${form.name}」已更新`);
     }
     setEditOpen(false);
@@ -317,6 +461,7 @@ export default function StructureTreeManage() {
 
   const handleConfirmDelete = () => {
     if (!deleteNode) return;
+    setTotalTree((prev) => removeNode(prev, deleteNode.id));
     message.success(`已删除节点「${deleteNode.name}」及 ${deleteNode.descendantCount} 个子节点`);
     setDeleteNode(null);
     if (selectedId === deleteNode.id) setSelectedId(null);
@@ -327,6 +472,9 @@ export default function StructureTreeManage() {
   };
 
   const handleConfirmBatchDelete = () => {
+    setTotalTree((prev) =>
+      batchDeleteIds.reduce((acc, id) => removeNode(acc, id), prev)
+    );
     message.success(`已批量删除 ${batchDeleteIds.length} 个节点`);
     setBatchDeleteIds([]);
     setSelectedIds(new Set());
@@ -385,19 +533,19 @@ export default function StructureTreeManage() {
         ? [
             { name: "3号机组", kks: "3", parentKks: "", category: "系统目录", level: "一级", sort: 3, status: "可导入" },
             { name: "3号机组水泵水轮机", kks: "3MFA", parentKks: "3", category: "系统目录", level: "二级", sort: 1, status: "可导入" },
-            { name: "3号机组转轮", kks: "3MFA10HB001", parentKks: "3MFA", category: "设备", level: "四级", sort: 1, status: "可导入" },
+            { name: "3号机组转轮", kks: "3MFA10HB001", parentKks: "3MFA", category: "设备", level: "四级", sort: 1, matchType: "水泵水轮机", status: "可导入" },
           ]
         : treeType === "total"
         ? [
             { name: "3号机组", kks: "3", parentKks: "", category: "系统目录", level: "一级", sort: 3, status: "可导入" },
             { name: "3号机组水泵水轮机", kks: "3MFA", parentKks: "3", category: "系统目录", level: "二级", sort: 1, status: "可导入" },
-            { name: "3号机组转轮", kks: "3MFA10HB001", parentKks: "3MFA", category: "设备", level: "四级", sort: 1, status: "可导入" },
-            { name: "3号机冷却水主管", kks: "3SVA10BR001", parentKks: "3SVA10", category: "管路", level: "四级", sort: 1, status: "可导入" },
+            { name: "3号机组转轮", kks: "3MFA10HB001", parentKks: "3MFA", category: "设备", level: "四级", sort: 1, matchType: "水泵水轮机", status: "可导入" },
+            { name: "3号机冷却水主管", kks: "3SVA10BR001", parentKks: "3SVA10", category: "管路", level: "四级", sort: 1, matchType: "技术供水管路", status: "可导入" },
           ]
         : [
             { name: "技术供水系统", kks: "3SVA", parentKks: "", category: "系统目录", level: "一级", sort: 3, status: "可导入" },
             { name: "3号机技术供水", kks: "3SVA10", parentKks: "3SVA", category: "系统目录", level: "二级", sort: 1, status: "可导入" },
-            { name: "3号机冷却水主管", kks: "3SVA10BR001", parentKks: "3SVA10", category: "管路", level: "四级", sort: 1, status: "可导入" },
+            { name: "3号机冷却水主管", kks: "3SVA10BR001", parentKks: "3SVA10", category: "管路", level: "四级", sort: 1, matchType: "技术供水管路", status: "可导入" },
           ];
       setImportPreview(sample);
       message.success(`已读取文件「${file.name}」，共 ${sample.length} 条待导入数据`);
@@ -406,7 +554,64 @@ export default function StructureTreeManage() {
 
   const handleConfirmImport = () => {
     if (!importFile) return message.warning("请先选择导入文件");
-    message.success(`导入成功，共新增 ${importPreview.length} 个节点`);
+    if (treeType === "total") {
+      // 总结构树导入：带对象类型的行按KKS更新已存在节点的对象类型；不存在KKS则新增节点（对象类型一并写入），触发版本变化
+      const existKks = new Set<string>();
+      const walkKks = (ns: TreeNode[]) =>
+        ns.forEach((n) => {
+          existKks.add(n.kks);
+          if (n.children) walkKks(n.children);
+        });
+      walkKks(totalTree);
+      let nextTree = totalTree;
+      let added = 0;
+      let updated = 0;
+      importPreview.forEach((row: any) => {
+        if (row.status !== "可导入" || !row.kks) return;
+        const matchType = row.matchType?.trim() || undefined;
+        const existing = findNodeByKks(nextTree, row.kks);
+        if (existing) {
+          // 已存在节点：导入行带对象类型则覆盖更新（批量维护对象类型），空值保持原状
+          if (matchType && existing.matchType !== matchType) {
+            nextTree = patchNode(nextTree, existing.id, { matchType });
+            updated += 1;
+          }
+          return;
+        }
+        const parent = row.parentKks ? findNodeByKks(nextTree, row.parentKks) : null;
+        if (row.parentKks && !parent) return;
+        const level = IMPORT_LEVEL_MAP[row.level] || "L1";
+        const category: TreeNode["category"] = row.category === "设备"
+          ? "equipment"
+          : row.category === "管路"
+            ? "pipeline"
+            : "system";
+        const newNode: TreeNode = {
+          id: getNextNodeId(nextTree),
+          parentId: parent ? parent.id : 0,
+          level,
+          category,
+          name: row.name,
+          kks: row.kks,
+          sort: row.sort || 1,
+          matchType,
+          childCount: 0,
+          descendantCount: 0,
+          equipmentCount: category === "equipment" || category === "pipeline" ? 1 : 0,
+        };
+        nextTree = parent
+          ? appendChildNode(nextTree, parent.id, newNode)
+          : [...nextTree, newNode].sort((a, b) => a.sort - b.sort);
+        existKks.add(row.kks);
+        added += 1;
+      });
+      setTotalTree(nextTree);
+      message.success(
+        `导入完成：新增 ${added} 个节点，更新 ${updated} 个节点对象类型`
+      );
+    } else {
+      message.success(`导入成功，共新增 ${importPreview.length} 个节点`);
+    }
     setImportOpen(false);
   };
 
@@ -426,7 +631,26 @@ export default function StructureTreeManage() {
     setSelectedId(null);
     setSelectedIds(new Set());
     const saved = getSavedState(t);
-    setSelectedNodeIds(saved.ids);
+    let savedIds = saved.ids;
+    // 设备/管路结构树：总结构树变更后做差异处理（剔除失效节点并提示）
+    if (t !== "total" && saved.version && saved.version !== totalTreeVersion) {
+      const validIds = new Set<number>();
+      savedIds.forEach((id) => {
+        if (findNode(totalTree, id)) validIds.add(id);
+      });
+      const removedCount = savedIds.size - validIds.size;
+      if (removedCount > 0) {
+        if (savedIds.size > 0 && validIds.size === 0) {
+          message.warning(`总结构树已整体变更，原${getTreeTitle(t)}基于旧数据生成，请重新生成结构树`);
+        } else {
+          message.warning(`总结构树已变更，已自动移除 ${removedCount} 个失效节点；如需纳入新增节点，请重新生成${getTreeTitle(t)}`);
+        }
+        savedIds = validIds;
+      } else {
+        message.info(`总结构树已变更，如需纳入新增节点，请重新生成${getTreeTitle(t)}`);
+      }
+    }
+    setSelectedNodeIds(savedIds);
     setDeriveMode(saved.mode);
     setKeyword("");
     setListKeyword("");
@@ -434,9 +658,9 @@ export default function StructureTreeManage() {
     setListCategoryFilter("");
     setCurrentPage(1);
     // 选择态且已有勾选时，展开已勾选节点的祖先链，便于直接查看
-    if (saved.mode === "select" && saved.ids.size > 0) {
+    if (saved.mode === "select" && savedIds.size > 0) {
       const keys = new Set<number>();
-      saved.ids.forEach((id) =>
+      savedIds.forEach((id) =>
         getNodePath(totalTree, id).slice(0, -1).forEach((n) => keys.add(n.id))
       );
       setExpandedKeys(keys);
@@ -906,6 +1130,7 @@ export default function StructureTreeManage() {
           items={[
             { label: "数据来源", value: "editNode/isAddChild/isAddRoot 区分模式；form（名称/KKS/排序号）打开时按场景初始化（新增子节点排序号=兄弟数+1，新增一级=一级数+1）" },
             { label: "校验规则", value: "名称必填“请填写节点名称”；KKS 提示需遵循「机组号+系统代码+部件代码+编号」格式（如 1MFA10HB001），原型不做强校验" },
+            { label: "对象类型", value: "仅四级设备/管路节点显示「对象类型」下拉，选项来自数据字典「设备类型/管路用途」（与属性模板库自动匹配类型同源），保存后写入节点，供属性管理/大屏按对象类型自动匹配模板" },
             { label: "层级规则", value: "新增一级=层级L1分类系统目录；新增子节点=父层级+1（上限L4），L4 分类为设备/管路、其余为系统目录；编辑保留原层级" },
             { label: "交互逻辑", value: "头部蓝条展示父节点与新节点层级（新增子节点时）；保存后提示新增/更新结果（原型不持久化）" },
             { label: "权限", value: "管理员/操作人员" },
@@ -941,6 +1166,35 @@ export default function StructureTreeManage() {
           <FormItem label="排序号">
             <input type="number" className="input-base" value={form.sort} onChange={(e) => setForm({ ...form, sort: Number(e.target.value) })} min={1} />
           </FormItem>
+          {(() => {
+            // 目标分类：编辑取节点自身分类；新增子节点仅当层级为四级时是设备/管路；新增一级为系统目录
+            let targetCategory: TreeNode["category"] | null = null;
+            if (isAddChild && editNode) {
+              const childLevel = Math.min(4, parseInt(editNode.level.slice(1)) + 1);
+              if (childLevel === 4) targetCategory = treeType === "pipeline" ? "pipeline" : "equipment";
+            } else if (editNode) {
+              targetCategory = editNode.category === "equipment" || editNode.category === "pipeline" ? editNode.category : null;
+            }
+            if (!targetCategory) return null;
+            const options = targetCategory === "equipment" ? templateMatchOptions.equipment : templateMatchOptions.pipeline;
+            return (
+              <FormItem label="对象类型">
+                <select
+                  className="input-base"
+                  value={form.matchType}
+                  onChange={(e) => setForm({ ...form, matchType: e.target.value })}
+                >
+                  <option value="">请选择（与属性模板「自动匹配类型」保持一致）</option>
+                  {form.matchType && !options.includes(form.matchType) && (
+                    <option value={form.matchType}>{form.matchType}（非字典项）</option>
+                  )}
+                  {options.map((opt) => (
+                    <option key={opt} value={opt}>{opt}</option>
+                  ))}
+                </select>
+              </FormItem>
+            );
+          })()}
           <div className="bg-blue-50 border border-blue-200 rounded p-2 text-xs text-blue-700">
             <div><b>节点层级：</b>
               {isAddRoot && <Tag color="blue">一级</Tag>}
@@ -1021,8 +1275,8 @@ export default function StructureTreeManage() {
           title="批量导入结构树弹窗"
           summary="通过CSV/XLSX批量导入节点，导入前可预览校验结果"
           items={[
-            { label: "校验规则", value: "支持 .csv/.xlsx；单次最多500条；必填列：节点名称/父节点KKS；KKS编码不可重复；模板列：节点名称/KKS编码/父节点KKS/节点分类/层级/排序号" },
-            { label: "交互逻辑", value: "选择文件后解析生成导入预览（名称/KKS/父节点KKS/分类/层级/排序/状态可导入）；底部显示“N条可导入”；确认导入 → 提示新增N个节点；下载模板 → 生成 结构树导入模板.csv（按设备/管路各自示例）" },
+            { label: "校验规则", value: "支持 .csv/.xlsx；单次最多500条；必填列：节点名称/父节点KKS；KKS编码不可重复；模板列：节点名称/KKS编码/父节点KKS/节点分类/层级/排序号/对象类型（对象类型填写模板库「自动匹配类型」，用于批量维护对象类型）" },
+            { label: "交互逻辑", value: "选择文件后解析生成导入预览（名称/KKS/父节点KKS/分类/层级/对象类型/状态可导入）；底部显示“N条可导入”；确认导入 → 已存在KKS的节点若带对象类型则覆盖更新，不存在则新增节点；提示“新增N个节点，更新M个节点对象类型”；下载模板 → 生成带对象类型列的结构树导入模板.csv" },
             { label: "后续步骤", value: "正式系统：服务端校验KKS唯一性与父子关系并批量写入" },
             { label: "权限", value: "管理员/操作人员" },
           ]}
@@ -1073,6 +1327,7 @@ export default function StructureTreeManage() {
                       <th className="px-3 py-2 text-left text-admin-muted font-medium border-b border-admin-border">父节点KKS</th>
                       <th className="px-3 py-2 text-left text-admin-muted font-medium border-b border-admin-border">分类</th>
                       <th className="px-3 py-2 text-left text-admin-muted font-medium border-b border-admin-border">层级</th>
+                      <th className="px-3 py-2 text-left text-admin-muted font-medium border-b border-admin-border">对象类型</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1084,6 +1339,7 @@ export default function StructureTreeManage() {
                         <td className="px-3 py-1.5 font-mono text-admin-muted">{row.parentKks || "-"}</td>
                         <td className="px-3 py-1.5"><Tag color={treeType === "equipment" ? "green" : "cyan"}>{row.category}</Tag></td>
                         <td className="px-3 py-1.5"><Tag color={row.level === "一级" ? "blue" : row.level === "二级" ? "cyan" : row.level === "三级" ? "purple" : "orange"}>{row.level}</Tag></td>
+                        <td className="px-3 py-1.5">{row.matchType || <span className="text-admin-muted">-</span>}</td>
                       </tr>
                     ))}
                   </tbody>

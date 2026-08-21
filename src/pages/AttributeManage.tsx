@@ -12,6 +12,7 @@ import {
   Upload,
 } from "lucide-react";
 import { equipments, pipelines } from "@/mock";
+import { findNodeByKks, getTotalTreeCached } from "@/mock/structureTree";
 import StructureTreeSelect, {
   type TreeSelectFilter,
 } from "@/components/common/StructureTreeSelect";
@@ -30,6 +31,22 @@ import AttributeTemplateSelectModal from "@/pages/attribute/AttributeTemplateSel
 import { DevNote } from "@/components/devNotes/DevNote";
 
 type AttrTab = "equipment" | "pipeline";
+
+// 对象类型（模板匹配用）：优先取结构树节点「对象类型」（在结构树管理中维护，与属性模板「自动匹配类型」同源），无则回退台账字段
+function getObjectClassifier(
+  tab: AttrTab,
+  object: (typeof equipments)[number] | (typeof pipelines)[number],
+): string {
+  try {
+    const node = findNodeByKks(getTotalTreeCached(), object.code);
+    if (node?.matchType) return node.matchType;
+  } catch {
+    /* 忽略异常，回退台账字段 */
+  }
+  return tab === "equipment"
+    ? (object as (typeof equipments)[number]).type || ""
+    : (object as (typeof pipelines)[number]).usage || "";
+}
 
 interface AttributeRow {
   id: string;
@@ -84,10 +101,9 @@ export default function AttributeManage() {
     : null;
   const selectedObject = requestedObject || filteredObjects[0] || null;
 
-  const classifier =
-    tab === "equipment"
-      ? (selectedObject as (typeof equipments)[number] | null)?.type || ""
-      : (selectedObject as (typeof pipelines)[number] | null)?.usage || "";
+  const classifier = selectedObject
+    ? getObjectClassifier(tab, selectedObject)
+    : "";
   const matchedTemplate = resolveAttributeTemplate(tab, classifier, templates);
 
   useEffect(() => {
@@ -147,10 +163,7 @@ export default function AttributeManage() {
   // 范围内对象统计：按当前过滤范围计算平均完整度、完整对象数、待完善对象数
   const scopeStats = useMemo(() => {
     const stats = filteredObjects.map((object) => {
-      const classifier =
-        tab === "equipment"
-          ? (object as (typeof equipments)[number]).type || ""
-          : (object as (typeof pipelines)[number]).usage || "";
+      const classifier = getObjectClassifier(tab, object);
       const template = resolveAttributeTemplate(tab, classifier, templates);
       if (!template) return { total: 0, filled: 0 };
       const savedValues = loadAttributeInstanceValues(tab, object.id);

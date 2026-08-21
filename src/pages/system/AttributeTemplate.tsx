@@ -15,6 +15,7 @@ import {
 import { Modal, ConfirmModal } from "@/components/common/Modal";
 import { Tag } from "@/components/common/Tag";
 import { message } from "@/components/common/Message";
+import { dictCategories, dictItems } from "@/mock";
 import {
   ATTRIBUTE_FIELD_CATEGORIES,
   type AttributeTemplateDefinition,
@@ -76,6 +77,23 @@ export default function AttributeTemplateManage() {
   const [usageKeyword, setUsageKeyword] = useState("");
   // 属性实例值变更版本：确认更新/导入后递增，触发待补填统计重新计算
   const [instanceRevision, setInstanceRevision] = useState(0);
+
+  // 自动匹配类型选项：从数据字典「设备类型/管路用途」取值（对象类型唯一权威源），保证与结构树管理/导入模板同源
+  const matchTypeOptions = useMemo(() => {
+    const scopeCode = editing?.scope === "pipeline" ? "pipeline_usage" : "equipment_type";
+    const category = dictCategories.find((c) => c.code === scopeCode);
+    const options = category
+      ? dictItems
+          .filter((item) => item.categoryId === category.id && item.status === "enabled")
+          .sort((a, b) => a.sort - b.sort)
+          .map((item) => item.name)
+      : [];
+    // 存量模板已手填且不在字典中的匹配类型附加保留，避免编辑时失配丢值
+    if (editing?.matchKey && !options.includes(editing.matchKey)) {
+      return [...options, editing.matchKey];
+    }
+    return options;
+  }, [editing?.scope, editing?.matchKey]);
 
   // 各模板的使用对象统计（与属性管理页同一匹配逻辑，一次性计算）
   const usersByTemplate = useMemo(() => {
@@ -566,13 +584,20 @@ export default function AttributeTemplateManage() {
               </label>
               <label className="text-xs text-admin-muted">
                 自动匹配类型
-                <input
+                <select
                   className="input-base mt-1 w-full"
                   value={editing.matchKey}
                   onChange={(event) =>
                     setEditing({ ...editing, matchKey: event.target.value })
                   }
-                />
+                >
+                  <option value="">请选择（数据字典：{editing.scope === "pipeline" ? "管路用途" : "设备类型"}）</option>
+                  {matchTypeOptions.map((option) => (
+                    <option key={option} value={option}>
+                      {option}
+                    </option>
+                  ))}
+                </select>
               </label>
             </div>
 

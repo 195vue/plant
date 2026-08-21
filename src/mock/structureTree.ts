@@ -26,6 +26,7 @@ export interface TreeNode {
   name: string;
   kks: string;
   sort: number;
+  matchType?: string;   // 对象类型（设备类型/管路用途），在结构树管理中维护，用于属性模板自动匹配
   childCount: number;     // 直接子节点数
   descendantCount: number; // 所有后代数
   equipmentCount: number;  // 末级设备/管路数
@@ -326,4 +327,28 @@ export function buildSubTreeFromNodes(nodes: TreeNode[], selectedNodeIds: Set<nu
     return out;
   };
   return build(nodes);
+}
+
+// 按 KKS 编码在树中查找节点
+export function findNodeByKks(nodes: TreeNode[], kks: string): TreeNode | null {
+  for (const n of nodes) {
+    if (n.kks && n.kks === kks) return n;
+    if (n.children) {
+      const found = findNodeByKks(n.children, kks);
+      if (found) return found;
+    }
+  }
+  return null;
+}
+
+// 获取总结构树：优先读取结构树管理页面持久化的数据（含对象类型维护），无则按初始数据构建
+export function getTotalTreeCached(): TreeNode[] {
+  try {
+    const saved = localStorage.getItem("structureTree.total");
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      if (Array.isArray(parsed)) return parsed as TreeNode[];
+    }
+  } catch { /* 忽略异常 */ }
+  return buildStructureTree("total");
 }
