@@ -25,8 +25,8 @@ import {
   loadAttributeInstanceValues,
   saveAttributeInstanceValues,
 } from "@/lib/attributeInstanceStore";
-import { downloadAttributeBatchTemplate } from "@/lib/attributeBatchImport";
 import AttributeBatchImportModal from "@/pages/attribute/AttributeBatchImportModal";
+import AttributeTemplateSelectModal from "@/pages/attribute/AttributeTemplateSelectModal";
 import { DevNote } from "@/components/devNotes/DevNote";
 
 type AttrTab = "equipment" | "pipeline";
@@ -65,6 +65,7 @@ export default function AttributeManage() {
   const [treeFilter, setTreeFilter] = useState<TreeSelectFilter | null>(null);
   const [rows, setRows] = useState<AttributeRow[]>([]);
   const [batchImportOpen, setBatchImportOpen] = useState(false);
+  const [templateSelectOpen, setTemplateSelectOpen] = useState(false);
   const [instanceRevision, setInstanceRevision] = useState(0);
 
   const objects = tab === "equipment" ? equipments : pipelines;
@@ -299,17 +300,17 @@ export default function AttributeManage() {
                 <DevNote
                   id="attribute-download-template"
                   title="下载批量导入模板"
-                  summary="生成属性批量导入Excel模板（Sheet1-批量填报 + Sheet2-模板汇总）"
+                  summary="弹出模板类型多选弹窗，按所选类型生成多Sheet Excel模板"
                   items={[
-                    { label: "数据来源", value: "downloadAttributeBatchTemplate(templates)：Sheet1表头为 对象类型/KKS编码/模板名称/属性名称/属性值/单位；Sheet2为全部模板字段清单（对象类型/模板名称/匹配类型/属性分类/属性名称/单位）" },
-                    { label: "交互逻辑", value: "点击直接下载「属性批量导入模板_日期.xlsx」，无弹窗" },
+                    { label: "数据来源", value: "AttributeTemplateSelectModal：按当前页签（设备/管路）展示对应范围内的模板类型多选（可全选/取消全选）；downloadAttributeBatchTemplateBySelection(selected)：每个选中模板生成一个Sheet，Sheet名=模板名，表头=KKS编码/对象名称/各字段名(单位)，跳过设备名称/KKS编码/唯一编码/编码等身份字段避免重复列" },
+                    { label: "交互逻辑", value: "点击打开「下载批量导入模板」弹窗 → 仅列出当前页签范围内的模板类型（未选时「生成模板」禁用）→ 点击「生成模板(N个)」下载「属性批量导入模板_日期.xlsx」，每个Sheet对应一种模板类型，可直接逐行填写设备/管路数据" },
                     { label: "后续步骤", value: "正式系统：模板由后台按当前属性模板库动态生成" },
                     { label: "权限", value: "管理员/操作人员可见" },
                   ]}
                 >
                   <button
                     className="btn-default flex items-center gap-1 text-xs"
-                    onClick={() => downloadAttributeBatchTemplate(templates)}
+                    onClick={() => setTemplateSelectOpen(true)}
                   >
                     <Download size={12} />
                     下载批量导入模板
@@ -318,10 +319,10 @@ export default function AttributeManage() {
                 <DevNote
                   id="attribute-batch-import"
                   title="批量导入"
-                  summary="打开属性批量导入弹窗，上传双Sheet Excel校验后写入"
+                  summary="打开属性批量导入弹窗，上传多Sheet Excel校验后写入"
                   items={[
-                    { label: "数据来源", value: "AttributeBatchImportModal；解析 Sheet1-批量填报 + Sheet2-模板汇总（xlsx/xls，≤20MB）" },
-                    { label: "校验规则", value: "缺少Sheet1/Sheet2、列缺失、无数据时提示错误；每行校验：必填项→对象类型设备/管路→KKS匹配对象→模板匹配→属性存在→单位一致→重复→值非空" },
+                    { label: "数据来源", value: "AttributeBatchImportModal；解析所选模板生成的Excel，每个Sheet对应一种模板类型，按Sheet名匹配模板、表头识别字段（xlsx/xls，≤20MB）；兼容解析旧版Sheet1-批量填报格式" },
+                    { label: "校验规则", value: "Sheet未匹配到模板、缺少KKS编码列、存在无法识别的列、无数据时提示错误；每行校验：必填项→KKS匹配对象→模板匹配→属性存在→单位一致（来自表头）→重复→值非空" },
                     { label: "交互逻辑", value: "打开弹窗后可勾选「覆盖已有属性值」（默认仅填充空值）；预览表逐行显示 已匹配/未匹配/模板不一致/单位不一致/重复数据/数据不完整；确认导入后提示「批量导入完成：X个对象，Y项属性」" },
                     { label: "后续步骤", value: "正式系统：由属性管理批量导入接口校验并入库" },
                     { label: "权限", value: "管理员/操作人员可见" },
@@ -529,8 +530,15 @@ export default function AttributeManage() {
       <AttributeBatchImportModal
         open={batchImportOpen}
         templates={templates}
+        scope={tab}
         onClose={() => setBatchImportOpen(false)}
         onImported={() => setInstanceRevision((value) => value + 1)}
+      />
+      <AttributeTemplateSelectModal
+        open={templateSelectOpen}
+        templates={templates}
+        scope={tab}
+        onClose={() => setTemplateSelectOpen(false)}
       />
     </div>
   );

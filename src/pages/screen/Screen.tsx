@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import ReactECharts from "echarts-for-react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, FileText, Play } from "lucide-react";
 import { useAuthStore } from "@/store/auth";
 import { TopNav } from "@/components/screen/TopNav";
 import { Scene3D } from "@/components/screen/Scene3D";
@@ -11,6 +11,7 @@ import DrillDownModal, {
   type DrillDownSession,
 } from "@/components/screen/DrillDownModal";
 import { useChartDrillDown } from "@/components/screen/useChartDrillDown";
+import { Modal } from "@/components/common/Modal";
 import { message } from "@/components/common/Message";
 import {
   resolveAttributeTemplate,
@@ -26,8 +27,15 @@ import {
   equipmentInfo,
   componentInfo,
   generateNodeInfo,
+  pipelineLengthBySystem,
+  pipelineSpecBySystem,
+  reformStatsBySystem,
+  reformDetailsBySystem,
+  waterUsageData,
+  generateReformRecords,
 } from "@/mock/screen";
-import { systems, alarms, screenStats } from "@/mock/index";
+import { systems, alarms, screenStats, roamingPaths } from "@/mock/index";
+import type { RoamingPath } from "@/types";
 import { DevNote } from "@/components/devNotes/DevNote";
 
 const ONLINE_COUNT = 230;
@@ -174,6 +182,24 @@ export default function Screen() {
   const [overviewActiveTab, setOverviewActiveTab] = useState<OverviewTabKey>("stats");
   const [sceneResetKey, setSceneResetKey] = useState(0);
   const { templates } = useAttributeTemplates();
+
+  // 左右栏卡片弹窗与状态
+  const [pipelineModal, setPipelineModal] = useState<{
+    system: string;
+    data: { spec: string; length: number }[];
+  } | null>(null);
+  const [reformModal, setReformModal] = useState<{
+    system: string;
+    items: { time: string; title: string; material: string; unit: string }[];
+  } | null>(null);
+  const [drawingModal, setDrawingModal] = useState<any | null>(null);
+  const [waterDim, setWaterDim] = useState<"year" | "month" | "day">("month");
+  // 默认月度选择器，默认最近12个月（即 month 全部数据）
+  const [waterRange, setWaterRange] = useState(() => ({
+    start: waterUsageData.month[0].date,
+    end: waterUsageData.month[waterUsageData.month.length - 1].date,
+  }));
+  const [roamingPlay, setRoamingPlay] = useState<RoamingPath | null>(null);
 
   const [drillDownOpen, setDrillDownOpen] = useState(false);
   const [drillDownData, setDrillDownData] = useState<DrillDownSession | null>(null);
@@ -567,246 +593,127 @@ export default function Screen() {
   };
 
   const renderLeftChartContent = () => {
-    const waterFlowOption = {
+    const pipelineOption = {
       backgroundColor: "transparent",
-      grid: { top: 28, right: 40, bottom: 20, left: 38 },
-      tooltip: { trigger: "axis" },
-      legend: {
-        data: ["水头", "流量"],
-        textStyle: { color: "#8a94a6", fontSize: 9 },
-        top: 0,
-        right: 0,
-        itemWidth: 8,
-        itemHeight: 5,
-        itemGap: 4,
-      },
+      grid: { top: 18, right: 12, bottom: 26, left: 42 },
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
       xAxis: {
         type: "category",
-        data: ["00", "04", "08", "12", "16", "20", "24"],
-        axisLine: { lineStyle: { color: "rgba(0, 180, 255, 0.3)" } },
-        axisLabel: { color: "#8a94a6", fontSize: 9 },
-        axisTick: { show: false },
-      },
-      yAxis: [
-        {
-          type: "value",
-          name: "水头(m)",
-          nameTextStyle: { color: "#52c41a", fontSize: 9 },
-          min: 120,
-          max: 145,
-          axisLabel: { color: "#8a94a6", fontSize: 9 },
-          splitLine: { lineStyle: { color: "rgba(0, 180, 255, 0.1)" } },
-        },
-        {
-          type: "value",
-          name: "流量(m³/s)",
-          nameTextStyle: { color: "#00b4ff", fontSize: 9 },
-          min: 100,
-          max: 140,
-          axisLabel: { color: "#8a94a6", fontSize: 9 },
-          splitLine: { show: false },
-        },
-      ],
-      series: [
-        {
-          name: "水头",
-          type: "line",
-          yAxisIndex: 0,
-          data: [137.5, 138.2, 137.8, 136.9, 137.2, 138.0, 137.5],
-          smooth: true,
-          symbol: "none",
-          itemStyle: { color: "#52c41a" },
-          lineStyle: { width: 1.5 },
-        },
-        {
-          name: "流量",
-          type: "line",
-          yAxisIndex: 1,
-          data: [118.5, 122.3, 120.1, 115.8, 117.2, 121.5, 119.0],
-          smooth: true,
-          symbol: "none",
-          itemStyle: { color: "#00b4ff" },
-          lineStyle: { width: 1.5 },
-        },
-      ],
-    };
-
-    const alarmTrendOption = {
-      backgroundColor: "transparent",
-      grid: { top: 20, right: 10, bottom: 20, left: 35 },
-      tooltip: { trigger: "axis" },
-      xAxis: {
-        type: "category",
-        data: ["周一", "周二", "周三", "周四", "周五", "周六", "周日"],
-        axisLine: { lineStyle: { color: "rgba(0, 180, 255, 0.3)" } },
-        axisLabel: { color: "#8a94a6", fontSize: 9 },
+        data: pipelineLengthBySystem.map((s) => s.system),
+        axisLine: { lineStyle: { color: "rgba(64,158,255,0.3)" } },
+        axisLabel: { color: "#8a94a6", fontSize: 9, interval: 0 },
         axisTick: { show: false },
       },
       yAxis: {
         type: "value",
+        name: "m",
+        nameTextStyle: { color: "#8a94a6", fontSize: 9 },
+        axisLine: { lineStyle: { color: "rgba(64,158,255,0.3)" } },
         axisLabel: { color: "#8a94a6", fontSize: 9 },
-        splitLine: { lineStyle: { color: "rgba(0, 180, 255, 0.1)" } },
+        splitLine: { lineStyle: { color: "rgba(64,158,255,0.1)" } },
+        axisTick: { show: false },
       },
       series: [{
         type: "bar",
-        data: [5, 2, 4, 1, 6, 2, 3],
+        data: pipelineLengthBySystem.map((s) => s.length),
         itemStyle: {
           color: {
             type: "linear", x: 0, y: 0, x2: 0, y2: 1,
             colorStops: [
-              { offset: 0, color: "#faad14" },
-              { offset: 1, color: "rgba(250, 173, 20, 0.3)" },
+              { offset: 0, color: "#13C2C2" },
+              { offset: 1, color: "rgba(19,194,194,0.3)" },
             ],
           },
         },
-        barWidth: "50%",
+        barWidth: "45%",
       }],
     };
-
-    const onlineRateOption = {
+    const reformOption = {
       backgroundColor: "transparent",
-      grid: { top: 20, right: 10, bottom: 20, left: 35 },
-      tooltip: { trigger: "axis" },
+      grid: { top: 18, right: 12, bottom: 26, left: 42 },
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
       xAxis: {
         type: "category",
-        data: ["00", "04", "08", "12", "16", "20", "24"],
-        axisLine: { lineStyle: { color: "rgba(0, 180, 255, 0.3)" } },
-        axisLabel: { color: "#8a94a6", fontSize: 9 },
+        data: reformStatsBySystem.map((s) => s.system),
+        axisLine: { lineStyle: { color: "rgba(64,158,255,0.3)" } },
+        axisLabel: { color: "#8a94a6", fontSize: 9, interval: 0 },
         axisTick: { show: false },
       },
       yAxis: {
         type: "value",
-        min: 88,
-        max: 100,
-        axisLabel: { color: "#8a94a6", fontSize: 9, formatter: "{value}%" },
-        splitLine: { lineStyle: { color: "rgba(0, 180, 255, 0.1)" } },
+        name: "次",
+        nameTextStyle: { color: "#8a94a6", fontSize: 9 },
+        axisLine: { lineStyle: { color: "rgba(64,158,255,0.3)" } },
+        axisLabel: { color: "#8a94a6", fontSize: 9 },
+        splitLine: { lineStyle: { color: "rgba(64,158,255,0.1)" } },
+        axisTick: { show: false },
       },
       series: [{
-        type: "line",
-        data: [92.7, 93.1, 92.3, 93.5, 92.7, 93.1, 92.7],
-        smooth: true,
-        symbol: "none",
-        itemStyle: { color: "#00b4ff" },
-        lineStyle: { width: 1.5 },
-        areaStyle: {
+        type: "bar",
+        data: reformStatsBySystem.map((s) => s.count),
+        itemStyle: {
           color: {
             type: "linear", x: 0, y: 0, x2: 0, y2: 1,
             colorStops: [
-              { offset: 0, color: "rgba(0, 180, 255, 0.3)" },
-              { offset: 1, color: "rgba(0, 180, 255, 0)" },
+              { offset: 0, color: "#FAAD14" },
+              { offset: 1, color: "rgba(250,173,20,0.3)" },
             ],
           },
         },
+        barWidth: "45%",
       }],
     };
 
     return (
       <div className="flex flex-col h-full overflow-auto p-2 gap-2">
-        {/* 区域1：统计卡片 */}
-        <div className="grid grid-cols-2 gap-2">
-          <StatCard label="设备总数" value={screenStats.equipmentTotal} color="#00b4ff" />
-          <StatCard label="管路总数" value={screenStats.pipelineTotal} color="#00b4ff" />
-          <StatCard label="在线设备" value={ONLINE_COUNT} color="#52c41a" />
-          <StatCard label="今日告警" value={alarms.length} color="#faad14" />
-        </div>
-
-        {/* 区域2：机组出力趋势 */}
-        <div className="bg-black/30 border border-[#40A9FF]/25 p-2 rounded-none">
-          <div className="text-xs text-[#40A9FF] font-medium mb-1" style={{ textShadow: "0 0 6px rgba(64,169,255,0.5)" }}>
-            机组出力趋势 (MW)
-          </div>
-          <ReactECharts
-            option={powerTrendOption}
-            style={{ height: 110 }}
-            {...getChartProps("left-trend", {
-              deviceName: "1#-4#机组",
-              metricPrefix: "机组出力",
-            })}
-          />
-        </div>
-
-        {/* 区域3：水头/流量监测 */}
-        <div className="bg-black/30 border border-[#40A9FF]/25 p-2 rounded-none">
-          <div className="text-xs text-green-400 font-medium mb-1" style={{ textShadow: "0 0 8px rgba(82, 196, 26, 0.6)" }}>
-            水头/流量监测
-          </div>
-          <ReactECharts
-            option={waterFlowOption}
-            style={{ height: 90 }}
-            {...getChartProps("left-waterflow", {
-              deviceName: "全厂机组",
-              metricPrefix: "水头/流量",
-            })}
-          />
-        </div>
-
-        {/* 区域4：告警数量趋势 */}
-        <div className="bg-black/30 border border-[#40A9FF]/25 p-2 rounded-none">
-          <div className="text-xs text-orange-400 font-medium mb-1" style={{ textShadow: "0 0 8px rgba(250, 173, 20, 0.6)" }}>
-            告警数量趋势
-          </div>
-          <ReactECharts
-            option={alarmTrendOption}
-            style={{ height: 80 }}
-            {...getChartProps("left-alarm", {
-              deviceName: "全厂设备",
-              metricPrefix: "告警",
-            })}
-          />
-        </div>
-
-        {/* 区域5：设备在线率 */}
-        <div className="bg-black/30 border border-[#40A9FF]/25 p-2 rounded-none">
-          <div className="text-xs text-[#40A9FF] font-medium mb-1" style={{ textShadow: "0 0 6px rgba(64,169,255,0.5)" }}>
-            设备在线率 (%)
-          </div>
-          <ReactECharts
-            option={onlineRateOption}
-            style={{ height: 80 }}
-            {...getChartProps("left-online", {
-              deviceName: "全厂设备",
-              metricPrefix: "在线率",
-            })}
-          />
-        </div>
-
-        {/* 区域6：辅机系统状态 */}
-        <div className="bg-black/30 border border-[#40A9FF]/25 p-2 rounded-none">
+        {/* 卡片1：设备管路图纸统计 */}
+        <div className="bg-black/30 border border-[#40A9FF]/25 p-2.5 rounded-none">
           <div className="text-xs text-[#40A9FF] font-medium mb-2" style={{ textShadow: "0 0 6px rgba(64,169,255,0.5)" }}>
-            辅机系统状态
+            设备管路图纸统计
           </div>
-          <div className="space-y-1.5">
-            {systems.map((systemName) => (
-              <div key={systemName} className="flex items-center justify-between text-xs">
-                <span className="text-screen-text">{systemName}</span>
-                <span className="flex items-center gap-1">
-                  <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" style={{ boxShadow: "0 0 4px rgba(82, 196, 26, 0.6)" }}></span>
-                  <span className="text-green-400">运行中</span>
-                </span>
-              </div>
-            ))}
+          <div className="grid grid-cols-3 gap-2">
+            <StatCard label="设备总数" value={screenStats.equipmentTotal} color="#00b4ff" />
+            <StatCard label="管路总数" value={screenStats.pipelineTotal} color="#52c41a" />
+            <StatCard label="图纸总数" value={screenStats.drawingTotal} color="#faad14" />
           </div>
         </div>
 
-        {/* 区域7：实时告警列表 */}
+        {/* 卡片2：管路统计柱状图 */}
         <div className="bg-black/30 border border-[#40A9FF]/25 p-2 rounded-none">
-          <div className="text-xs text-[#40A9FF] font-medium mb-2" style={{ textShadow: "0 0 6px rgba(64,169,255,0.5)" }}>
-            实时告警列表
+          <div className="text-xs text-[#13C2C2] font-medium mb-1" style={{ textShadow: "0 0 6px rgba(19,194,194,0.5)" }}>
+            管路统计
           </div>
-          <div className="space-y-1.5">
-            {alarms.slice(0, 5).map((alarm) => (
-              <div key={alarm.id} className="bg-black/30 px-2 py-1.5 text-xs border-l-2 rounded-none" style={{ borderLeftColor: alarm.level === "serious" ? "#ff4d4f" : alarm.level === "normal" ? "#faad14" : "#40A9FF" }}>
-                <div className="flex justify-between items-center">
-                  <span className="text-screen-text font-medium">{alarm.equipmentName}</span>
-                  <span className={`px-1.5 py-0.5 rounded-nonetext-xs ${alarm.level === "serious" ? "bg-red-500/20 text-red-400" : alarm.level === "normal" ? "bg-orange-500/20 text-orange-400" : "bg-blue-500/20 text-blue-400"}`}>
-                    {alarm.type}
-                  </span>
-                </div>
-                <div className="text-screen-muted mt-0.5">{alarm.description}</div>
-                <div className="text-screen-muted mt-0.5">{alarm.time}</div>
-              </div>
-            ))}
+          <ReactECharts
+            option={pipelineOption}
+            style={{ height: 170 }}
+            onEvents={{
+              click: (params: any) => {
+                const system = params?.name as string;
+                const data = pipelineSpecBySystem[system];
+                if (data) setPipelineModal({ system, data });
+              },
+            }}
+          />
+          <div className="text-[10px] text-screen-muted mt-0.5">点击柱状图查看该系统下管路规格分布</div>
+        </div>
+
+        {/* 卡片3：改造数据统计 */}
+        <div className="bg-black/30 border border-[#40A9FF]/25 p-2 rounded-none">
+          <div className="text-xs text-[#FAAD14] font-medium mb-1" style={{ textShadow: "0 0 6px rgba(250,173,20,0.5)" }}>
+            改造数据统计
           </div>
+          <ReactECharts
+            option={reformOption}
+            style={{ height: 170 }}
+            onEvents={{
+              click: (params: any) => {
+                const system = params?.name as string;
+                const items = reformDetailsBySystem[system];
+                if (items) setReformModal({ system, items });
+              },
+            }}
+          />
+          <div className="text-[10px] text-screen-muted mt-0.5">点击柱状图查看该系统改造明细</div>
         </div>
       </div>
     );
@@ -1304,30 +1211,271 @@ export default function Screen() {
     </div>
   );
 
-  const renderOverviewTabContent = () => {
-    switch (overviewActiveTab) {
-      case "stats":
-        return renderOverviewStatsTab();
-      case "realtime":
-        return renderOverviewRealtimeTab();
-      case "health":
-        return renderOverviewHealthTab();
-    }
+  // 右侧栏：未选中节点时展示 3 张卡片（漫游路径 / 用水量统计 / 告警信息）
+  const renderRightDefaultCards = () => {
+    const waterAll = waterUsageData[waterDim];
+    const waterData = waterAll.filter(
+      (d) => d.date >= waterRange.start && d.date <= waterRange.end,
+    );
+    const waterOption = {
+      backgroundColor: "transparent",
+      grid: { top: 22, right: 10, bottom: 20, left: 38 },
+      tooltip: { trigger: "axis" },
+      xAxis: {
+        type: "category",
+        data: waterData.map((d) => d.label),
+        axisLine: { lineStyle: { color: "rgba(64,158,255,0.3)" } },
+        axisLabel: { color: "#8a94a6", fontSize: 8, interval: waterDim === "day" ? 4 : 0 },
+        axisTick: { show: false },
+      },
+      yAxis: {
+        type: "value",
+        name: "m³",
+        nameTextStyle: { color: "#8a94a6", fontSize: 8 },
+        axisLabel: { color: "#8a94a6", fontSize: 8 },
+        splitLine: { lineStyle: { color: "rgba(64,158,255,0.1)" } },
+      },
+      series: [{
+        type: "bar",
+        data: waterData.map((d) => d.value),
+        itemStyle: {
+          color: {
+            type: "linear", x: 0, y: 0, x2: 0, y2: 1,
+            colorStops: [
+              { offset: 0, color: "#40A9FF" },
+              { offset: 1, color: "rgba(64,169,255,0.3)" },
+            ],
+          },
+        },
+        barWidth: "55%",
+      }],
+    };
+    const switchWaterDim = (dim: "year" | "month" | "day") => {
+      setWaterDim(dim);
+      const data = waterUsageData[dim];
+      setWaterRange({ start: data[0].date, end: data[data.length - 1].date });
+    };
+    const rangeInputCls =
+      "bg-black/30 border border-[#40A9FF]/25 text-[10px] text-screen-text px-1 py-0.5 rounded-none flex-1 min-w-0";
+
+    return (
+      <div className="flex flex-col h-full overflow-auto p-2 gap-2">
+        {/* 卡片1：漫游路径（与工具栏漫游路径组件保持一致） */}
+        <div className="bg-black/30 border border-[#40A9FF]/25 p-2 rounded-none">
+          <div className="text-xs text-[#40A9FF] font-medium mb-2" style={{ textShadow: "0 0 6px rgba(64,169,255,0.5)" }}>
+            漫游路径（{roamingPaths.length}）
+          </div>
+          <div className="space-y-1">
+            {roamingPaths.map((path) => (
+              <div key={path.id} className="bg-black/30 border border-[#40A9FF]/20 px-2 py-1.5 text-xs rounded-none">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-screen-text font-medium truncate">{path.name}</span>
+                      <span className={`px-1 py-px text-[9px] rounded-none ${path.type === "default" ? "bg-blue-500/20 text-blue-400" : "bg-green-500/20 text-green-400"}`}>
+                        {path.type === "default" ? "默认" : "自定义"}
+                      </span>
+                    </div>
+                    <div className="text-screen-muted mt-0.5 truncate" title={path.description}>
+                      {path.description}
+                    </div>
+                  </div>
+                  <button
+                    onClick={() =>
+                      message.info(
+                        `实际项目中：将按“${path.name}”的关键帧自动飞行，依次经过设定对象，并按各节点设置的朝向、速度和停留时长播放（约${path.duration}秒）。`,
+                      )
+                    }
+                    title="播放路径"
+                    className="flex-shrink-0 text-[#40A9FF] hover:text-white hover:bg-[#40A9FF]/20 p-1 rounded-none transition-colors"
+                  >
+                    <Play size={12} />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* 卡片2：用水量统计（技术供水系统，年/月/日快捷选择 + 自定义时间范围） */}
+        <div className="bg-black/30 border border-[#40A9FF]/25 p-2 rounded-none">
+          <div className="text-xs text-[#40A9FF] font-medium mb-1.5" style={{ textShadow: "0 0 6px rgba(64,169,255,0.5)" }}>
+            用水量统计（技术供水系统）
+          </div>
+          <div className="flex items-center gap-1 mb-1.5">
+            {([
+              { key: "year" as const, label: "年" },
+              { key: "month" as const, label: "月" },
+              { key: "day" as const, label: "日" },
+            ]).map((dim) => (
+              <button
+                key={dim.key}
+                onClick={() => switchWaterDim(dim.key)}
+                className={`px-2 py-0.5 text-[10px] rounded-none transition-colors ${
+                  waterDim === dim.key
+                    ? "bg-[#40A9FF] text-white"
+                    : "bg-black/30 text-screen-muted hover:text-white"
+                }`}
+              >
+                {dim.label}
+              </button>
+            ))}
+          </div>
+          {waterDim === "year" && (
+            <div className="flex items-center gap-1 mb-1.5">
+              <select
+                className={rangeInputCls}
+                value={waterRange.start}
+                onChange={(e) => setWaterRange({ ...waterRange, start: e.target.value })}
+              >
+                {waterUsageData.year.map((d) => (
+                  <option key={d.date} value={d.date} className="bg-gray-800">
+                    {d.date}年
+                  </option>
+                ))}
+              </select>
+              <span className="text-screen-muted text-[10px]">至</span>
+              <select
+                className={rangeInputCls}
+                value={waterRange.end}
+                onChange={(e) => setWaterRange({ ...waterRange, end: e.target.value })}
+              >
+                {waterUsageData.year.map((d) => (
+                  <option key={d.date} value={d.date} className="bg-gray-800">
+                    {d.date}年
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+          {waterDim === "month" && (
+            <div className="flex items-center gap-1 mb-1.5">
+              <input
+                type="month"
+                className={rangeInputCls}
+                value={waterRange.start}
+                onChange={(e) => setWaterRange({ ...waterRange, start: e.target.value })}
+              />
+              <span className="text-screen-muted text-[10px]">至</span>
+              <input
+                type="month"
+                className={rangeInputCls}
+                value={waterRange.end}
+                onChange={(e) => setWaterRange({ ...waterRange, end: e.target.value })}
+              />
+            </div>
+          )}
+          {waterDim === "day" && (
+            <div className="flex items-center gap-1 mb-1.5">
+              <input
+                type="date"
+                className={rangeInputCls}
+                value={waterRange.start}
+                onChange={(e) => setWaterRange({ ...waterRange, start: e.target.value })}
+              />
+              <span className="text-screen-muted text-[10px]">至</span>
+              <input
+                type="date"
+                className={rangeInputCls}
+                value={waterRange.end}
+                onChange={(e) => setWaterRange({ ...waterRange, end: e.target.value })}
+              />
+            </div>
+          )}
+          <ReactECharts option={waterOption} style={{ height: 130 }} />
+        </div>
+
+        {/* 卡片3：告警信息（复用现有告警组件） */}
+        <div className="bg-black/30 border border-[#40A9FF]/25 p-2 rounded-none">
+          <div className="text-xs text-[#FAAD14] font-medium mb-2" style={{ textShadow: "0 0 6px rgba(250,173,20,0.5)" }}>
+            告警信息（{alarms.length}）
+          </div>
+          <div className="space-y-1.5">
+            {alarms.map((alarm) => (
+              <div key={alarm.id} className="bg-black/30 px-2 py-1.5 text-xs border-l-2 rounded-none" style={{ borderLeftColor: alarm.level === "serious" ? "#ff4d4f" : alarm.level === "normal" ? "#faad14" : "#40A9FF" }}>
+                <div className="flex justify-between items-center">
+                  <span className="text-screen-text font-medium">{alarm.equipmentName}</span>
+                  <span className={`px-1.5 py-0.5 text-[10px] ${alarm.level === "serious" ? "bg-red-500/20 text-red-400" : alarm.level === "normal" ? "bg-orange-500/20 text-orange-400" : "bg-blue-500/20 text-blue-400"}`}>
+                    {alarm.type}
+                  </span>
+                </div>
+                <div className="text-screen-muted mt-0.5">{alarm.description}</div>
+                <div className="text-screen-muted mt-0.5">{alarm.time}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
   };
 
-  const renderRightTabContent = () => {
-    switch (rightActiveTab) {
-      case "basic":
-        return renderBasicInfoTab();
-      case "tech":
-        return renderTechParamsTab();
-      case "runtime":
-        return renderRuntimeTab();
-      case "linked":
-        return renderLinkedTab();
-      case "history":
-        return renderHistoryTab();
-    }
+  // 右侧栏：选中节点后展示 3 张卡片（图纸统计 / 属性资料 / 改造资料）
+  const renderRightNodeCards = () => {
+    const nodeDocs = nodeInfo?.documents || [];
+    const nodeReforms = generateReformRecords(selectedNode!);
+    return (
+      <div className="flex flex-col h-full overflow-auto p-2 gap-2">
+        {/* 卡片1：图纸统计（列表展示当前节点图纸，点击条目弹窗展示） */}
+        <div className="bg-black/30 border border-[#40A9FF]/25 p-2 rounded-none">
+          <div className="text-xs text-[#40A9FF] font-medium mb-2" style={{ textShadow: "0 0 6px rgba(64,169,255,0.5)" }}>
+            图纸统计（{nodeDocs.length}）
+          </div>
+          {nodeDocs.length === 0 ? (
+            <div className="text-xs text-screen-muted py-3 text-center">该节点暂无图纸资料</div>
+          ) : (
+            <div className="space-y-1">
+              {nodeDocs.map((doc: any, i: number) => (
+                <button
+                  key={i}
+                  onClick={() => setDrawingModal(doc)}
+                  className="w-full text-left bg-black/30 border border-[#40A9FF]/20 px-2 py-1.5 text-xs rounded-none hover:bg-[#40A9FF]/10 transition-colors"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-screen-text font-medium truncate flex items-center gap-1">
+                      <FileText size={11} className="text-[#40A9FF] flex-shrink-0" />
+                      {doc.name}
+                    </span>
+                    <span className="text-screen-muted text-[10px] flex-shrink-0">{doc.fileType}</span>
+                  </div>
+                  <div className="text-screen-muted mt-0.5 text-[10px]">
+                    {doc.category} · {doc.date} · {doc.fileSize}
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* 卡片2：属性资料（复用现有属性信息：基础信息 + 技术参数） */}
+        <div className="bg-black/30 border border-[#40A9FF]/25 rounded-none">
+          <div className="text-xs text-[#40A9FF] font-medium px-2 pt-2" style={{ textShadow: "0 0 6px rgba(64,169,255,0.5)" }}>
+            属性资料
+          </div>
+          <div className="max-h-[280px] overflow-auto">
+            {renderBasicInfoTab()}
+            {renderTechParamsTab()}
+          </div>
+        </div>
+
+        {/* 卡片3：改造资料（后台接口获取，无真实数据时使用Mock） */}
+        <div className="bg-black/30 border border-[#40A9FF]/25 p-2 rounded-none">
+          <div className="text-xs text-[#13C2C2] font-medium mb-2" style={{ textShadow: "0 0 6px rgba(19,194,194,0.5)" }}>
+            改造资料（{nodeReforms.length}）
+          </div>
+          <div className="space-y-1.5">
+            {nodeReforms.map((record, i) => (
+              <div key={i} className="bg-black/30 border-l-2 border-[#13C2C2]/60 px-2 py-1.5 text-xs rounded-none">
+                <div className="flex items-center justify-between">
+                  <span className="text-screen-text font-medium">{record.type}</span>
+                  <span className="text-screen-muted text-[10px]">{record.time}</span>
+                </div>
+                <div className="text-screen-text mt-0.5">{record.content}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
   };
 
   return (
@@ -1362,12 +1510,7 @@ export default function Screen() {
               >
                 <ChevronLeft size={12} />
               </button>
-              <div className="px-7 py-2 border-b border-[#40A9FF]/25">
-                <span className="text-sm font-medium text-white">
-                  {leftPanelMode === "chart" ? "信息图表" : "结构导航"}
-                </span>
-              </div>
-              <div className="flex-1 overflow-hidden">
+              <div className="flex-1 overflow-hidden pt-6">
                 {leftPanelMode === "chart"
                   ? renderLeftChartContent()
                   : renderLeftTreeContent()}
@@ -1410,16 +1553,14 @@ export default function Screen() {
         {rightPanelVisible ? (
           <DevNote
             id="screen-right-panel"
-            title="右侧面板（统计信息/属性信息）"
-            summary="未选中对象时展示统计/实时状态/设备健康3个Tab；选中设备或管路后切换为基础信息/技术参数/运行数据/关联设备/操作记录5个Tab"
+            title="右侧面板（大屏数据/节点信息）"
+            summary="未选中节点时展示 3 张卡片：漫游路径/用水量统计/告警信息；选中设备或管路后替换为 3 张卡片：图纸统计/属性资料/改造资料"
             items={[
-              { label: "Tab切换规则", value: "selectedNode 为空 → OVERVIEW_TABS（统计/实时状态/设备健康），对应 overviewActiveTab；选中对象 → RIGHT_TABS（基础信息/技术参数/运行数据/关联设备/操作记录），对应 rightActiveTab；切换选中对象自动回到“基础信息”" },
-              { label: "基础信息", value: "按对象类型匹配属性模板（设备按 type、管路按 usage，见 inferTemplateClassifier），展示模板“基础信息”分类字段，值来自节点 basic+techParams；未匹配模板时橙色提示“请先在属性模板库维护”" },
-              { label: "技术参数/运行数据", value: "技术参数为模板“技术参数”分类表格；运行数据为随机抖动模拟值（压力MPa/温度℃/振动mm/s，无流量）加趋势曲线（压力/温度/振动三线）" },
-              { label: "关联设备/操作记录", value: "关联设备：管路组件显示其 linkedEquipments，否则按所属系统在 overallStats.bySystem 生成同系统设备/管路条目；操作记录：useMemo 随机生成5条（巡检/调参/保养/排障/录入）" },
-              { label: "统计Tab内容", value: "统计：系统设备分布玫瑰图（top8）、图纸总数186/编码挂接率75.0%/模型关联率82.3%、设备数量排行；实时状态：总功率612.3MW/当前出力585.6MW/机组运行4台等指标卡与机组运行状态表；设备健康：健康度分布饼图（健康85/亚健康10/告警5）、今日告警统计（共3/严重1/警告2）、健康度趋势" },
-              { label: "权限", value: "大屏所有已登录用户可查看；运行数据实时刷新（原型为随机值）" },
-              { label: "后续步骤", value: "正式系统：属性读取模板+实例值接口，运行数据由实时库每5秒推送，操作记录由操作日志服务返回" },
+              { label: "默认卡片", value: "漫游路径：展示全部漫游路径（roamingPaths，与工具栏漫游路径组件一致，点击播放提示自动飞行）；用水量统计：技术供水系统用水量（年/月/日快捷选择器 + 自定义时间范围，Mock 数据）；告警信息：复用 alarms 告警列表" },
+              { label: "选中节点卡片", value: "图纸统计：nodeInfo.documents 图纸列表，点击条目弹窗展示图纸；属性资料：复用属性模板基础信息 + 技术参数；改造资料：generateReformRecords Mock 生成（正式系统由后台接口返回）" },
+              { label: "切换规则", value: "selectedNode 为空 → 默认 3 张卡片；选中节点 → 节点 3 张卡片；切换选中对象自动刷新" },
+              { label: "权限", value: "大屏所有已登录用户可查看" },
+              { label: "后续步骤", value: "正式系统：用水量由计量服务返回，改造资料由改造管理接口返回，图纸预览加载 CAD/DWG 转换图" },
             ]}
             wrapClassName="flex-shrink-0"
           >
@@ -1431,34 +1572,8 @@ export default function Screen() {
             >
               <ChevronRight size={12} />
             </button>
-            <div className="px-3 py-2 border-b border-[#40A9FF]/25">
-              <span className="text-sm font-medium text-white">
-                {selectedNode ? "属性信息" : "统计信息"}
-              </span>
-            </div>
-            <div className="flex border-b border-[#40A9FF]/25">
-              {(selectedNode ? RIGHT_TABS : OVERVIEW_TABS).map((tab) => (
-                <button
-                  key={tab.key}
-                  onClick={() => {
-                    if (selectedNode) {
-                      setRightActiveTab(tab.key);
-                    } else {
-                      setOverviewActiveTab(tab.key);
-                    }
-                  }}
-                  className={`flex-1 py-1.5 text-xs transition-colors ${
-                    (selectedNode ? rightActiveTab : overviewActiveTab) === tab.key
-                      ? "text-[#40A9FF] border-b-2 border-[#40A9FF]"
-                      : "text-screen-muted hover:text-white"
-                  }`}
-                >
-                  {tab.label}
-                </button>
-              ))}
-            </div>
-            <div className="flex-1 overflow-auto">
-              {selectedNode ? renderRightTabContent() : renderOverviewTabContent()}
+            <div className="flex-1 overflow-auto pt-6">
+              {selectedNode ? renderRightNodeCards() : renderRightDefaultCards()}
             </div>
           </div>
           </DevNote>
@@ -1474,6 +1589,131 @@ export default function Screen() {
       </div>
 
       <BottomBar key={`bottom-${sceneResetKey}`} onReset={handleGlobalReset} />
+
+      {/* 管路规格分布弹窗：点击管路统计柱状图后展示该系统下各规格管路长度 */}
+      <Modal
+        open={Boolean(pipelineModal)}
+        onClose={() => setPipelineModal(null)}
+        title={pipelineModal ? `管路规格分布 · ${pipelineModal.system}` : ""}
+        width={640}
+        footer={
+          <button className="btn-default" onClick={() => setPipelineModal(null)}>
+            关闭
+          </button>
+        }
+      >
+        {pipelineModal && (
+          <ReactECharts
+            option={{
+              backgroundColor: "transparent",
+              grid: { top: 20, right: 20, bottom: 30, left: 48 },
+              tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+              xAxis: {
+                type: "category",
+                data: pipelineModal.data.map((d) => d.spec),
+                axisLine: { lineStyle: { color: "rgba(64,158,255,0.3)" } },
+                axisLabel: { color: "#6b7a90", fontSize: 11 },
+                axisTick: { show: false },
+              },
+              yAxis: {
+                type: "value",
+                name: "长度(m)",
+                nameTextStyle: { color: "#6b7a90", fontSize: 10 },
+                axisLabel: { color: "#6b7a90", fontSize: 10 },
+                splitLine: { lineStyle: { color: "rgba(64,158,255,0.15)" } },
+              },
+              series: [{
+                type: "bar",
+                data: pipelineModal.data.map((d) => d.length),
+                itemStyle: {
+                  color: {
+                    type: "linear", x: 0, y: 0, x2: 0, y2: 1,
+                    colorStops: [
+                      { offset: 0, color: "#13C2C2" },
+                      { offset: 1, color: "rgba(19,194,194,0.25)" },
+                    ],
+                  },
+                },
+                barWidth: "50%",
+                label: { show: true, position: "top", color: "#13C2C2", fontSize: 10 },
+              }],
+            }}
+            style={{ height: 320 }}
+          />
+        )}
+      </Modal>
+
+      {/* 改造明细弹窗：点击改造数据柱状图后展示该系统改造明细列表 */}
+      <Modal
+        open={Boolean(reformModal)}
+        onClose={() => setReformModal(null)}
+        title={reformModal ? `改造明细 · ${reformModal.system}` : ""}
+        width={640}
+        footer={
+          <button className="btn-default" onClick={() => setReformModal(null)}>
+            关闭
+          </button>
+        }
+      >
+        {reformModal && (
+          <div className="max-h-[420px] overflow-auto rounded border border-admin-border">
+            <div className="grid grid-cols-[110px_1fr_90px] bg-gray-50 px-3 py-2 text-xs font-medium text-admin-muted border-b border-admin-border">
+              <span>改造时间</span>
+              <span>改造资料</span>
+              <span>改造范围</span>
+            </div>
+            {reformModal.items.map((item, i) => (
+              <button
+                key={i}
+                onClick={() =>
+                  message.info(
+                    `实际项目中：点击该改造记录将跳转至后台管理对应设备的台账信息页面，展示“${item.title}”的改造时间与改造资料明细。`,
+                  )
+                }
+                className="grid grid-cols-[110px_1fr_90px] border-b border-admin-border px-3 py-2 text-xs last:border-0 w-full text-left hover:bg-blue-50 transition-colors"
+              >
+                <span className="text-admin-muted">{item.time}</span>
+                <div>
+                  <div className="text-admin-text font-medium">{item.title}</div>
+                  <div className="text-admin-muted mt-0.5 text-[11px]">{item.material}</div>
+                </div>
+                <span className="text-admin-muted">{item.unit}</span>
+              </button>
+            ))}
+          </div>
+        )}
+      </Modal>
+
+      {/* 图纸预览弹窗：点击图纸统计卡片条目后展示对应图纸 */}
+      <Modal
+        open={Boolean(drawingModal)}
+        onClose={() => setDrawingModal(null)}
+        title={drawingModal?.name || "图纸预览"}
+        width={720}
+        footer={
+          <button className="btn-default" onClick={() => setDrawingModal(null)}>
+            关闭
+          </button>
+        }
+      >
+        {drawingModal && (
+          <div className="space-y-3">
+            <div className="flex flex-wrap gap-x-6 gap-y-1 text-xs text-admin-muted">
+              <span>分类：{drawingModal.category}</span>
+              <span>日期：{drawingModal.date}</span>
+              <span>格式：{drawingModal.fileType}</span>
+              <span>大小：{drawingModal.fileSize}</span>
+            </div>
+            <div className="flex h-[360px] items-center justify-center rounded border border-dashed border-admin-border bg-gray-50 text-admin-muted">
+              <div className="text-center">
+                <FileText size={40} className="mx-auto mb-2 text-gray-300" />
+                <div className="text-sm">{drawingModal.name}</div>
+                <div className="text-xs mt-1">图纸预览（实际系统将加载 CAD/DWG 转换后的图纸影像）</div>
+              </div>
+            </div>
+          </div>
+        )}
+      </Modal>
 
       <DevNote
         id="screen-drilldown"

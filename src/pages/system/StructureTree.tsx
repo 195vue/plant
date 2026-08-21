@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import {
   Plus,
   Edit,
@@ -38,6 +38,9 @@ import {
   getNodePath,
   collectMatchKeys,
   getTreeStats,
+  collectSubtreeIds,
+  buildSubTreeFromNodes,
+  countNodes,
   type TreeNode,
   type NodeLevel,
   type TreeType,
@@ -52,8 +55,10 @@ const levelConfig: Record<NodeLevel, { label: string; color: any; icon: React.Re
   L4: { label: "四级", color: "orange", icon: <Cpu size={13} className="text-orange-500" /> },
 };
 
-const getCategoryColumnLabel = (treeType: TreeType) =>
-  treeType === "equipment" ? "设备分类" : "管路分类";
+const getCategoryColumnLabel = (treeType: TreeType) => {
+  if (treeType === "total") return "节点分类";
+  return treeType === "equipment" ? "设备分类" : "管路分类";
+};
 
 const getNodeCategoryLabel = (category: TreeNode["category"]) => {
   if (category === "equipment") return "设备";
@@ -61,7 +66,27 @@ const getNodeCategoryLabel = (category: TreeNode["category"]) => {
   return "系统目录";
 };
 
+const getTreeTitle = (treeType: TreeType) => {
+  if (treeType === "total") return "总结构树";
+  return treeType === "equipment" ? "设备结构树" : "管路结构树";
+};
+
+const getTreeLeafLabel = (treeType: TreeType) => {
+  if (treeType === "total") return "末级";
+  return treeType === "equipment" ? "设备" : "管路";
+};
+
 const getTemplateCsv = (treeType: TreeType) => {
+  if (treeType === "total") {
+    return [
+      "节点名称,KKS编码,父节点KKS,节点分类,层级,排序号",
+      "1号机组,1,,系统目录,一级,1",
+      "1号机组水泵水轮机,1MFA,1,系统目录,二级,1",
+      "1号机组转轮,1MFA10HB001,1MFA,设备,四级,1",
+      "技术供水系统,1SVA,,系统目录,一级,2",
+      "1号机冷却水主管,1SVA10BR001A,1SVA10BR001,管路,四级,1",
+    ].join("\n");
+  }
   const objectCategory = treeType === "equipment" ? "设备" : "管路";
   const examples = treeType === "equipment"
     ? [
@@ -84,10 +109,82 @@ const getTemplateCsv = (treeType: TreeType) => {
 };
 
 export default function StructureTreeManage() {
-  const [treeType, setTreeType] = useState<TreeType>("equipment");
-  const tree = useMemo(() => buildStructureTree(treeType), [treeType]);
+  const [treeType, setTreeType] = useState<TreeType>("total");
+  // 总结构树（设备+管路合并）与由勾选节点派生的设备/管路子树
+  const totalTree = useMemo(() => buildStructureTree("total"), []);
+  // 勾选节点集合（级联：勾选上级节点时其下所有子孙节点一并纳入）
+  const [selectedNodeIds, setSelectedNodeIds] = useState<Set<number>>(new Set());
+  const [deriveMode, setDeriveMode] = useState<"select" | "result">("select");
+
+  // 复选框显示状态：checked=节点被选中（含整支级联）；indeterminate=仅部分后代被选中
+  const [checkedIds, indeterminateIds] = useMemo(() => {
+    const checked = new Set<number>();
+    const indeterminate = new Set<number>();
+    const hasSelectedDesc = (n: TreeNode): boolean =>
+      (n.children?.some((c) => selectedNodeIds.has(c.id) || hasSelectedDesc(c))) ?? false;
+    const allDescSelected = (n: TreeNode): boolean => {
+      if (!n.children || n.children.length === 0) return false;
+      return n.children.every((c) => selectedNodeIds.has(c.id) && allDescSelected(c));
+    };
+    const walk = (nodes: TreeNode[]) => {
+      nodes.forEach((n) => {
+        if (selectedNodeIds.has(n.id)) {
+          checked.add(n.id);
+        } else if (allDescSelected(n)) {
+          checked.add(n.id);
+        } else if (hasSelectedDesc(n)) {
+          indeterminate.add(n.id);
+        }
+        if (n.children) walk(n.children);
+      });
+    };
+    walk(totalTree);
+    return [checked, indeterminate];
+  }, [totalTree, selectedNodeIds]);
+
+  const subtree = useMemo(
+    () => buildSubTreeFromNodes(totalTree, selectedNodeIds),
+    [totalTree, selectedNodeIds]
+  );
+  const displayTree = treeType === "total" ? totalTree : subtree;
+  const subtreeCount = useMemo(() => countNodes(subtree), [subtree]);
+  const subtreeLeafCount = useMemo(() => {
+    let count = 0;
+    const walk = (nodes: TreeNode[]) =>
+      nodes.forEach((n) => {
+        if (!n.children || n.children.length === 0) count += 1;
+        else walk(n.children);
+      });
+    walk(subtree);
+    return count;
+  }, [subtree]);
+
+  // 设备/管路子树勾选结果持久化：切换 tab 或刷新后仍显示已生成的树
+  const getSavedState = (t: TreeType) => {
+    try {
+      const raw = localStorage.getItem(`structureTree.${t}`);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        return {
+          ids: new Set<number>(Array.isArray(parsed.ids) ? parsed.ids : []),
+          mode: parsed.mode === "result" ? "result" as const : "select" as const,
+        };
+      }
+    } catch { /* 忽略异常 */ }
+    return { ids: new Set<number>(), mode: "select" as const };
+  };
+
+  useEffect(() => {
+    if (treeType === "total") return;
+    localStorage.setItem(
+      `structureTree.${treeType}`,
+      JSON.stringify({ ids: [...selectedNodeIds], mode: deriveMode })
+    );
+  }, [selectedNodeIds, deriveMode, treeType]);
+
   const stats = useMemo(() => getTreeStats(treeType), [treeType]);
-  const leafLabel = treeType === "equipment" ? "设备" : "管路";
+  const leafLabel = getTreeLeafLabel(treeType);
+  const treeTitle = getTreeTitle(treeType);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [expandedKeys, setExpandedKeys] = useState<Set<number>>(new Set([1, 2, 3]));
   const [keyword, setKeyword] = useState("");
@@ -111,16 +208,16 @@ export default function StructureTreeManage() {
   const [importPreview, setImportPreview] = useState<any[]>([]);
   const importFileRef = useRef<HTMLInputElement>(null);
 
-  const matchKeys = useMemo(() => collectMatchKeys(tree, keyword), [keyword, tree]);
-  const selectedNode = useMemo(() => (selectedId ? findNode(tree, selectedId) : null), [selectedId, tree]);
-  const nodePath = useMemo(() => (selectedId ? getNodePath(tree, selectedId) : []), [selectedId, tree]);
+  const matchKeys = useMemo(() => collectMatchKeys(displayTree, keyword), [keyword, displayTree]);
+  const selectedNode = useMemo(() => (selectedId ? findNode(displayTree, selectedId) : null), [selectedId, displayTree]);
+  const nodePath = useMemo(() => (selectedId ? getNodePath(displayTree, selectedId) : []), [selectedId, displayTree]);
 
   // 计算左侧树选中节点的所有后代ID集合，用于筛选中间列表
   const filteredNodeIds = useMemo(() => {
     if (!selectedId) return null;
-    const descendants = getDescendantIds(tree, selectedId);
+    const descendants = getDescendantIds(displayTree, selectedId);
     return new Set<number>([selectedId, ...descendants]);
-  }, [selectedId, tree]);
+  }, [selectedId, displayTree]);
 
   const filteredDescendantCount = useMemo(() => {
     if (!selectedNode) return 0;
@@ -144,17 +241,17 @@ export default function StructureTreeManage() {
     }
   };
 
-  const handleExpandAll = () => {
+  const handleExpandAll = (nodes?: TreeNode[]) => {
     const all = new Set<number>();
-    const walk = (nodes: TreeNode[]) => {
-      nodes.forEach((n) => {
+    const walk = (ns: TreeNode[]) => {
+      ns.forEach((n) => {
         if (n.children && n.children.length > 0) {
           all.add(n.id);
           walk(n.children);
         }
       });
     };
-    walk(tree);
+    walk(nodes || displayTree);
     setExpandedKeys(all);
   };
 
@@ -290,6 +387,13 @@ export default function StructureTreeManage() {
             { name: "3号机组水泵水轮机", kks: "3MFA", parentKks: "3", category: "系统目录", level: "二级", sort: 1, status: "可导入" },
             { name: "3号机组转轮", kks: "3MFA10HB001", parentKks: "3MFA", category: "设备", level: "四级", sort: 1, status: "可导入" },
           ]
+        : treeType === "total"
+        ? [
+            { name: "3号机组", kks: "3", parentKks: "", category: "系统目录", level: "一级", sort: 3, status: "可导入" },
+            { name: "3号机组水泵水轮机", kks: "3MFA", parentKks: "3", category: "系统目录", level: "二级", sort: 1, status: "可导入" },
+            { name: "3号机组转轮", kks: "3MFA10HB001", parentKks: "3MFA", category: "设备", level: "四级", sort: 1, status: "可导入" },
+            { name: "3号机冷却水主管", kks: "3SVA10BR001", parentKks: "3SVA10", category: "管路", level: "四级", sort: 1, status: "可导入" },
+          ]
         : [
             { name: "技术供水系统", kks: "3SVA", parentKks: "", category: "系统目录", level: "一级", sort: 3, status: "可导入" },
             { name: "3号机技术供水", kks: "3SVA10", parentKks: "3SVA", category: "系统目录", level: "二级", sort: 1, status: "可导入" },
@@ -316,29 +420,110 @@ export default function StructureTreeManage() {
     message.success(`已复制节点「${node.name}」及其子节点`);
   };
 
+  // ===== 总结构树/设备/管路 tab 切换（恢复各自已保存的勾选与生成状态） =====
+  const switchTreeType = (t: TreeType) => {
+    setTreeType(t);
+    setSelectedId(null);
+    setSelectedIds(new Set());
+    const saved = getSavedState(t);
+    setSelectedNodeIds(saved.ids);
+    setDeriveMode(saved.mode);
+    setKeyword("");
+    setListKeyword("");
+    setListLevelFilter("");
+    setListCategoryFilter("");
+    setCurrentPage(1);
+    // 选择态且已有勾选时，展开已勾选节点的祖先链，便于直接查看
+    if (saved.mode === "select" && saved.ids.size > 0) {
+      const keys = new Set<number>();
+      saved.ids.forEach((id) =>
+        getNodePath(totalTree, id).slice(0, -1).forEach((n) => keys.add(n.id))
+      );
+      setExpandedKeys(keys);
+    } else {
+      setExpandedKeys(new Set([1, 2, 3]));
+    }
+  };
+
+  // ===== 设备/管路结构树：级联勾选（勾选上级节点=其下所有子孙节点一并选中；取消=取消该节点整棵子树） =====
+  const toggleSelectNode = (node: TreeNode) => {
+    setSelectedNodeIds((prev) => {
+      const subtreeIds = collectSubtreeIds(totalTree, node.id);
+      if (subtreeIds.length === 0) return prev;
+      // 该分支（含自身及全部子孙）是否已全部选中
+      const allSelected = subtreeIds.every((id) => prev.has(id));
+      const next = new Set(prev);
+      if (allSelected) {
+        subtreeIds.forEach((id) => next.delete(id));
+      } else {
+        subtreeIds.forEach((id) => next.add(id));
+      }
+      return next;
+    });
+  };
+
+  const handleResetSelection = () => {
+    setSelectedNodeIds(new Set());
+    setSelectedId(null);
+    setKeyword("");
+    setExpandedKeys(new Set([1, 2, 3]));
+    message.info("已重置勾选");
+  };
+
+  const handleGenerateSubtree = () => {
+    if (selectedNodeIds.size === 0) return message.warning("请先勾选需要纳入的节点");
+    setDeriveMode("result");
+    setSelectedId(null);
+    setKeyword("");
+    setExpandedKeys(new Set());
+    message.success(`已生成${treeTitle}，共 ${subtreeCount} 个节点、末级 ${subtreeLeafCount} 个`);
+  };
+
+  const handleBackToSelect = () => {
+    setDeriveMode("select");
+    setSelectedId(null);
+    setKeyword("");
+    // 回到选择态时，将已勾选节点的祖先链展开，勾选状态反映到总结构树上
+    const keys = new Set<number>();
+    selectedNodeIds.forEach((id) =>
+      getNodePath(totalTree, id).slice(0, -1).forEach((n) => keys.add(n.id))
+    );
+    setExpandedKeys(keys.size > 0 ? keys : new Set([1, 2, 3]));
+  };
+
   return (
     <div className="h-full flex flex-col gap-3">
       {/* Tab 切换 */}
       <DevNote
         id="structure-tab"
-        title="结构树类型Tab（设备/管路）"
-        summary="切换设备结构树与管路结构树两类层级配置"
+        title="结构树类型Tab（总结构树/设备/管路）"
+        summary="总结构树为设备+管路合并的一棵总树，可维护；设备/管路结构树由总结构树勾选生成，只读"
         items={[
-          { label: "数据来源", value: "treeType 状态（equipment/pipeline）；树数据由 buildStructureTree(treeType) 生成，统计由 getTreeStats(treeType) 计算" },
-          { label: "层级规则", value: "设备结构树：位置→系统→子系统→设备；管路结构树：位置→系统→用途→管路/管件（四级）" },
-          { label: "交互逻辑", value: "切换时清空选中节点/批量选中/搜索关键字并重置分页、展开前3个节点" },
-          { label: "权限", value: "管理员/操作人员可维护；浏览人员仅可查看（原型未区分，正式系统按角色）" },
+          { label: "数据来源", value: "总结构树：equipmentStructureTree.json + pipelineStructureTree.json 合并（管路 id 偏移）；设备/管路结构树：从总结构树勾选节点生成（buildSubTreeFromNodes），勾选结果持久化于 localStorage" },
+          { label: "层级规则", value: "设备结构树：位置→系统→子系统→设备；管路结构树：位置→系统→用途→管路/管件；总结构树同时含设备与管路末级节点（四级）" },
+          { label: "交互逻辑", value: "总结构树可增删改维护；设备/管路结构树为只读子树（勾选上级节点时其下所有下级节点一并选中，不干扰同级；取消=取消该节点整棵子树），生成后可【重新生成结构树】返回勾选态（原勾选结构自动反映到总树上）；再次进入自动恢复已生成的树" },
+          { label: "权限", value: "管理员/操作人员在总结构树维护；设备/管路结构树仅可点击节点查看信息（原型未区分，正式系统按角色）" },
         ]}
         wrapClassName="block flex-shrink-0"
       >
       <div className="flex items-center gap-1 flex-shrink-0">
         <button
           className={`px-4 py-1.5 text-xs font-medium rounded-t border-b-2 transition-colors ${
+            treeType === "total"
+              ? "border-blue-500 text-blue-600 bg-blue-50"
+              : "border-transparent text-admin-muted hover:text-admin-text"
+          }`}
+          onClick={() => switchTreeType("total")}
+        >
+          <Layers size={13} className="inline mr-1" /> 总结构树
+        </button>
+        <button
+          className={`px-4 py-1.5 text-xs font-medium rounded-t border-b-2 transition-colors ${
             treeType === "equipment"
               ? "border-blue-500 text-blue-600 bg-blue-50"
               : "border-transparent text-admin-muted hover:text-admin-text"
           }`}
-          onClick={() => { setTreeType("equipment"); setSelectedId(null); setSelectedIds(new Set()); setExpandedKeys(new Set([1, 2, 3])); setCurrentPage(1); }}
+          onClick={() => switchTreeType("equipment")}
         >
           <Box size={13} className="inline mr-1" /> 设备结构树
         </button>
@@ -348,13 +533,16 @@ export default function StructureTreeManage() {
               ? "border-blue-500 text-blue-600 bg-blue-50"
               : "border-transparent text-admin-muted hover:text-admin-text"
           }`}
-          onClick={() => { setTreeType("pipeline"); setSelectedId(null); setSelectedIds(new Set()); setExpandedKeys(new Set([1, 2, 3])); setCurrentPage(1); }}
+          onClick={() => switchTreeType("pipeline")}
         >
           <GitBranch size={13} className="inline mr-1" /> 管路结构树
         </button>
       </div>
       </DevNote>
 
+      {/* ===== 总结构树：完整维护视图 ===== */}
+      {treeType === "total" ? (
+      <>
       {/* 统计概览栏 + 操作按钮 */}
       <DevNote
         id="structure-toolbar"
@@ -458,9 +646,9 @@ export default function StructureTreeManage() {
         <div className="w-[300px] flex-shrink-0 admin-card flex flex-col overflow-hidden">
           <div className="px-3 py-2 border-b border-admin-border bg-gray-50">
             <div className="flex items-center justify-between mb-2">
-              <h3 className="text-xs font-semibold text-admin-text">{treeType === "equipment" ? "设备结构树" : "管路结构树"}</h3>
+              <h3 className="text-xs font-semibold text-admin-text">{treeTitle}</h3>
               <div className="flex items-center gap-1">
-                <button onClick={handleExpandAll} className="text-xs text-blue-500 hover:underline">展开</button>
+                <button onClick={() => handleExpandAll()} className="text-xs text-blue-500 hover:underline">展开</button>
                 <span className="text-admin-muted">|</span>
                 <button onClick={handleCollapseAll} className="text-xs text-blue-500 hover:underline">折叠</button>
               </div>
@@ -476,7 +664,7 @@ export default function StructureTreeManage() {
             </div>
           </div>
           <div className="flex-1 overflow-auto p-2 min-h-0">
-            {tree.map((node) => (
+            {displayTree.map((node) => (
               <Tree_node
                 key={node.id}
                 node={node}
@@ -566,7 +754,14 @@ export default function StructureTreeManage() {
                 onChange={(e) => { setListCategoryFilter(e.target.value); setCurrentPage(1); }}
               >
                 <option value="">全部分类</option>
-                <option value={treeType === "equipment" ? "equipment" : "pipeline"}>{leafLabel}</option>
+                {treeType === "total" ? (
+                  <>
+                    <option value="equipment">设备</option>
+                    <option value="pipeline">管路</option>
+                  </>
+                ) : (
+                  <option value={treeType === "equipment" ? "equipment" : "pipeline"}>{leafLabel}</option>
+                )}
                 <option value="system">系统目录</option>
               </select>
               <button
@@ -600,7 +795,7 @@ export default function StructureTreeManage() {
           </div>
           <div className="flex-1 overflow-auto min-h-0">
             <InteractiveNodeList
-              nodes={tree}
+              nodes={displayTree}
               treeType={treeType}
               selectedId={selectedId}
               selectedIds={selectedIds}
@@ -638,6 +833,50 @@ export default function StructureTreeManage() {
           />
         </div>
       </div>
+      </>
+      ) : (
+      /* ===== 设备/管路结构树：由总结构树勾选生成（只读） ===== */
+      <DerivedTreePanel
+        treeType={treeType}
+        totalTree={totalTree}
+        subtree={subtree}
+        mode={deriveMode}
+        leafLabel={leafLabel}
+        selectedNodeIds={selectedNodeIds}
+        checkedIds={checkedIds}
+        indeterminateIds={indeterminateIds}
+        subtreeCount={subtreeCount}
+        subtreeLeafCount={subtreeLeafCount}
+        selectedId={selectedId}
+        keyword={keyword}
+        expandedKeys={expandedKeys}
+        nodePath={nodePath}
+        selectedNode={selectedNode}
+        filteredNodeIds={filteredNodeIds}
+        listKeyword={listKeyword}
+        listLevelFilter={listLevelFilter}
+        listCategoryFilter={listCategoryFilter}
+        listSortBy={listSortBy}
+        listSortAsc={listSortAsc}
+        currentPage={currentPage}
+        pageSize={pageSize}
+        onSwitchMode={handleBackToSelect}
+        onToggleNode={toggleSelectNode}
+        onReset={handleResetSelection}
+        onGenerate={handleGenerateSubtree}
+        onSelect={handleSelect}
+        onToggle={handleToggle}
+        onExpandAll={handleExpandAll}
+        onCollapseAll={handleCollapseAll}
+        onKeywordChange={setKeyword}
+        onSetPage={setCurrentPage}
+        onListKeywordChange={(v) => { setListKeyword(v); setCurrentPage(1); }}
+        onListLevelFilterChange={(v) => { setListLevelFilter(v); setCurrentPage(1); }}
+        onListCategoryFilterChange={(v) => { setListCategoryFilter(v); setCurrentPage(1); }}
+        onListSortByChange={(v) => setListSortBy(v)}
+        onListSortAscToggle={() => setListSortAsc((a) => !a)}
+      />
+      )}
 
       {/* 新增/编辑弹窗 */}
       <Modal
@@ -869,6 +1108,10 @@ function Tree_node({
   onToggle,
   onSelect,
   matchKeys,
+  checkable = false,
+  checkedIds,
+  indeterminateIds,
+  onCheck,
 }: {
   node: TreeNode;
   objectLabel: string;
@@ -878,10 +1121,16 @@ function Tree_node({
   onToggle: (id: number) => void;
   onSelect: (node: TreeNode) => void;
   matchKeys: Set<number>;
+  checkable?: boolean;
+  checkedIds?: Set<number>;
+  indeterminateIds?: Set<number>;
+  onCheck?: (node: TreeNode) => void;
 }) {
   const hasChildren = node.children && node.children.length > 0;
   const expanded = expandedKeys.has(node.id);
-  const selected = selectedId === node.id;
+  const selected = !checkable && selectedId === node.id;
+  const checked = checkable ? (checkedIds?.has(node.id) ?? false) : false;
+  const indeterminate = checkable ? (indeterminateIds?.has(node.id) ?? false) : false;
   const visible = matchKeys.size === 0 || matchKeys.has(node.id);
 
   if (!visible) return null;
@@ -890,11 +1139,29 @@ function Tree_node({
     <div>
       <div
         className={`flex items-center gap-1 px-2 py-1 cursor-pointer rounded text-sm transition-colors ${
-          selected ? "bg-blue-500 text-white" : "text-admin-text hover:bg-blue-50"
+          checkable
+            ? checked
+              ? "bg-blue-50"
+              : indeterminate
+              ? "bg-blue-50/60"
+              : "text-admin-text hover:bg-blue-50"
+            : selected
+            ? "bg-blue-500 text-white"
+            : "text-admin-text hover:bg-blue-50"
         }`}
         style={{ paddingLeft: `${level * 14 + 8}px` }}
-        onClick={() => onSelect(node)}
+        onClick={() => (checkable && onCheck ? onCheck(node) : onSelect(node))}
       >
+        {checkable && (
+          <input
+            type="checkbox"
+            checked={checked}
+            ref={(el) => { if (el) el.indeterminate = indeterminate; }}
+            onChange={() => onCheck?.(node)}
+            onClick={(e) => e.stopPropagation()}
+            className="cursor-pointer flex-shrink-0"
+          />
+        )}
         {hasChildren ? (
           <button onClick={(e) => { e.stopPropagation(); onToggle(node.id); }} className={selected ? "text-blue-200" : "text-admin-muted"}>
             {expanded ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
@@ -924,6 +1191,10 @@ function Tree_node({
               onToggle={onToggle}
               onSelect={onSelect}
               matchKeys={matchKeys}
+              checkable={checkable}
+              checkedIds={checkedIds}
+              indeterminateIds={indeterminateIds}
+              onCheck={onCheck}
             />
           ))}
         </div>
@@ -955,6 +1226,11 @@ function InteractiveNodeList({
   onAddChild,
   onMove,
   onCopy,
+  readOnly = false,
+  checkable = false,
+  checkedNodeIds,
+  onToggleCheck,
+  onToggleCheckAll,
 }: {
   nodes: TreeNode[];
   treeType: TreeType;
@@ -972,11 +1248,16 @@ function InteractiveNodeList({
   onToggleSelectOne: (id: number) => void;
   onToggleSelectAll: (ids: number[]) => void;
   onSelect: (node: TreeNode) => void;
-  onEdit: (node: TreeNode) => void;
-  onDelete: (node: TreeNode) => void;
-  onAddChild: (parent: TreeNode) => void;
-  onMove: (node: TreeNode, dir: "up" | "down") => void;
-  onCopy: (node: TreeNode) => void;
+  onEdit?: (node: TreeNode) => void;
+  onDelete?: (node: TreeNode) => void;
+  onAddChild?: (parent: TreeNode) => void;
+  onMove?: (node: TreeNode, dir: "up" | "down") => void;
+  onCopy?: (node: TreeNode) => void;
+  readOnly?: boolean;
+  checkable?: boolean;
+  checkedNodeIds?: Set<number>;
+  onToggleCheck?: (node: TreeNode) => void;
+  onToggleCheckAll?: (pageNodes: TreeNode[]) => void;
 }) {
   const [hoverId, setHoverId] = useState<number | null>(null);
 
@@ -1028,7 +1309,9 @@ function InteractiveNodeList({
   const pageData = filtered.slice((curPage - 1) * pageSize, curPage * pageSize);
 
   const pageIds = pageData.map(p => p.node.id);
-  const allSelected = pageIds.length > 0 && pageIds.every(id => selectedIds.has(id));
+  const allSelected = pageIds.length > 0 && pageIds.every(id =>
+    checkable ? (checkedNodeIds?.has(id) ?? false) : selectedIds.has(id)
+  );
 
   if (total === 0) {
     return (
@@ -1046,14 +1329,16 @@ function InteractiveNodeList({
         <table className="w-full text-sm" style={{ minWidth: "1100px" }}>
           <thead className="bg-gray-50 sticky top-0 z-10">
             <tr>
-              <th className="px-3 py-2 w-10 border-b border-admin-border">
-                <input
-                  type="checkbox"
-                  checked={allSelected}
-                  onChange={() => onToggleSelectAll(pageIds)}
-                  className="cursor-pointer"
-                />
-              </th>
+              {(checkable || !readOnly) && (
+                <th className="px-3 py-2 w-10 border-b border-admin-border">
+                  <input
+                    type="checkbox"
+                    checked={allSelected}
+                    onChange={() => (checkable ? onToggleCheckAll?.(pageData.map(p => p.node)) : onToggleSelectAll(pageIds))}
+                    className="cursor-pointer"
+                  />
+                </th>
+              )}
               <th className="px-3 py-2 text-left font-medium text-admin-muted border-b border-admin-border min-w-[200px]">
                 <div className="flex items-center gap-1">
                   <ArrowUpDown size={11} className="opacity-50" />
@@ -1067,15 +1352,17 @@ function InteractiveNodeList({
                 {getCategoryColumnLabel(treeType)}
               </th>
               <th className="px-3 py-2 text-right font-medium text-admin-muted border-b border-admin-border w-16">子节点</th>
-              <th className="px-3 py-2 text-right font-medium text-admin-muted border-b border-admin-border w-16">{treeType === "equipment" ? "设备数" : "管路数"}</th>
+              <th className="px-3 py-2 text-right font-medium text-admin-muted border-b border-admin-border w-16">{treeType === "total" ? "末级数" : treeType === "equipment" ? "设备数" : "管路数"}</th>
               <th className="px-3 py-2 text-right font-medium text-admin-muted border-b border-admin-border w-16">排序</th>
-              <th className="px-3 py-2 text-center font-medium text-admin-muted border-b border-admin-border w-[180px]">操作</th>
+              {!readOnly && (
+                <th className="px-3 py-2 text-center font-medium text-admin-muted border-b border-admin-border w-[180px]">操作</th>
+              )}
             </tr>
           </thead>
           <tbody>
             {pageData.map(({ node, level, path }) => {
               const selected = selectedId === node.id;
-              const checked = selectedIds.has(node.id);
+              const checked = checkable ? (checkedNodeIds?.has(node.id) ?? false) : selectedIds.has(node.id);
               const hovered = hoverId === node.id;
               const canAddChild = node.level !== 'L4';
               return (
@@ -1086,14 +1373,16 @@ function InteractiveNodeList({
                   onMouseEnter={() => setHoverId(node.id)}
                   onMouseLeave={() => setHoverId(null)}
                 >
-                  <td className="px-3 py-1.5" onClick={(e) => e.stopPropagation()}>
-                    <input
-                      type="checkbox"
-                      checked={checked}
-                      onChange={() => onToggleSelectOne(node.id)}
-                      className="cursor-pointer"
-                    />
-                  </td>
+                  {(checkable || !readOnly) && (
+                    <td className="px-3 py-1.5" onClick={(e) => e.stopPropagation()}>
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={() => (checkable ? onToggleCheck?.(node) : onToggleSelectOne(node.id))}
+                        className="cursor-pointer"
+                      />
+                    </td>
+                  )}
                   <td className="px-3 py-1.5">
                     <div className="flex items-center gap-1">
                       {levelConfig[node.level].icon}
@@ -1119,24 +1408,26 @@ function InteractiveNodeList({
                   <td className="px-3 py-1.5 text-right text-xs">{node.childCount > 0 ? <b className="text-blue-600">{node.childCount}</b> : "0"}</td>
                   <td className="px-3 py-1.5 text-right text-xs">{node.equipmentCount > 0 ? <b className="text-green-600">{node.equipmentCount}</b> : "0"}</td>
                   <td className="px-3 py-1.5 text-right text-xs font-mono text-admin-muted">{node.sort}</td>
-                  <td className="px-3 py-1.5" onClick={(e) => e.stopPropagation()}>
-                    <div className="flex items-center justify-center gap-2 text-xs">
-                      {canAddChild && (
-                        <button className="text-blue-500 hover:underline" onClick={() => onAddChild(node)}>
-                          新增
+                  {!readOnly && (
+                    <td className="px-3 py-1.5" onClick={(e) => e.stopPropagation()}>
+                      <div className="flex items-center justify-center gap-2 text-xs">
+                        {canAddChild && (
+                          <button className="text-blue-500 hover:underline" onClick={() => onAddChild?.(node)}>
+                            新增
+                          </button>
+                        )}
+                        <button className="text-blue-500 hover:underline" onClick={() => onEdit?.(node)}>
+                          编辑
                         </button>
-                      )}
-                      <button className="text-blue-500 hover:underline" onClick={() => onEdit(node)}>
-                        编辑
-                      </button>
-                      <button className="text-blue-500 hover:underline" onClick={() => onCopy(node)}>
-                        复制
-                      </button>
-                      <button className="text-red-500 hover:underline" onClick={() => onDelete(node)}>
-                        删除
-                      </button>
-                    </div>
-                  </td>
+                        <button className="text-blue-500 hover:underline" onClick={() => onCopy?.(node)}>
+                          复制
+                        </button>
+                        <button className="text-red-500 hover:underline" onClick={() => onDelete?.(node)}>
+                          删除
+                        </button>
+                      </div>
+                    </td>
+                  )}
                 </tr>
               );
             })}
@@ -1150,7 +1441,7 @@ function InteractiveNodeList({
           共 <b className="text-admin-text">{total}</b> 条记录，第 {curPage} / {pageNum} 页
           {pageIds.length > 0 && (
             <span className="ml-3">
-              本页 <b className="text-admin-text">{pageIds.filter(id => selectedIds.has(id)).length}</b> 条已选中
+              本页 <b className="text-admin-text">{pageIds.filter(id => checkable ? (checkedNodeIds?.has(id) ?? false) : selectedIds.has(id)).length}</b> 条已选中
             </span>
           )}
         </div>
@@ -1203,13 +1494,15 @@ function NodeDetailPanel({
   onEdit,
   onAddChild,
   onDelete,
+  readOnly = false,
 }: {
   node: TreeNode | null;
   path: TreeNode[];
   treeType: TreeType;
-  onEdit: (node: TreeNode) => void;
-  onAddChild: (parent: TreeNode) => void;
-  onDelete: (node: TreeNode) => void;
+  onEdit?: (node: TreeNode) => void;
+  onAddChild?: (parent: TreeNode) => void;
+  onDelete?: (node: TreeNode) => void;
+  readOnly?: boolean;
 }) {
   if (!node) {
     return (
@@ -1221,12 +1514,14 @@ function NodeDetailPanel({
     );
   }
 
-  const canAddChild = node.level !== 'L4';
+  const canAddChild = !readOnly && node.level !== 'L4';
   const sameLevelNodes = useMemo(() => {
     if (!path || path.length < 2) return null;
     const parent = path[path.length - 2];
     return parent.children?.filter(c => c.level === node.level).length;
   }, [path, node]);
+  const leafLabel2 = treeType === "total" ? "末级节点" : treeType === "equipment" ? "末级设备" : "末级管路";
+  const leafUnit2 = treeType === "total" ? "个" : treeType === "equipment" ? "台" : "条";
 
   return (
     <DevNote
@@ -1236,9 +1531,9 @@ function NodeDetailPanel({
       items={[
         { label: "数据来源", value: "node（当前选中节点）与 path（节点路径链，getNodePath）；基础信息含 名称/KKS/层级（含同级数）/分类/排序号/直接子节点数/后代数/末级设备或管路数" },
         { label: "交互逻辑", value: "无选中时显示“请选择节点查看详情”；有选中时头部显示图标+名称+KKS；面包屑路径；直接子节点列表（可点击进入下级，显示KKS/名称/数量/层级Tag）；L4节点无“新增子节点”按钮" },
-        { label: "底部操作", value: "新增子节点（L1-L3）/编辑节点/删除节点（删除提示含N个子节点一并删除）" },
+        { label: "底部操作", value: readOnly ? "只读视图：设备/管路结构树由总结构树勾选生成，仅可查看节点信息，无增删改入口" : "新增子节点（L1-L3）/编辑节点/删除节点（删除提示含N个子节点一并删除）" },
         { label: "使用说明", value: "固定提示：四级且分类为设备/管路=可关联末级节点；系统目录=仅分类用；修改结构树会同步影响设备数字化/管道数字化页筛选" },
-        { label: "权限", value: "管理员/操作人员可增删改；浏览人员仅查看" },
+        { label: "权限", value: readOnly ? "所有用户仅可查看" : "管理员/操作人员可增删改；浏览人员仅查看" },
       ]}
       wrapClassName="block w-full h-full"
     >
@@ -1294,9 +1589,9 @@ function NodeDetailPanel({
               <div className="p-2 border-b border-admin-border"><b className="text-blue-600">{node.childCount}</b> 个</div>
               <div className="p-2 bg-gray-50/60 border-b border-admin-border text-admin-muted text-right">所有后代</div>
               <div className="p-2 border-b border-admin-border">{node.descendantCount} 个</div>
-              <div className="p-2 bg-gray-50/60 text-admin-muted text-right">{treeType === "equipment" ? "末级设备" : "末级管路"}</div>
+              <div className="p-2 bg-gray-50/60 text-admin-muted text-right">{leafLabel2}</div>
               <div className="p-2">
-                <span className="text-green-600 font-medium">{node.equipmentCount}</span> {treeType === "equipment" ? "台" : "条"}
+                <span className="text-green-600 font-medium">{node.equipmentCount}</span> {leafUnit2}
               </div>
             </div>
           </div>
@@ -1322,7 +1617,7 @@ function NodeDetailPanel({
                   <span className="font-mono text-admin-muted text-[10px] min-w-[90px]">{child.kks || "-"}</span>
                   <span className="flex-1 truncate">{child.name}</span>
                   {child.equipmentCount > 0 && (
-                    <span className="text-green-600 text-[10px]">{child.equipmentCount}{treeType === "equipment" ? "台" : "条"}</span>
+                    <span className="text-green-600 text-[10px]">{child.equipmentCount}{leafUnit2}</span>
                   )}
                   <Tag color={levelConfig[child.level].color} className="!text-[10px] !px-1.5 !py-0">{levelConfig[child.level].label}</Tag>
                 </div>
@@ -1335,28 +1630,342 @@ function NodeDetailPanel({
         <div className="p-2 bg-purple-50 rounded border border-purple-100 text-xs text-purple-700">
           <div className="font-medium mb-0.5">使用说明</div>
           <ul className="text-[11px] space-y-0.5 pl-3 list-disc">
-            <li>四级节点且分类为「{treeType === "equipment" ? "设备" : "管路"}」= 可关联的末级节点</li>
-            <li>系统目录 = 仅用于分类组织结构，非实际{treeType === "equipment" ? "设备" : "管路"}</li>
-            <li>修改结构树会同步影响「{treeType === "equipment" ? "设备数字化" : "管道数字化"}」页的筛选</li>
+            {readOnly ? (
+              <li>本结构树由总结构树勾选生成，为只读视图；如需调整请点击【重新生成结构树】返回勾选</li>
+            ) : (
+              <>
+                <li>四级节点且分类为「{treeType === "total" ? "设备或管路" : treeType === "equipment" ? "设备" : "管路"}」= 可关联的末级节点</li>
+                <li>系统目录 = 仅用于分类组织结构，非实际{treeType === "total" ? "设备或管路" : treeType === "equipment" ? "设备" : "管路"}</li>
+                <li>修改结构树会同步影响「{treeType === "total" ? "设备数字化/管道数字化" : treeType === "equipment" ? "设备数字化" : "管道数字化"}」页的筛选</li>
+              </>
+            )}
           </ul>
         </div>
       </div>
 
       {/* 底部操作区 */}
+      {!readOnly && (
       <div className="px-4 py-2 border-t border-admin-border bg-gray-50 grid grid-cols-2 gap-2">
         {canAddChild && (
-          <button className="btn-primary text-xs flex items-center justify-center gap-1 col-span-2" onClick={() => onAddChild(node)}>
+          <button className="btn-primary text-xs flex items-center justify-center gap-1 col-span-2" onClick={() => onAddChild?.(node)}>
             <Plus size={12} /> 新增子节点
           </button>
         )}
-        <button className="btn-default text-xs flex items-center justify-center gap-1" onClick={() => onEdit(node)}>
+        <button className="btn-default text-xs flex items-center justify-center gap-1" onClick={() => onEdit?.(node)}>
           <Edit size={12} /> 编辑节点
         </button>
-        <button className="btn-danger text-xs flex items-center justify-center gap-1" onClick={() => onDelete(node)}>
+        <button className="btn-danger text-xs flex items-center justify-center gap-1" onClick={() => onDelete?.(node)}>
           <Trash2 size={12} /> 删除节点
         </button>
       </div>
+      )}
     </div>
     </DevNote>
+  );
+}
+
+// ===== 设备/管路结构树面板（由总结构树勾选生成，只读） =====
+function DerivedTreePanel({
+  treeType,
+  totalTree,
+  subtree,
+  mode,
+  leafLabel,
+  selectedNodeIds,
+  checkedIds,
+  indeterminateIds,
+  subtreeCount,
+  subtreeLeafCount,
+  selectedId,
+  keyword,
+  expandedKeys,
+  nodePath,
+  selectedNode,
+  filteredNodeIds,
+  listKeyword,
+  listLevelFilter,
+  listCategoryFilter,
+  listSortBy,
+  listSortAsc,
+  currentPage,
+  pageSize,
+  onSwitchMode,
+  onToggleNode,
+  onReset,
+  onGenerate,
+  onSelect,
+  onToggle,
+  onExpandAll,
+  onCollapseAll,
+  onKeywordChange,
+  onSetPage,
+  onListKeywordChange,
+  onListLevelFilterChange,
+  onListCategoryFilterChange,
+  onListSortByChange,
+  onListSortAscToggle,
+}: {
+  treeType: TreeType;
+  totalTree: TreeNode[];
+  subtree: TreeNode[];
+  mode: "select" | "result";
+  leafLabel: string;
+  selectedNodeIds: Set<number>;
+  checkedIds: Set<number>;
+  indeterminateIds: Set<number>;
+  subtreeCount: number;
+  subtreeLeafCount: number;
+  selectedId: number | null;
+  keyword: string;
+  expandedKeys: Set<number>;
+  nodePath: TreeNode[];
+  selectedNode: TreeNode | null;
+  filteredNodeIds: Set<number> | null;
+  listKeyword: string;
+  listLevelFilter: string;
+  listCategoryFilter: string;
+  listSortBy: "sort" | "name" | "kks";
+  listSortAsc: boolean;
+  currentPage: number;
+  pageSize: number;
+  onSwitchMode: () => void;
+  onToggleNode: (node: TreeNode) => void;
+  onReset: () => void;
+  onGenerate: () => void;
+  onSelect: (node: TreeNode) => void;
+  onToggle: (id: number) => void;
+  onExpandAll: (nodes?: TreeNode[]) => void;
+  onCollapseAll: () => void;
+  onKeywordChange: (v: string) => void;
+  onSetPage: (p: number) => void;
+  onListKeywordChange: (v: string) => void;
+  onListLevelFilterChange: (v: string) => void;
+  onListCategoryFilterChange: (v: string) => void;
+  onListSortByChange: (v: "sort" | "name" | "kks") => void;
+  onListSortAscToggle: () => void;
+}) {
+  const isSelect = mode === "select";
+  const tree = isSelect ? totalTree : subtree;
+  const treeName = getTreeTitle(treeType);
+  const matchKeys = useMemo(() => collectMatchKeys(tree, keyword), [tree, keyword]);
+  const totalCount = useMemo(() => countNodes(totalTree), [totalTree]);
+  const selectedCount = selectedNodeIds.size;
+
+  return (
+    <>
+      {/* 状态栏 */}
+      <DevNote
+        id="structure-derived-toolbar"
+        title="设备/管路结构树状态栏"
+        summary="选择态：从总结构树勾选节点生成；结果态：只读子树，可返回重新生成"
+        items={[
+          { label: "数据来源", value: "选择源为总结构树（totalTree）；勾选节点后由 buildSubTreeFromNodes 生成子树（父级自动纳入）" },
+          { label: "交互逻辑", value: "选择态：勾选上级节点时其下所有下级节点一并选中（不干扰同级）；再次勾选已选节点=取消该节点整棵子树；【生成" + treeName + "】进入结果态，【重置选择】清空勾选；结果态：点击节点查看详情，【重新生成结构树】返回勾选态（原勾选结构自动反映到总树上）" },
+          { label: "状态规则", value: "勾选结果与生成状态持久化于 localStorage，再次进入自动恢复" },
+          { label: "权限", value: "设备/管路结构树为只读，无增删改入口；正式系统可按角色控制" },
+        ]}
+        wrapClassName="block flex-shrink-0"
+      >
+      <div className="flex items-center gap-4 px-4 py-2 bg-admin-card border border-admin-border rounded flex-shrink-0">
+        {isSelect ? (
+          <>
+            <span className="text-xs text-admin-muted">从「总结构树」勾选结构，生成{treeName}</span>
+            <span className="text-sm font-semibold text-blue-600">已选节点 {selectedCount} 个</span>
+            <span className="text-xs text-admin-muted">勾选上级节点，其下所有下级节点一并选中；取消=取消该节点整棵子树</span>
+            <div className="ml-auto flex items-center gap-2">
+              <button className="btn-success text-xs flex items-center gap-1" disabled={selectedCount === 0} onClick={onGenerate}>
+                <CheckCircle2 size={12} /> 生成{treeName}
+              </button>
+              <button className="btn-default text-xs flex items-center gap-1" onClick={onReset}>
+                <RefreshCw size={12} /> 重置选择
+              </button>
+            </div>
+          </>
+        ) : (
+          <>
+            <span className="text-xs font-medium text-admin-text">{treeName}</span>
+            <span className="text-xs text-admin-muted">由总结构树勾选生成 · 共 {subtreeCount} 个节点 · 末级 {subtreeLeafCount} 个 · 只读</span>
+            <div className="ml-auto flex items-center gap-2">
+              <button className="btn-default text-xs flex items-center gap-1" onClick={onSwitchMode}>
+                <GitBranch size={12} /> 重新生成结构树
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+      </DevNote>
+
+      <div className="flex gap-3 flex-1 min-h-0">
+        {/* 左侧：结构树 */}
+        <DevNote
+          id="structure-derived-tree"
+          title="左侧结构树"
+          summary="选择态展示总结构树并支持勾选；结果态展示生成的只读子树"
+          items={[
+            { label: "数据来源", value: isSelect ? "totalTree（总结构树）" : "subtree（buildSubTreeFromNodes）" },
+            { label: "交互逻辑", value: "搜索实时过滤（保留命中节点与祖先链）；展开/折叠全部；选择态点击行/复选框切换勾选，结果态点击节点查看右侧详情" },
+            { label: "勾选规则", value: "勾选上级节点时其下所有下级节点一并选中；再次勾选已选节点=取消该节点整棵子树" },
+            { label: "权限", value: "选择态所有用户可勾选；结果态仅查看" },
+          ]}
+          wrapClassName="flex flex-shrink-0"
+        >
+        <div className="w-[300px] flex-shrink-0 admin-card flex flex-col overflow-hidden">
+          <div className="px-3 py-2 border-b border-admin-border bg-gray-50">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-xs font-semibold text-admin-text">{isSelect ? "总结构树（勾选结构）" : treeName}</h3>
+              <div className="flex items-center gap-1">
+                <button onClick={() => onExpandAll(tree)} className="text-xs text-blue-500 hover:underline">展开</button>
+                <span className="text-admin-muted">|</span>
+                <button onClick={onCollapseAll} className="text-xs text-blue-500 hover:underline">折叠</button>
+              </div>
+            </div>
+            <div className="relative">
+              <Search size={14} className="absolute left-2 top-1/2 -translate-y-1/2 text-admin-muted" />
+              <input
+                className="input-base text-xs pl-7"
+                placeholder="搜索名称/KKS编码"
+                value={keyword}
+                onChange={(e) => onKeywordChange(e.target.value)}
+              />
+            </div>
+          </div>
+          <div className="flex-1 overflow-auto p-2 min-h-0">
+            {tree.map((node) => (
+              <Tree_node
+                key={node.id}
+                node={node}
+                objectLabel={leafLabel}
+                level={0}
+                selectedId={selectedId}
+                expandedKeys={expandedKeys}
+                onToggle={onToggle}
+                onSelect={onSelect}
+                matchKeys={matchKeys}
+                checkable={isSelect}
+                checkedIds={checkedIds}
+                indeterminateIds={indeterminateIds}
+                onCheck={onToggleNode}
+              />
+            ))}
+          </div>
+          <div className="px-3 py-2 border-t border-admin-border bg-gray-50 text-[10px] text-admin-muted flex items-center justify-between">
+            {isSelect ? (
+              <>
+                <span>总结构树共 {totalCount} 个节点</span>
+                <span>勾选上级，下级全选</span>
+              </>
+            ) : (
+              <span>共 {subtreeCount} 个节点 · 末级 {subtreeLeafCount} 个</span>
+            )}
+          </div>
+        </div>
+        </DevNote>
+
+        {/* 中间：节点列表（仅生成后展示，只读无操作按钮） */}
+        {!isSelect && (
+        <DevNote
+          id="structure-derived-list"
+          title="中间节点列表"
+          summary="生成结构树后平铺展示节点，支持筛选/排序/分页，仅查看"
+          items={[
+            { label: "数据来源", value: "flatNodes 递归平铺 subtree（buildSubTreeFromNodes）" },
+            { label: "交互逻辑", value: "筛选：关键字（名称/KKS）→ 层级 → 分类 → 排序（排序号/名称/KKS，升降序切换）+ 分页；点击行查看详情" },
+            { label: "操作权限", value: "只读列表，无任何操作按钮" },
+          ]}
+          wrapClassName="block flex flex-1"
+        >
+        <div className="flex-1 min-w-0 admin-card flex flex-col overflow-hidden">
+          <div className="px-4 py-2 border-b border-admin-border flex items-center gap-3 flex-wrap bg-gray-50">
+            <div className="flex items-center gap-2 flex-1 min-w-[200px]">
+              <div className="relative flex-1 max-w-xs">
+                <Search size={12} className="absolute left-2 top-1/2 -translate-y-1/2 text-admin-muted" />
+                <input
+                  className="input-base text-xs pl-7"
+                  placeholder="过滤：名称/KKS编码"
+                  value={listKeyword}
+                  onChange={(e) => onListKeywordChange(e.target.value)}
+                />
+              </div>
+              <select
+                className="input-base text-xs"
+                style={{ width: 100 }}
+                value={listLevelFilter}
+                onChange={(e) => onListLevelFilterChange(e.target.value)}
+              >
+                <option value="">全部层级</option>
+                <option value="L1">一级</option>
+                <option value="L2">二级</option>
+                <option value="L3">三级</option>
+                <option value="L4">四级</option>
+              </select>
+              <select
+                className="input-base text-xs"
+                style={{ width: 110 }}
+                value={listCategoryFilter}
+                onChange={(e) => onListCategoryFilterChange(e.target.value)}
+              >
+                <option value="">全部分类</option>
+                <option value={treeType === "equipment" ? "equipment" : "pipeline"}>{leafLabel}</option>
+                <option value="system">系统目录</option>
+              </select>
+              <button
+                className="text-xs px-2 py-1 border border-admin-border rounded hover:bg-white flex items-center gap-1 text-admin-muted"
+                onClick={onListSortAscToggle}
+                title={listSortAsc ? "升序" : "降序"}
+              >
+                <SortAsc size={12} className={listSortAsc ? "" : "rotate-180"} />
+              </button>
+              <select
+                className="input-base text-xs"
+                style={{ width: 100 }}
+                value={listSortBy}
+                onChange={(e) => onListSortByChange(e.target.value as any)}
+              >
+                <option value="sort">按排序号</option>
+                <option value="name">按名称</option>
+                <option value="kks">按KKS编码</option>
+              </select>
+            </div>
+          </div>
+          <div className="flex-1 overflow-auto min-h-0">
+            <InteractiveNodeList
+              nodes={subtree}
+              treeType={treeType}
+              selectedId={selectedId}
+              selectedIds={new Set()}
+              listKeyword={listKeyword}
+              listLevelFilter={listLevelFilter}
+              listCategoryFilter={listCategoryFilter}
+              listSortBy={listSortBy}
+              listSortAsc={listSortAsc}
+              currentPage={currentPage}
+              pageSize={pageSize}
+              filteredNodeIds={filteredNodeIds}
+              onSetPage={onSetPage}
+              onToggleSelectOne={() => {}}
+              onToggleSelectAll={() => {}}
+              onSelect={onSelect}
+              readOnly
+            />
+          </div>
+        </div>
+        </DevNote>
+        )}
+
+        {/* 右侧：节点详情（只读） */}
+        <div className="w-[360px] flex-shrink-0 admin-card overflow-hidden flex flex-col">
+          {isSelect ? (
+            <div className="flex-1 flex flex-col items-center justify-center text-admin-muted p-6">
+              <Filter size={48} className="text-gray-300 mb-3" />
+              <p className="text-sm">请在左侧结构树中勾选需要纳入{treeName}的结构</p>
+              <p className="text-xs mt-1">勾选上级节点，其下所有下级节点一并选中</p>
+              <p className="text-xs mt-1">点击【生成{treeName}】生成只读子树</p>
+            </div>
+          ) : (
+            <NodeDetailPanel node={selectedNode} path={nodePath} treeType={treeType} readOnly />
+          )}
+        </div>
+      </div>
+    </>
   );
 }

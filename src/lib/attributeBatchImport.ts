@@ -3,6 +3,7 @@ import { equipments, pipelines } from "@/mock";
 import {
   resolveAttributeTemplate,
   type AttributeTemplateDefinition,
+  type AttributeTemplateField,
   type AttributeTemplateScope,
 } from "@/lib/attributeTemplateStore";
 import {
@@ -21,6 +22,16 @@ const INPUT_HEADERS = [
   "属性值",
   "单位",
 ] as const;
+
+// 表头固定列（KKS编码/对象名称）与模板身份字段重复，下载模板时跳过，避免生成重复列
+const TEMPLATE_IDENTITY_FIELDS = new Set([
+  "设备名称",
+  "KKS编码",
+  "唯一编码",
+  "编码",
+  "管路编码",
+  "管路名称",
+]);
 
 export type BatchImportStatus =
   | "matched"
@@ -56,6 +67,18 @@ interface RawInputRow {
   单位: unknown;
 }
 
+interface NormalizedInputRow {
+  rowNumber: number;
+  scopeText: string;
+  scope: AttributeTemplateScope | null;
+  kks: string;
+  objectName?: string;
+  templateName: string;
+  attributeName: string;
+  value: string;
+  unit: string;
+}
+
 function text(value: unknown) {
   return String(value ?? "").trim();
 }
@@ -73,45 +96,52 @@ function setColumnWidths(sheet: XLSX.WorkSheet, widths: number[]) {
   sheet["!cols"] = widths.map((wch) => ({ wch }));
 }
 
-export function downloadAttributeBatchTemplate(
-  templates: AttributeTemplateDefinition[],
-) {
-  const inputSheet = XLSX.utils.aoa_to_sheet([[...INPUT_HEADERS]]);
-  setColumnWidths(inputSheet, [12, 28, 24, 24, 24, 14]);
-  inputSheet["!autofilter"] = { ref: "A1:F1" };
-
-  const summaryRows = templates.flatMap((template) =>
-    template.fields.map((field) => ({
-      对象类型: template.scope === "equipment" ? "设备" : "管路",
-      模板名称: template.name,
-      匹配类型: template.matchKey,
-      属性分类: field.category,
-      属性名称: field.name,
-      单位: field.unit,
-    })),
-  );
-  const summarySheet = XLSX.utils.json_to_sheet(summaryRows, {
-    header: [
-      "对象类型",
-      "模板名称",
-      "匹配类型",
-      "属性分类",
-      "属性名称",
-      "单位",
-    ],
-  });
-  setColumnWidths(summarySheet, [12, 24, 24, 16, 24, 14]);
-  if (summaryRows.length > 0) {
-    summarySheet["!autofilter"] = { ref: `A1:F${summaryRows.length + 1}` };
+function colLetter(index: number): string {
+  let letters = "";
+  let n = index + 1;
+  while (n > 0) {
+    const remainder = (n - 1) % 26;
+    letters = String.fromCharCode(65 + remainder) + letters;
+    n = Math.floor((n - 1) / 26);
   }
+  return letters;
+}
+
+function safeSheetName(name: string): string {
+  const cleaned = name.replace(/[\\/?*[\]:]/g, "_").slice(0, 31);
+  return cleaned || "模板";
+}
+
+function uniqueSheetName(name: string, used: Map<string, number>): string {
+  const base = safeSheetName(name);
+  const count = (used.get(base) || 0) + 1;
+  used.set(base, count);
+  return count === 1 ? base : `${base}_${count}`;
+}
+
+export function downloadAttributeBatchTemplateBySelection(
+  selected: AttributeTemplateDefinition[],
+) {
+  if (selected.length === 0) return;
 
   const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, inputSheet, BATCH_INPUT_SHEET);
-  XLSX.utils.book_append_sheet(
-    workbook,
-    summarySheet,
-    TEMPLATE_SUMMARY_SHEET,
-  );
+  const usedNames = new Map<string, number>();
+  selected.forEach((template) => {
+    const fieldHeaders = template.fields
+      .filter((field) => !TEMPLATE_IDENTITY_FIELDS.has(field.name))
+      .map((field) =>
+        field.unit ? `${field.name}(${field.unit})` : field.name,
+      );
+    const headers = ["KKS编码", "对象名称", ...fieldHeaders];
+    const sheet = XLSX.utils.aoa_to_sheet([headers]);
+    setColumnWidths(sheet, [30, 30, ...fieldHeaders.map(() => 26)]);
+    sheet["!autofilter"] = { ref: `A1:${colLetter(headers.length)}1` };
+    XLSX.utils.book_append_sheet(
+      workbook,
+      sheet,
+      uniqueSheetName(template.name, usedNames),
+    );
+  });
 
   const now = new Date();
   const date = [
@@ -145,6 +175,16 @@ export async function parseAttributeBatchFile(
   templates: AttributeTemplateDefinition[],
 ): Promise<AttributeBatchImportRow[]> {
   const workbook = XLSX.read(await file.arrayBuffer(), { type: "array" });
+  if (workbook.Sheets[BATCH_INPUT_SHEET]) {
+    return parseLegacyInputSheet(workbook, templates);
+  }
+  return parseSelectedSheets(workbook, templates);
+}
+
+function parseLegacyInputSheet(
+  workbook: XLSX.WorkBook,
+  templates: AttributeTemplateDefinition[],
+): AttributeBatchImportRow[] {
   const inputSheet = workbook.Sheets[BATCH_INPUT_SHEET];
   if (!inputSheet) {
     throw new Error(`未找到“${BATCH_INPUT_SHEET}”，请使用系统下载的模板`);
@@ -173,7 +213,7 @@ export async function parseAttributeBatchFile(
     throw new Error("Sheet1中没有可导入的数据");
   }
 
-  const normalizedRows = rawRows.map((row, index) => ({
+  const normalizedRows: NormalizedInputRow[] = rawRows.map((row, index) => ({
     rowNumber: index + 2,
     scopeText: text(row.对象类型),
     scope: normalizeScope(text(row.对象类型)),
@@ -183,6 +223,123 @@ export async function parseAttributeBatchFile(
     value: text(row.属性值),
     unit: text(row.单位),
   }));
+  return validateNormalizedRows(normalizedRows, templates);
+}
+
+function matchSheetTemplate(
+  sheetName: string,
+  templates: AttributeTemplateDefinition[],
+): AttributeTemplateDefinition | null {
+  return (
+    templates.find((template) => template.name === sheetName) ||
+    templates.find((template) => template.matchKey === sheetName) ||
+    templates.find(
+      (template) =>
+        template.name.includes(sheetName) || sheetName.includes(template.name),
+    ) ||
+    null
+  );
+}
+
+function matchFieldColumn(
+  header: string,
+  template: AttributeTemplateDefinition,
+): { field: AttributeTemplateField; unit: string } | null {
+  const exact = template.fields.find((field) => field.name === header);
+  if (exact) return { field: exact, unit: "" };
+  const stripped = header.replace(/\([^()]*\)$/, "").trim();
+  const field = template.fields.find((item) => item.name === stripped);
+  if (field) {
+    return {
+      field,
+      unit: header.slice(stripped.length).replace(/^\(/, "").replace(/\)$/, ""),
+    };
+  }
+  return null;
+}
+
+function parseSelectedSheets(
+  workbook: XLSX.WorkBook,
+  templates: AttributeTemplateDefinition[],
+): AttributeBatchImportRow[] {
+  const sheetNames = workbook.SheetNames.filter(
+    (name) => name !== BATCH_INPUT_SHEET && name !== TEMPLATE_SUMMARY_SHEET,
+  );
+  if (sheetNames.length === 0) {
+    throw new Error("Excel中没有可解析的Sheet，请使用系统下载的模板");
+  }
+
+  const normalizedRows: NormalizedInputRow[] = [];
+  for (const sheetName of sheetNames) {
+    const template = matchSheetTemplate(sheetName, templates);
+    if (!template) {
+      throw new Error(
+        `Sheet“${sheetName}”未匹配到模板库中的任何模板，请使用系统下载的模板`,
+      );
+    }
+    const sheet = workbook.Sheets[sheetName];
+    if (!sheet) continue;
+
+    const matrix = XLSX.utils.sheet_to_json<unknown[]>(sheet, {
+      header: 1,
+      defval: "",
+    });
+    const headers = (matrix[0] || []).map(text);
+    const kksIndex = headers.indexOf("KKS编码");
+    if (kksIndex === -1) {
+      throw new Error(`Sheet“${sheetName}”缺少“KKS编码”列`);
+    }
+    const nameIndex = headers.indexOf("对象名称");
+
+    const columns = headers
+      .map((header, index) => ({ header, index }))
+      .filter((col) => col.index !== kksIndex && col.index !== nameIndex)
+      .map((col) => {
+        const matched = matchFieldColumn(col.header, template);
+        return { ...col, field: matched?.field || null, unit: matched?.unit || "" };
+      });
+    const unknownColumns = columns.filter((col) => !col.field);
+    if (unknownColumns.length > 0) {
+      throw new Error(
+        `Sheet“${sheetName}”存在无法识别的列：${unknownColumns
+          .map((col) => col.header)
+          .join("、")}`,
+      );
+    }
+
+    const scopeText = template.scope === "equipment" ? "设备" : "管路";
+    for (let i = 1; i < matrix.length; i++) {
+      const row = matrix[i];
+      const kks = text(row[kksIndex]).toUpperCase();
+      if (!kks) continue;
+      const objectName = nameIndex >= 0 ? text(row[nameIndex]) : "";
+      for (const col of columns) {
+        if (!col.field) continue;
+        const value = text(row[col.index]);
+        normalizedRows.push({
+          rowNumber: normalizedRows.length + 2,
+          scopeText,
+          scope: template.scope,
+          kks,
+          objectName,
+          templateName: template.name,
+          attributeName: col.field.name,
+          value,
+          unit: col.unit,
+        });
+      }
+    }
+  }
+  if (normalizedRows.length === 0) {
+    throw new Error("Excel中没有可导入的数据，请至少填写一行KKS编码");
+  }
+  return validateNormalizedRows(normalizedRows, templates);
+}
+
+function validateNormalizedRows(
+  normalizedRows: NormalizedInputRow[],
+  templates: AttributeTemplateDefinition[],
+): AttributeBatchImportRow[] {
   const duplicateCounts = normalizedRows.reduce((counts, row) => {
     const key = `${row.scopeText}|${row.kks}|${row.attributeName}`;
     counts.set(key, (counts.get(key) || 0) + 1);
@@ -201,6 +358,7 @@ export async function parseAttributeBatchFile(
       scope: row.scope,
       scopeLabel,
       kks: row.kks,
+      objectName: row.objectName,
       templateName: row.templateName,
       attributeName: row.attributeName,
       value: row.value,
@@ -299,7 +457,7 @@ export async function parseAttributeBatchFile(
         objectBase,
         "duplicate",
         "重复数据",
-        "同一对象的同一属性在Sheet1中出现多次",
+        "同一对象的同一属性在表格中出现多次",
       );
     }
     if (!row.value) {

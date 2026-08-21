@@ -24,7 +24,7 @@ function InfoItem({ label, value }: { label: string; value: React.ReactNode }) {
   );
 }
 
-type TopTab = "basic" | "attr" | "docs";
+type TopTab = "basic" | "docs";
 
 interface EquipmentDetailPanelProps {
   equipment: Equipment | null;
@@ -64,7 +64,6 @@ export default function EquipmentDetailPanel({
 
   const topTabs: { key: TopTab; label: string; icon: React.ReactNode }[] = [
     { key: "basic", label: "基本信息", icon: <Box size={13} /> },
-    { key: "attr", label: "属性资料", icon: <FileText size={13} /> },
     { key: "docs", label: "图纸资料", icon: <FileText size={13} /> },
   ];
 
@@ -107,71 +106,71 @@ export default function EquipmentDetailPanel({
 
       <div className="flex-1 overflow-auto">
         {topTab === "basic" && (
-          <div className="p-4 space-y-3">
-            {basicInfo.map((item) => (
-              <InfoItem key={item.label} label={item.label} value={item.value} />
-            ))}
-          </div>
-        )}
-
-        {topTab === "attr" && (
           <div className="p-4 space-y-4">
-            {equipment.attributes && equipment.attributes.length > 0 ? (
-              Object.entries(
-                equipment.attributes.reduce((acc, attr) => {
-                  const cat = attr.category || "其他";
-                  if (!acc[cat]) acc[cat] = [];
-                  acc[cat].push(attr);
-                  return acc;
-                }, {} as Record<string, typeof equipment.attributes>)
-              ).map(([catName, attrs]) => (
-                <div key={catName}>
-                  <div className="text-xs font-medium text-admin-text mb-2 flex items-center gap-2">
-                    <span className="w-1 h-3 bg-blue-500 rounded inline-block" />
-                    {catName}
-                    <span className="text-admin-muted font-normal">（{attrs.length} 项）</span>
-                  </div>
-                  <div className="border border-admin-border rounded overflow-hidden">
-                    <table className="w-full text-sm">
-                      <thead className="bg-gray-50">
-                        <tr>
-                          <th className="px-3 py-2 text-left font-medium text-admin-muted border-b border-admin-border w-1/2">
-                            属性名
-                          </th>
-                          <th className="px-3 py-2 text-left font-medium text-admin-muted border-b border-admin-border">
-                            属性值
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {attrs.map((attr, idx) => (
-                          <tr
-                            key={attr.name}
-                            className={idx % 2 === 1 ? "bg-gray-50/50" : ""}
-                          >
-                            <td className="px-3 py-2 text-admin-text border-b border-admin-border">
-                              {attr.name}
-                            </td>
-                            <td className="px-3 py-2 text-admin-text border-b border-admin-border">
-                              {attr.value || (
-                                <span className="text-admin-muted">-</span>
-                              )}
-                              {attr.unit && (
-                                <span className="text-admin-muted ml-1">
-                                  ({attr.unit})
-                                </span>
-                              )}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+            <div className="space-y-3">
+              {basicInfo.map((item) => (
+                <InfoItem key={item.label} label={item.label} value={item.value} />
+              ))}
+            </div>
+
+            {equipment.attributes && equipment.attributes.length > 0 && (
+              <div className="space-y-4 pt-4 border-t border-admin-border">
+                <div className="text-xs font-semibold text-admin-text flex items-center gap-2">
+                  <span className="w-1 h-3 bg-blue-500 rounded inline-block" />
+                  属性资料
                 </div>
-              ))
-            ) : (
-              <div className="text-center py-12 text-admin-muted text-sm">
-                暂无属性资料
+                {Object.entries(
+                  equipment.attributes.reduce((acc, attr) => {
+                    const cat = attr.category || "其他";
+                    if (!acc[cat]) acc[cat] = [];
+                    acc[cat].push(attr);
+                    return acc;
+                  }, {} as Record<string, typeof equipment.attributes>)
+                ).map(([catName, attrs]) => (
+                  <div key={catName}>
+                    <div className="text-xs font-medium text-admin-text mb-2 flex items-center gap-2">
+                      <span className="w-1 h-3 bg-gray-300 rounded inline-block" />
+                      {catName}
+                      <span className="text-admin-muted font-normal">（{attrs.length} 项）</span>
+                    </div>
+                    <div className="border border-admin-border rounded overflow-hidden">
+                      <table className="w-full text-sm">
+                        <thead className="bg-gray-50">
+                          <tr>
+                            <th className="px-3 py-2 text-left font-medium text-admin-muted border-b border-admin-border w-1/2">
+                              属性名
+                            </th>
+                            <th className="px-3 py-2 text-left font-medium text-admin-muted border-b border-admin-border">
+                              属性值
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {attrs.map((attr, idx) => (
+                            <tr
+                              key={attr.name}
+                              className={idx % 2 === 1 ? "bg-gray-50/50" : ""}
+                            >
+                              <td className="px-3 py-2 text-admin-text border-b border-admin-border">
+                                {attr.name}
+                              </td>
+                              <td className="px-3 py-2 text-admin-text border-b border-admin-border">
+                                {attr.value || (
+                                  <span className="text-admin-muted">-</span>
+                                )}
+                                {attr.unit && (
+                                  <span className="text-admin-muted ml-1">
+                                    ({attr.unit})
+                                  </span>
+                                )}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
           </div>

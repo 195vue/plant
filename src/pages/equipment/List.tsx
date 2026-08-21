@@ -1,7 +1,6 @@
 import { useState, useMemo } from "react";
 import { equipments as mockEquipments } from "@/mock";
 import type { Equipment } from "@/types";
-import { StatusTag } from "@/components/common/Tag";
 import EquipmentDetailPanel from "./components/EquipmentDetailPanel";
 import EquipmentBottomPanel from "./components/EquipmentBottomPanel";
 import StructureTreeSelect, { type TreeSelectFilter } from "@/components/common/StructureTreeSelect";
@@ -12,7 +11,6 @@ interface TreeFilter {
   nodeId?: number;
   nodeName?: string;
   kks?: string;
-  equipmentId?: number;
   descendantIds?: number[];
 }
 
@@ -38,9 +36,7 @@ export default function EquipmentList() {
 
   const filteredData = useMemo(() => {
     let list = data;
-    if (treeFilter.equipmentId) {
-      list = list.filter((e) => e.id === treeFilter.equipmentId);
-    } else if (kksPrefixes.length > 0) {
+    if (kksPrefixes.length > 0) {
       list = list.filter((e) => {
         const code = e.code.toUpperCase();
         return kksPrefixes.some((prefix) => code.startsWith(prefix));
@@ -66,10 +62,6 @@ export default function EquipmentList() {
   }, [filteredData, selectedEquipId, data]);
 
   const filterLabel = useMemo(() => {
-    if (treeFilter.equipmentId) {
-      const eq = data.find((e) => e.id === treeFilter.equipmentId);
-      return eq ? `${eq.name}（单设备）` : "";
-    }
     if (treeFilter.nodeName) return `${treeFilter.nodeName}（结构树节点）`;
     return "全部设备";
   }, [treeFilter, data]);
@@ -85,8 +77,8 @@ export default function EquipmentList() {
   };
 
   const handleSelectEquipment = (id: number) => {
+    // 仅刷新右侧详情面板与底部统计卡，不改变表格筛选结果
     setSelectedEquipId(id);
-    setTreeFilter({ equipmentId: id });
   };
 
   return (
@@ -130,8 +122,8 @@ export default function EquipmentList() {
           summary="展示当前筛选结果设备，支持选择单设备查看详情"
           items={[
             { label: "数据来源", value: "filteredData：按 treeFilter 规则筛选 mockEquipments（设备ID精确/前缀集合/节点名称匹配/全部）" },
-            { label: "字段", value: "设备编码/设备名称/编码状态（已挂接/未挂接）/操作（查看）" },
-            { label: "交互逻辑", value: "标题区显示「共N条·筛选说明」（全部设备/节点名称（结构树节点）/设备名称（单设备））；点击行或「查看」→ handleSelectEquipment 进入单设备筛选，右侧详情与底部统计卡联动" },
+            { label: "字段", value: "设备编码/设备名称/所属系统/操作（查看）；编码100%挂接，不展示编码状态" },
+            { label: "交互逻辑", value: "标题区显示「共N条·筛选说明」（全部设备/节点名称（结构树节点））；点击行或「查看」→ 仅刷新右侧详情面板与底部统计卡，表格保持当前筛选结果" },
             { label: "后续步骤", value: "正式系统：设备列表由设备数字化后台接口按筛选条件分页返回" },
             { label: "权限", value: "管理员/操作人员可查看；本页不提供新增/编辑/删除/导入/导出" },
           ]}
@@ -148,7 +140,7 @@ export default function EquipmentList() {
                   <tr className="text-admin-muted border-b border-admin-border">
                     <th className="px-3 py-2 text-left font-medium whitespace-nowrap">设备编码</th>
                     <th className="px-3 py-2 text-left font-medium whitespace-nowrap">设备名称</th>
-                    <th className="px-3 py-2 text-center font-medium whitespace-nowrap">编码状态</th>
+                    <th className="px-3 py-2 text-left font-medium whitespace-nowrap">所属系统</th>
                     <th className="px-3 py-2 text-center font-medium whitespace-nowrap">操作</th>
                   </tr>
                 </thead>
@@ -167,7 +159,7 @@ export default function EquipmentList() {
                     >
                       <td className="px-3 py-2 font-mono text-admin-text">{eq.code}</td>
                       <td className="px-3 py-2 text-admin-text">{eq.name}</td>
-                      <td className="px-3 py-2 text-center"><StatusTag status={eq.codeStatus} /></td>
+                      <td className="px-3 py-2 text-admin-text">{eq.system}</td>
                       <td className="px-3 py-2 text-center">
                         <button className="text-blue-500 hover:underline" onClick={(e) => { e.stopPropagation(); handleSelectEquipment(eq.id); }}>查看</button>
                       </td>
@@ -183,10 +175,10 @@ export default function EquipmentList() {
         <DevNote
           id="equipment-detail"
           title="设备详情面板"
-          summary="展示当前设备基本信息/属性资料/图纸资料三个页签"
+          summary="展示当前设备基本信息（含属性资料）与图纸资料两个页签"
           items={[
-            { label: "数据来源", value: "currentEquip（当前筛选结果第一条或单设备选择）；属性资料来自设备关联属性集合，图纸资料按 关联对象类型=设备 且 关联对象ID=当前设备ID 查询" },
-            { label: "交互逻辑", value: "头部显示设备类型/名称/编码；三个页签切换（基本信息/属性资料/图纸资料），切换页签保留设备，切换设备保留页签；「×」关闭显式选择后继续显示筛选结果第一条" },
+            { label: "数据来源", value: "currentEquip（当前筛选结果第一条或单设备选择）；属性资料来自设备关联属性集合（并入基本信息页签下方展示），图纸资料按 关联对象类型=设备 且 关联对象ID=当前设备ID 查询" },
+            { label: "交互逻辑", value: "头部显示设备类型/名称/编码；两个页签切换（基本信息含属性资料/图纸资料），切换页签保留设备，切换设备保留页签；「×」关闭显式选择后继续显示筛选结果第一条" },
             { label: "后续步骤", value: "正式系统：基础信息由设备接口返回，属性由属性管理模块读取模板+实例值，图纸由图纸管理模块按关联关系查询" },
             { label: "权限", value: "管理员/操作人员可查看；属性维护在属性管理模块完成，不在此页提供编辑" },
           ]}

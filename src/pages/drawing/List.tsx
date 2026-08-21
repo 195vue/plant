@@ -19,7 +19,6 @@ import { drawings, equipments, pipelines } from "@/mock";
 import {
   buildStructureTree,
   type TreeNode,
-  type TreeType,
 } from "@/mock/structureTree";
 import type { DocumentItem, Drawing, DrawingVersion } from "@/types";
 import { PageHeader } from "@/components/common/PageHeader";
@@ -164,7 +163,7 @@ const searchFields: SearchField[] = [
   },
 ];
 
-function buildModelCandidates(type: TreeType): ModelLink[] {
+function buildModelCandidates(type: "equipment" | "pipeline"): ModelLink[] {
   const candidates: ModelLink[] = [];
 
   const walk = (nodes: TreeNode[], system = "") => {

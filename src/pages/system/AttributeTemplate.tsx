@@ -1,8 +1,12 @@
 import { useMemo, useState } from "react";
 import {
+  AlertTriangle,
+  ArrowRight,
+  Box,
   Copy,
   Edit3,
   FilePlus2,
+  GitBranch,
   Layers3,
   Plus,
   Search,
@@ -18,6 +22,18 @@ import {
   type AttributeTemplateScope,
   useAttributeTemplates,
 } from "@/lib/attributeTemplateStore";
+import {
+  countPendingUsers,
+  diffNewFields,
+  findPendingUsers,
+  findTemplateUsers,
+  rememberNewFields,
+  type TemplateUserObject,
+} from "@/lib/attributeTemplateImpact";
+import {
+  loadAttributeInstanceValues,
+  saveAttributeInstanceValues,
+} from "@/lib/attributeInstanceStore";
 import { DevNote } from "@/components/devNotes/DevNote";
 
 const createField = (index: number): AttributeTemplateField => ({
@@ -34,10 +50,51 @@ export default function AttributeTemplateManage() {
   const [editing, setEditing] = useState<AttributeTemplateDefinition | null>(
     null,
   );
+  // 编辑时的原模板快照：保存时用于识别新增字段（新增模板为 null）
+  const [editingOld, setEditingOld] =
+    useState<AttributeTemplateDefinition | null>(null);
   const [previewing, setPreviewing] =
     useState<AttributeTemplateDefinition | null>(null);
   const [deleteTarget, setDeleteTarget] =
     useState<AttributeTemplateDefinition | null>(null);
+  // 保存模板后检测到新增字段且存在受影响对象时弹出的变更提醒
+  const [changeAlert, setChangeAlert] = useState<{
+    template: AttributeTemplateDefinition;
+    newFields: AttributeTemplateField[];
+    users: TemplateUserObject[];
+  } | null>(null);
+  const [alertKeyword, setAlertKeyword] = useState("");
+  // 批量填写值：`${scope}:${id}` → 新增字段名 → 值
+  const [fillValues, setFillValues] = useState<
+    Record<string, Record<string, string>>
+  >({});
+  // 模板卡片的"使用对象"清单弹窗
+  const [usageView, setUsageView] = useState<{
+    template: AttributeTemplateDefinition;
+    users: TemplateUserObject[];
+  } | null>(null);
+  const [usageKeyword, setUsageKeyword] = useState("");
+  // 属性实例值变更版本：确认更新/导入后递增，触发待补填统计重新计算
+  const [instanceRevision, setInstanceRevision] = useState(0);
+
+  // 各模板的使用对象统计（与属性管理页同一匹配逻辑，一次性计算）
+  const usersByTemplate = useMemo(() => {
+    const map = new Map<string, TemplateUserObject[]>();
+    templates.forEach((template) =>
+      map.set(template.id, findTemplateUsers(template, templates)),
+    );
+    return map;
+  }, [templates]);
+  // 各模板待补填对象数（新增字段仍有值为空的对象）
+  const pendingCounts = useMemo(() => {
+    const map = new Map<string, number>();
+    templates.forEach((template) => {
+      const users = usersByTemplate.get(template.id) || [];
+      map.set(template.id, countPendingUsers(template, users));
+    });
+    return map;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [templates, usersByTemplate, instanceRevision]);
 
   const filteredTemplates = useMemo(() => {
     const normalizedKeyword = keyword.trim().toLowerCase();
@@ -56,6 +113,7 @@ export default function AttributeTemplateManage() {
 
   const openCreate = () => {
     const defaultScope = scope === "all" ? "equipment" : scope;
+    setEditingOld(null);
     setEditing({
       id: `${defaultScope}-${Date.now()}`,
       scope: defaultScope,
@@ -95,16 +153,90 @@ export default function AttributeTemplateManage() {
     }
 
     const exists = templates.some((template) => template.id === editing.id);
-    setTemplates(
-      exists
-        ? templates.map((template) =>
-            template.id === editing.id ? editing : template,
-          )
-        : [...templates, editing],
-    );
+    const nextTemplates = exists
+      ? templates.map((template) =>
+          template.id === editing.id ? editing : template,
+        )
+      : [...templates, editing];
+    setTemplates(nextTemplates);
     setEditing(null);
+    setEditingOld(null);
+
+    // 编辑场景：保存后检测新增字段，若存在受影响对象则弹出变更提醒
+    const newFields =
+      editingOld && exists ? diffNewFields(editingOld, editing) : [];
+    if (newFields.length > 0) {
+      const users = findTemplateUsers(editing, nextTemplates);
+      if (users.length > 0) {
+        rememberNewFields(
+          editing.id,
+          newFields.map((field) => field.name),
+        );
+        setChangeAlert({ template: editing, newFields, users });
+        setAlertKeyword("");
+        setFillValues({});
+        return;
+      }
+    }
     message.success("属性模板已保存");
   };
+
+  // 跳转属性管理页并定位到指定对象（复用 URL 参数定位能力）
+  const goToAttributeManage = (user: TemplateUserObject) => {
+    const param =
+      user.scope === "equipment" ? `equipId=${user.id}` : `pipelineId=${user.id}`;
+    window.location.hash = `/admin/attribute?tab=${user.scope}&${param}`;
+    setChangeAlert(null);
+    setUsageView(null);
+  };
+
+  // 提醒弹窗内批量填写：写入属性实例值
+  const handleConfirmUpdate = () => {
+    if (!changeAlert) return;
+    const { users, newFields } = changeAlert;
+    let updatedDevices = 0;
+    let updatedPipelines = 0;
+    users.forEach((user) => {
+      const key = `${user.scope}:${user.id}`;
+      const values = { ...loadAttributeInstanceValues(user.scope, user.id) };
+      let changed = false;
+      newFields.forEach((field) => {
+        const value = (fillValues[key]?.[field.name] ?? "").trim();
+        if (value) {
+          values[field.name] = value;
+          changed = true;
+        }
+      });
+      if (changed) {
+        saveAttributeInstanceValues(user.scope, user.id, values);
+        if (user.scope === "equipment") updatedDevices += 1;
+        else updatedPipelines += 1;
+      }
+    });
+    message.success(
+      `属性模板已保存，已为 ${updatedDevices} 台设备、${updatedPipelines} 条管路补充新增属性`,
+    );
+    setChangeAlert(null);
+    setFillValues({});
+    setInstanceRevision((value) => value + 1);
+  };
+
+  // 提醒弹窗内批量填写：对象行值更新
+  const updateFillValue = (
+    user: TemplateUserObject,
+    fieldName: string,
+    value: string,
+  ) => {
+    const key = `${user.scope}:${user.id}`;
+    setFillValues((prev) => ({
+      ...prev,
+      [key]: { ...(prev[key] || {}), [fieldName]: value },
+    }));
+  };
+
+  // 提醒弹窗内批量填写：当前对象该字段的初始值
+  const currentValue = (user: TemplateUserObject, fieldName: string) =>
+    fillValues[`${user.scope}:${user.id}`]?.[fieldName] ?? "";
 
   const copyTemplate = (template: AttributeTemplateDefinition) => {
     const copy: AttributeTemplateDefinition = {
@@ -268,6 +400,51 @@ export default function AttributeTemplateManage() {
                   </span>
                 </div>
 
+                {(usersByTemplate.get(template.id) || []).length > 0 && (
+                  <div className="mb-2 flex items-center justify-between gap-2">
+                    <span className="flex items-center gap-1 text-[11px] text-admin-muted">
+                      <Box
+                        size={11}
+                        className={
+                          template.scope === "equipment" ? "" : "hidden"
+                        }
+                      />
+                      <GitBranch
+                        size={11}
+                        className={template.scope === "pipeline" ? "" : "hidden"}
+                      />
+                      使用{" "}
+                      {
+                        (usersByTemplate.get(template.id) || []).filter(
+                          (user) => user.scope === "equipment",
+                        ).length
+                      }{" "}
+                      台设备 /{" "}
+                      {
+                        (usersByTemplate.get(template.id) || []).filter(
+                          (user) => user.scope === "pipeline",
+                        ).length
+                      }{" "}
+                      条管路
+                    </span>
+                    {(pendingCounts.get(template.id) || 0) > 0 ? (
+                      <button
+                        className="flex items-center gap-1 rounded border border-orange-200 bg-orange-50 px-1.5 py-0.5 text-[11px] font-medium text-orange-600 transition-colors hover:bg-orange-100"
+                        onClick={() => {
+                          const users = usersByTemplate.get(template.id) || [];
+                          setUsageView({
+                            template,
+                            users: findPendingUsers(template, users),
+                          });
+                        }}
+                      >
+                        <AlertTriangle size={11} />
+                        待补充 {pendingCounts.get(template.id) || 0}
+                      </button>
+                    ) : null}
+                  </div>
+                )}
+
                 <div className="overflow-hidden rounded border border-admin-border">
                   <div className="grid grid-cols-[1fr_70px] bg-gray-50 px-2 py-1 text-[10px] text-admin-muted">
                     <span>属性名称</span>
@@ -300,12 +477,13 @@ export default function AttributeTemplateManage() {
                 <div className="mt-3 flex items-center gap-3 border-t border-admin-border pt-2 text-xs">
                   <button
                     className="flex items-center gap-1 text-admin-primary hover:underline"
-                    onClick={() =>
+                    onClick={() => {
+                      setEditingOld(template);
                       setEditing({
                         ...template,
                         fields: template.fields.map((field) => ({ ...field })),
-                      })
-                    }
+                      });
+                    }}
                   >
                     <Edit3 size={12} />
                     编辑模板
@@ -334,12 +512,21 @@ export default function AttributeTemplateManage() {
 
       <Modal
         open={Boolean(editing)}
-        onClose={() => setEditing(null)}
+        onClose={() => {
+          setEditing(null);
+          setEditingOld(null);
+        }}
         title={editing?.name ? `编辑“${editing.name}”` : "新增属性模板"}
         width={760}
         footer={
           <>
-            <button className="btn-default" onClick={() => setEditing(null)}>
+            <button
+              className="btn-default"
+              onClick={() => {
+                setEditing(null);
+                setEditingOld(null);
+              }}
+            >
               取消
             </button>
             <button className="btn-primary" onClick={saveTemplate}>
@@ -397,13 +584,17 @@ export default function AttributeTemplateManage() {
                 <button
                   className="btn-primary flex items-center gap-1 text-xs"
                   onClick={() =>
-                    setEditing({
-                      ...editing,
-                      fields: [
-                        ...editing.fields,
-                        createField(editing.fields.length),
-                      ],
-                    })
+                    setEditing((current) =>
+                      current
+                        ? {
+                            ...current,
+                            fields: [
+                              createField(current.fields.length),
+                              ...current.fields,
+                            ],
+                          }
+                        : current,
+                    )
                   }
                 >
                   <Plus size={12} />
@@ -524,6 +715,314 @@ export default function AttributeTemplateManage() {
           message.success("模板已删除");
         }}
       />
+
+      {/* 模板变更提醒：保存模板后新增字段影响提醒 + 批量补充填写 */}
+      <Modal
+        open={Boolean(changeAlert)}
+        onClose={() => {
+          setChangeAlert(null);
+          setFillValues({});
+        }}
+        title="模板变更提醒"
+        width={1000}
+        maskClosable={false}
+        footer={
+          changeAlert && (
+            <>
+              <button
+                className="btn-default"
+                onClick={() => {
+                  message.success("属性模板已保存");
+                  setChangeAlert(null);
+                  setFillValues({});
+                }}
+              >
+                暂不处理
+              </button>
+              <button className="btn-primary" onClick={handleConfirmUpdate}>
+                确认更新
+              </button>
+            </>
+          )
+        }
+      >
+        {changeAlert && (
+          <div className="space-y-3">
+            <div className="flex items-start gap-2 rounded border border-orange-200 bg-orange-50 px-4 py-3">
+              <AlertTriangle
+                size={15}
+                className="mt-0.5 flex-shrink-0 text-orange-600"
+              />
+              <div className="text-xs leading-5 text-orange-700">
+                该模板被{" "}
+                <b>
+                  {
+                    changeAlert.users.filter(
+                      (user) => user.scope === "equipment",
+                    ).length
+                  }{" "}
+                  台设备 /{" "}
+                  {
+                    changeAlert.users.filter(
+                      (user) => user.scope === "pipeline",
+                    ).length
+                  }{" "}
+                  条管路
+                </b>{" "}
+                使用，新增属性{" "}
+                {changeAlert.newFields.map((field, index) => (
+                  <b key={field.id}>
+                    {index > 0 && "、"}「{field.name}」
+                    {field.unit ? `(${field.unit})` : ""}
+                  </b>
+                ))}{" "}
+                需为这些对象补充填写，可在下方批量填写后确认更新。
+              </div>
+            </div>
+
+            <div className="relative w-64">
+              <Search
+                size={14}
+                className="absolute left-2.5 top-1/2 -translate-y-1/2 text-admin-muted"
+              />
+              <input
+                className="input-base w-full pl-8 text-xs"
+                placeholder="搜索对象名称/KKS编码"
+                value={alertKeyword}
+                onChange={(event) => setAlertKeyword(event.target.value)}
+              />
+            </div>
+
+            <div className="overflow-hidden rounded border border-admin-border">
+              <div className="flex items-center justify-between border-b border-admin-border bg-gray-50 px-3 py-2">
+                <span className="text-xs font-medium text-admin-text">
+                  受影响对象清单与补充填写
+                </span>
+                <span className="text-[10px] text-admin-muted">
+                  共{" "}
+                  {
+                    changeAlert.users.filter(
+                      (user) =>
+                        !alertKeyword.trim() ||
+                        user.name.includes(alertKeyword.trim()) ||
+                        user.code
+                          .toUpperCase()
+                          .includes(alertKeyword.trim().toUpperCase()),
+                    ).length
+                  }{" "}
+                  个对象 · 输入值后点击【确认更新】批量写入
+                </span>
+              </div>
+              <div className="max-h-[360px] overflow-auto">
+                <table className="w-full text-xs">
+                  <thead className="sticky top-0 z-10 bg-gray-50 text-admin-muted">
+                    <tr className="border-b border-admin-border">
+                      <th className="w-14 px-2 py-2 text-left font-medium">
+                        类型
+                      </th>
+                      <th className="w-40 px-2 py-2 text-left font-medium">
+                        对象名称
+                      </th>
+                      <th className="w-32 px-2 py-2 text-left font-medium">
+                        KKS编码
+                      </th>
+                      {changeAlert.newFields.map((field) => (
+                        <th
+                          key={field.id}
+                          className="min-w-[140px] px-2 py-2 text-left font-medium"
+                        >
+                          {field.name}
+                          {field.unit ? `(${field.unit})` : ""}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {changeAlert.users.map((user) => {
+                      const keyword = alertKeyword.trim();
+                      if (
+                        keyword &&
+                        !user.name.includes(keyword) &&
+                        !user.code.toUpperCase().includes(keyword.toUpperCase())
+                      ) {
+                        return null;
+                      }
+                      return (
+                        <tr
+                          key={`${user.scope}:${user.id}`}
+                          className="border-t border-admin-border"
+                        >
+                          <td className="px-2 py-1.5">
+                            <Tag
+                              color={
+                                user.scope === "equipment" ? "blue" : "cyan"
+                              }
+                            >
+                              {user.scope === "equipment" ? "设备" : "管路"}
+                            </Tag>
+                          </td>
+                          <td className="px-2 py-1.5 text-admin-text">
+                            {user.name}
+                          </td>
+                          <td className="px-2 py-1.5 font-mono text-admin-muted">
+                            {user.code}
+                          </td>
+                          {changeAlert.newFields.map((field) => (
+                            <td key={field.id} className="px-2 py-1.5">
+                              <input
+                                className="input-base w-full text-xs"
+                                placeholder="请输入属性值"
+                                value={currentValue(user, field.name)}
+                                onChange={(event) =>
+                                  updateFillValue(
+                                    user,
+                                    field.name,
+                                    event.target.value,
+                                  )
+                                }
+                              />
+                            </td>
+                          ))}
+                        </tr>
+                      );
+                    })}
+                    {changeAlert.users.filter((user) => {
+                      const keyword = alertKeyword.trim();
+                      return (
+                        !keyword ||
+                        user.name.includes(keyword) ||
+                        user.code.toUpperCase().includes(keyword.toUpperCase())
+                      );
+                    }).length === 0 && (
+                      <tr>
+                        <td
+                          colSpan={3 + changeAlert.newFields.length}
+                          className="py-10 text-center text-admin-muted"
+                        >
+                          无匹配对象
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      {/* 模板待补充对象清单：点击卡片"待补充 N"入口打开，可直接跳转属性管理页填写 */}
+      <Modal
+        open={Boolean(usageView)}
+        onClose={() => setUsageView(null)}
+        title={usageView ? `“${usageView.template.name}”待补充对象` : ""}
+        width={680}
+        footer={
+          <button className="btn-default" onClick={() => setUsageView(null)}>
+            关闭
+          </button>
+        }
+      >
+        {usageView && (
+          <div className="space-y-3">
+            <div className="relative w-64">
+              <Search
+                size={14}
+                className="absolute left-2.5 top-1/2 -translate-y-1/2 text-admin-muted"
+              />
+              <input
+                className="input-base w-full pl-8 text-xs"
+                placeholder="搜索对象名称/KKS编码"
+                value={usageKeyword}
+                onChange={(event) => setUsageKeyword(event.target.value)}
+              />
+            </div>
+            <div className="max-h-[400px] overflow-auto rounded border border-admin-border">
+              <table className="w-full text-xs">
+                <thead className="sticky top-0 z-10 bg-gray-50 text-admin-muted">
+                  <tr className="border-b border-admin-border">
+                    <th className="w-14 px-3 py-2 text-left font-medium">
+                      类型
+                    </th>
+                    <th className="px-3 py-2 text-left font-medium">
+                      对象名称
+                    </th>
+                    <th className="px-3 py-2 text-left font-medium">
+                      KKS编码
+                    </th>
+                    <th className="w-20 px-3 py-2 text-center font-medium">
+                      操作
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {usageView.users.map((user) => {
+                    const keyword = usageKeyword.trim();
+                    if (
+                      keyword &&
+                      !user.name.includes(keyword) &&
+                      !user.code.toUpperCase().includes(keyword.toUpperCase())
+                    ) {
+                      return null;
+                    }
+                    return (
+                      <tr
+                        key={`${user.scope}:${user.id}`}
+                        className="border-t border-admin-border"
+                      >
+                        <td className="px-3 py-2">
+                          <Tag
+                            color={
+                              user.scope === "equipment" ? "blue" : "cyan"
+                            }
+                          >
+                            {user.scope === "equipment" ? "设备" : "管路"}
+                          </Tag>
+                        </td>
+                        <td className="px-3 py-2 text-admin-text">
+                          {user.name}
+                        </td>
+                        <td className="px-3 py-2 font-mono text-admin-muted">
+                          {user.code}
+                        </td>
+                        <td className="px-3 py-2 text-center">
+                          <button
+                            className="flex items-center gap-0.5 text-admin-primary hover:underline"
+                            onClick={() => goToAttributeManage(user)}
+                          >
+                            <ArrowRight size={11} />
+                            补充
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                  {usageView.users.filter((user) => {
+                    const keyword = usageKeyword.trim();
+                    return (
+                      !keyword ||
+                      user.name.includes(keyword) ||
+                      user.code.toUpperCase().includes(keyword.toUpperCase())
+                    );
+                  }).length === 0 && (
+                    <tr>
+                      <td
+                        colSpan={4}
+                        className="py-10 text-center text-admin-muted"
+                      >
+                        无匹配对象
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+            <div className="text-[11px] text-admin-muted">
+              点击【补充】跳转属性管理页并定位到该对象，为新增属性补充填写。
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }

@@ -1,9 +1,9 @@
-// 结构树工具模块：设备结构树 + 管路结构树（基于真实电厂KKS编码数据）
+// 结构树工具模块：总结构树（设备+管路合并）+ 设备结构树 + 管路结构树（基于真实电厂KKS编码数据）
 import equipmentRawNodes from './equipmentStructureTree.json';
 import pipelineRawNodes from './pipelineStructureTree.json';
 
 // ===== 类型定义 =====
-export type TreeType = 'equipment' | 'pipeline';
+export type TreeType = 'total' | 'equipment' | 'pipeline';
 
 export interface RawNode {
   id: number;
@@ -41,15 +41,45 @@ const levelMap: Record<string, NodeLevel> = {
 };
 
 // ===== 数据源 =====
+// 归一化 parentId：部分原始数据把父节点对象整体嵌入 parentId 字段，统一取其 id
+const normalizeRaw = (raw: RawNode[]): RawNode[] =>
+  raw.map((n) => ({
+    ...n,
+    parentId: typeof n.parentId === 'number' ? n.parentId : (n.parentId as any)?.id ?? n.parentId,
+  }));
+
+const equipmentNodes = normalizeRaw(equipmentRawNodes as RawNode[]);
+const pipelineNodes = normalizeRaw(pipelineRawNodes as RawNode[]);
+
+// 管路数据 id 整体偏移，避免与设备数据 id 冲突（设备数据最大 id 远小于 10000）
+const PIPELINE_ID_OFFSET = 10000;
+const totalRawNodes: RawNode[] = [
+  ...equipmentNodes,
+  ...pipelineNodes.map((n) => ({
+    ...n,
+    id: n.id + PIPELINE_ID_OFFSET,
+    parentId: n.parentId === 0 ? 0 : n.parentId + PIPELINE_ID_OFFSET,
+  })),
+];
+
 const dataSources: Record<TreeType, RawNode[]> = {
-  equipment: equipmentRawNodes as RawNode[],
-  pipeline: pipelineRawNodes as RawNode[],
+  total: totalRawNodes,
+  equipment: equipmentNodes,
+  pipeline: pipelineNodes,
 };
 
 // 叶子节点类别（用于统计末级数量）
 const leafCategories: Record<TreeType, string[]> = {
+  total: ['设备', '管路'],
   equipment: ['设备'],
   pipeline: ['管路'],
+};
+
+// 原始分类 → 节点分类（总结构树同时包含设备与管路末级节点）
+const rawCategoryToType = (rawCategory: string): TreeNode['category'] => {
+  if (rawCategory === '设备') return 'equipment';
+  if (rawCategory === '管路') return 'pipeline';
+  return 'system';
 };
 
 // ===== 统计每个节点的后代数和设备/管路数 =====
@@ -84,6 +114,7 @@ function computeCounts(raw: RawNode[], leafCats: string[]): Map<number, { descen
 }
 
 const countsCache: Record<TreeType, Map<number, { descendant: number; equipment: number }>> = {
+  total: computeCounts(dataSources.total, leafCategories.total),
   equipment: computeCounts(dataSources.equipment, leafCategories.equipment),
   pipeline: computeCounts(dataSources.pipeline, leafCategories.pipeline),
 };
@@ -109,9 +140,11 @@ export function buildStructureTree(treeType: TreeType = 'equipment'): TreeNode[]
       .map((n) => {
         const c = counts.get(n.id) || { descendant: 0, equipment: 0 };
         const nodeChildren = build(n.id);
-        const category: TreeNode['category'] = leafCats.includes(n.category)
-          ? (treeType === 'equipment' ? 'equipment' : 'pipeline')
-          : 'system';
+        const category: TreeNode['category'] = treeType === 'total'
+          ? rawCategoryToType(n.category)
+          : leafCats.includes(n.category)
+            ? (treeType === 'equipment' ? 'equipment' : 'pipeline')
+            : 'system';
         return {
           id: n.id,
           parentId: n.parentId,
@@ -237,4 +270,60 @@ export function findByKksPrefix(nodes: TreeNode[], prefix: string): TreeNode | n
 // 获取原始数据（供管理页面使用）
 export function getRawNodes(treeType: TreeType = 'equipment'): RawNode[] {
   return dataSources[treeType];
+}
+
+// ===== 勾选派生相关（设备/管路结构树由总结构树勾选生成） =====
+
+// 统计节点总数
+export function countNodes(nodes: TreeNode[]): number {
+  let count = 0;
+  const walk = (arr: TreeNode[]) => {
+    arr.forEach((n) => {
+      count += 1;
+      if (n.children) walk(n.children);
+    });
+  };
+  walk(nodes);
+  return count;
+}
+
+// 收集某节点子树内全部节点ID（含自身）
+export function collectSubtreeIds(nodes: TreeNode[], id: number): number[] {
+  const node = findNode(nodes, id);
+  if (!node) return [];
+  const ids: number[] = [];
+  const walk = (n: TreeNode) => {
+    ids.push(n.id);
+    n.children?.forEach(walk);
+  };
+  walk(node);
+  return ids;
+}
+
+// 根据已勾选的节点集合，从总结构树中提取子树（保留祖先链并重算计数）
+export function buildSubTreeFromNodes(nodes: TreeNode[], selectedNodeIds: Set<number>): TreeNode[] {
+  // 节点是否保留：自身被勾选，或存在被勾选的后代
+  const keep = (n: TreeNode): boolean => {
+    if (selectedNodeIds.has(n.id)) return true;
+    if (n.children) return n.children.some(keep);
+    return false;
+  };
+  const build = (arr: TreeNode[]): TreeNode[] => {
+    const out: TreeNode[] = [];
+    arr.forEach((n) => {
+      if (!keep(n)) return;
+      const children = n.children ? build(n.children) : [];
+      const descendantCount = children.reduce((sum, c) => sum + 1 + c.descendantCount, 0);
+      const equipmentCount = children.reduce((sum, c) => sum + c.equipmentCount, 0) + (children.length === 0 ? 1 : 0);
+      out.push({
+        ...n,
+        childCount: children.length,
+        descendantCount,
+        equipmentCount,
+        children: children.length > 0 ? children : undefined,
+      });
+    });
+    return out;
+  };
+  return build(nodes);
 }

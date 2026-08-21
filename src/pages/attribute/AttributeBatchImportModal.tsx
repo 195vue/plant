@@ -12,14 +12,16 @@ import { message } from "@/components/common/Message";
 import type { AttributeTemplateDefinition } from "@/lib/attributeTemplateStore";
 import {
   applyAttributeBatchRows,
-  downloadAttributeBatchTemplate,
   parseAttributeBatchFile,
   type AttributeBatchImportRow,
 } from "@/lib/attributeBatchImport";
+import AttributeTemplateSelectModal from "@/pages/attribute/AttributeTemplateSelectModal";
 
 interface AttributeBatchImportModalProps {
   open: boolean;
   templates: AttributeTemplateDefinition[];
+  /** 当前页签类型（设备/管路） */
+  scope: "equipment" | "pipeline";
   onClose: () => void;
   onImported: () => void;
 }
@@ -36,6 +38,7 @@ const statusClass: Record<AttributeBatchImportRow["status"], string> = {
 export default function AttributeBatchImportModal({
   open,
   templates,
+  scope,
   onClose,
   onImported,
 }: AttributeBatchImportModalProps) {
@@ -45,6 +48,7 @@ export default function AttributeBatchImportModal({
   const [error, setError] = useState("");
   const [parsing, setParsing] = useState(false);
   const [overwriteExisting, setOverwriteExisting] = useState(false);
+  const [templateSelectOpen, setTemplateSelectOpen] = useState(false);
 
   const summary = useMemo(() => {
     const groups = rows.reduce((result, row) => {
@@ -135,14 +139,15 @@ export default function AttributeBatchImportModal({
   };
 
   return (
-    <Modal
-      open={open}
-      onClose={close}
-      title="属性批量导入"
-      width="1120px"
-      maskClosable={false}
-      footer={
-        <>
+    <>
+      <Modal
+        open={open}
+        onClose={close}
+        title="属性批量导入"
+        width="1120px"
+        maskClosable={false}
+        footer={
+          <>
           <button className="btn-default" onClick={close}>
             取消
           </button>
@@ -161,14 +166,14 @@ export default function AttributeBatchImportModal({
           <div>
             <div className="text-sm font-medium text-blue-800">批量填报流程</div>
             <div className="mt-1 text-xs leading-5 text-blue-700">
-              1. 下载最新模板；2. 从Sheet2复制所需模板行到Sheet1并填写KKS编码和属性值；
-              3. 上传后校验并确认导入。系统只写入内部模板已存在且单位一致的属性。
+              1. 点击“下载最新模板”，勾选需要填写的模板类型；2. 生成的Excel中每个Sheet对应一种模板类型，
+              直接填写设备/管路的KKS编码和各属性值；3. 上传后校验并确认导入。系统只写入内部模板已存在且单位一致的属性。
             </div>
           </div>
           <button
             type="button"
             className="btn-default ml-4 flex flex-shrink-0 items-center gap-1 text-xs"
-            onClick={() => downloadAttributeBatchTemplate(templates)}
+            onClick={() => setTemplateSelectOpen(true)}
           >
             <Download size={13} />
             下载最新模板
@@ -300,6 +305,13 @@ export default function AttributeBatchImportModal({
           </div>
         </div>
       </div>
-    </Modal>
+      </Modal>
+      <AttributeTemplateSelectModal
+        open={templateSelectOpen}
+        templates={templates}
+        scope={scope}
+        onClose={() => setTemplateSelectOpen(false)}
+      />
+    </>
   );
 }

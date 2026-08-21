@@ -1976,3 +1976,157 @@ export const overallStats = {
     { system: "消防水", equipment: 38, pipeline: 8, component: 140 },
   ],
 };
+
+// ===== 大屏左右栏卡片数据 =====
+
+// 管路统计：按系统的管路总长度（m）
+export const pipelineLengthBySystem = [
+  { system: "技术供水", length: 3560.5 },
+  { system: "排水", length: 1820.3 },
+  { system: "气系统", length: 1240.6 },
+  { system: "透平油", length: 860.2 },
+  { system: "消防水", length: 1520.8 },
+];
+
+// 各系统下按管路规格（DN）的累计长度（m）：点击管路柱状图弹窗展示
+export const pipelineSpecBySystem: Record<string, { spec: string; length: number }[]> = {
+  技术供水: [
+    { spec: "DN300", length: 856.0 },
+    { spec: "DN250", length: 620.5 },
+    { spec: "DN200", length: 540.2 },
+    { spec: "DN150", length: 430.8 },
+    { spec: "DN100", length: 380.0 },
+    { spec: "DN80", length: 733.0 },
+  ],
+  排水: [
+    { spec: "DN250", length: 520.3 },
+    { spec: "DN200", length: 460.1 },
+    { spec: "DN150", length: 380.6 },
+    { spec: "DN100", length: 459.3 },
+  ],
+  气系统: [
+    { spec: "DN80", length: 420.6 },
+    { spec: "DN50", length: 380.2 },
+    { spec: "DN40", length: 439.8 },
+  ],
+  透平油: [
+    { spec: "DN50", length: 320.4 },
+    { spec: "DN40", length: 260.1 },
+    { spec: "DN32", length: 279.7 },
+  ],
+  消防水: [
+    { spec: "DN100", length: 620.5 },
+    { spec: "DN80", length: 480.2 },
+    { spec: "DN65", length: 420.1 },
+  ],
+};
+
+// 改造数据统计：按系统的改造次数
+export const reformStatsBySystem = [
+  { system: "技术供水", count: 6 },
+  { system: "排水", count: 3 },
+  { system: "气系统", count: 4 },
+  { system: "透平油", count: 2 },
+  { system: "消防水", count: 5 },
+];
+
+// 各系统改造明细（弹窗列表）：改造时间 / 改造资料
+export const reformDetailsBySystem: Record<
+  string,
+  { time: string; title: string; material: string; unit: string }[]
+> = {
+  技术供水: [
+    { time: "2026-03-15", title: "技术供水主管道扩容改造", material: "1#机组技术供水主管更换为 DN300 无缝钢管", unit: "1#机组" },
+    { time: "2026-01-20", title: "技术供水泵变频改造", material: "1#~2#技术供水泵加装变频调速装置", unit: "1#2#机组" },
+    { time: "2025-11-08", title: "滤水器自动排污改造", material: "技术供水滤水器改造为自动排污控制", unit: "全厂" },
+    { time: "2025-08-30", title: "供水支管阀门更换", material: "分支管路 DN150 不锈钢阀门整体更换", unit: "1#机组" },
+    { time: "2025-05-12", title: "冷却水循环管路改造", material: "机组冷却器进出水支管改造", unit: "2#机组" },
+    { time: "2024-12-05", title: "技术供水系统管路改造", material: "供水母管防腐处理与局部更换", unit: "全厂" },
+  ],
+  排水: [
+    { time: "2026-02-18", title: "厂房排水主管改造", material: "厂房排水主管 UPVC 管道更换", unit: "坝后厂房" },
+    { time: "2025-09-25", title: "渗漏排水泵管路改造", material: "渗漏排水泵出口管路改造", unit: "1#机组" },
+    { time: "2025-04-10", title: "排水支管疏通改造", material: "排水支管坡度调整与疏通", unit: "全厂" },
+  ],
+  气系统: [
+    { time: "2026-05-06", title: "低压气系统管路改造", material: "低压气系统主管扩容改造", unit: "坝后厂房" },
+    { time: "2026-02-11", title: "高压气储气罐管路改造", material: "储气罐连接管更换", unit: "全厂" },
+    { time: "2025-10-22", title: "气系统阀门更换", material: "气系统主管阀门整体更换", unit: "1#机组" },
+    { time: "2025-06-15", title: "制动气压管路改造", material: "机组制动气压管路改造", unit: "2#机组" },
+  ],
+  透平油: [
+    { time: "2026-04-02", title: "透平油供油管路改造", material: "透平油供油主管更换为不锈钢管", unit: "1#机组" },
+    { time: "2025-07-18", title: "油压装置管路改造", material: "油压装置进出油管路改造", unit: "2#机组" },
+  ],
+  消防水: [
+    { time: "2026-06-20", title: "厂区消防主管改造", material: "厂区消防主管整体更换", unit: "厂区" },
+    { time: "2026-03-28", title: "厂房消火栓管路改造", material: "厂房消火栓主管改造", unit: "坝后厂房" },
+    { time: "2025-12-10", title: "消防水泵房管路改造", material: "消防水泵出水母管改造", unit: "全厂" },
+    { time: "2025-08-05", title: "消防支管阀门更换", material: "消防分支管路阀门更换", unit: "1#机组" },
+    { time: "2025-03-22", title: "消防水系统试压整改", material: "消防水系统管路试压与整改", unit: "全厂" },
+  ],
+};
+
+// 技术供水系统用水量（m³）：年（最近12年 2015~2026）/ 月（最近12个月）/ 日（最近30天）
+// date：时间维度的取值（用于选择器 value 与范围过滤）；label：图表横轴展示文本
+export const waterUsageData: Record<
+  "year" | "month" | "day",
+  { date: string; label: string; value: number }[]
+> = {
+  year: [
+    { date: "2015", label: "2015", value: 210.8 },
+    { date: "2016", label: "2016", value: 205.6 },
+    { date: "2017", label: "2017", value: 198.4 },
+    { date: "2018", label: "2018", value: 192.8 },
+    { date: "2019", label: "2019", value: 188.2 },
+    { date: "2020", label: "2020", value: 196.5 },
+    { date: "2021", label: "2021", value: 201.3 },
+    { date: "2022", label: "2022", value: 194.7 },
+    { date: "2023", label: "2023", value: 186.9 },
+    { date: "2024", label: "2024", value: 181.2 },
+    { date: "2025", label: "2025", value: 177.5 },
+    { date: "2026", label: "2026", value: 176.4 },
+  ],
+  month: [
+    { date: "2025-09", label: "2025-09", value: 171.2 },
+    { date: "2025-10", label: "2025-10", value: 168.5 },
+    { date: "2025-11", label: "2025-11", value: 166.3 },
+    { date: "2025-12", label: "2025-12", value: 164.8 },
+    { date: "2026-01", label: "2026-01", value: 163.2 },
+    { date: "2026-02", label: "2026-02", value: 165.9 },
+    { date: "2026-03", label: "2026-03", value: 169.6 },
+    { date: "2026-04", label: "2026-04", value: 175.4 },
+    { date: "2026-05", label: "2026-05", value: 181.3 },
+    { date: "2026-06", label: "2026-06", value: 187.8 },
+    { date: "2026-07", label: "2026-07", value: 190.6 },
+    { date: "2026-08", label: "2026-08", value: 185.2 },
+  ],
+  day: Array.from({ length: 30 }, (_, i) => {
+    const d = new Date(2026, 6, 23 + i); // 2026-07-23 起 30 天
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    const dd = String(d.getDate()).padStart(2, "0");
+    return {
+      date: `${d.getFullYear()}-${mm}-${dd}`,
+      label: `${mm}-${dd}`,
+      value: Number((5.9 + Math.sin(i / 4) * 1.3 + (i % 5) * 0.15).toFixed(1)),
+    };
+  }),
+};
+
+// 节点改造资料（Mock）：选中节点/设备后右侧"改造资料"卡片展示
+export function generateReformRecords(
+  node: TreeNodeData,
+): { time: string; type: string; content: string; unit: string }[] {
+  const unit = node.title;
+  const pools = [
+    { type: "技术改造", contents: ["设备整体更换升级", "关键部件改造"], time: "2026-03-18" },
+    { type: "检修消缺", contents: ["大修后投运验证", "缺陷消除处理"], time: "2026-06-25" },
+    { type: "设备改造", contents: ["控制回路优化改造", "自动化升级改造"], time: "2025-11-12" },
+  ];
+  return pools.map((pool, i) => ({
+    time: pool.time,
+    type: pool.type,
+    content: `${unit}${pool.contents[i % pool.contents.length]}`,
+    unit,
+  }));
+}
