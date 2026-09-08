@@ -68,11 +68,11 @@ export function TopNav({ viewMode, focusMode, onSceneChange }: TopNavProps) {
         {/* 中间 导航区 */}
         <DevNote
           id="screen-topnav-tabs"
-          title="顶部导航（厂区模型/工程总览）"
-          summary="切换工程总览与厂区模型场景；厂区模型内含厂房全景/设备总览/管路总览三个微观视图"
+          title="顶部导航（数字孪生厂区/工程总览）"
+          summary="切换工程总览与数字孪生厂区场景；数字孪生厂区内含厂房全景/设备总览/管路总览三个微观视图"
           items={[
             { label: "数据来源", value: "viewMode（overview/interior）与 focusMode（panorama/equipment/pipeline）由 Screen 页面维护，onSceneChange 回调驱动" },
-            { label: "交互逻辑", value: "点击“厂区模型”→ 进入 interior 且 focusMode=panorama；点击“工程总览”→ 进入 overview；三个微观Tab仅在厂区模型（interior）下显示，点击切换 focusMode 并重置选中节点、右侧切回“统计”Tab" },
+            { label: "交互逻辑", value: "点击“数字孪生厂区”→ 进入 interior 且 focusMode=panorama；点击“工程总览”→ 进入 overview；三个微观Tab仅在数字孪生厂区（interior）下显示，点击切换 focusMode 并重置选中节点、右侧切回“统计”Tab" },
             { label: "场景联动", value: "切换场景时中央三维视图做过渡动画并提示“实际项目中三维相机将平滑切换…”（原型为 message 占位）" },
             { label: "权限", value: "大屏所有已登录用户可见（含浏览人员）" },
             { label: "后续步骤", value: "正式系统：由 UE5 像素流场景切换服务控制相机过渡与场景加载" },
@@ -81,7 +81,7 @@ export function TopNav({ viewMode, focusMode, onSceneChange }: TopNavProps) {
         <div className="flex items-center gap-3 flex-shrink-0">
           <div className="flex items-center gap-1">
             {[
-              { key: "interior", label: "厂区模型", scene: "panorama" as const },
+              { key: "interior", label: "数字孪生厂区", scene: "panorama" as const },
               { key: "overview", label: "工程总览", scene: "overview" as const },
             ].map((tab) => (
               <button

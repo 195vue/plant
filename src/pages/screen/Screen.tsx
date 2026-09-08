@@ -126,6 +126,21 @@ function StatCard({
   );
 }
 
+// 实时流量监测（占位静态数据，后续接入实时数据源后替换）
+const FLOW_TREND = (() => {
+  const base = 425;
+  const times: string[] = [];
+  const values: number[] = [];
+  const deltas = [8, 14, 6, -10, -4, 12, 18, 9, -6, -12, 4, 10, 16, 7, -8, -14, -2, 11, 17, 5, -7, -11, 3, 13, 19, 8, -5, -9, 6, 12];
+  const start = new Date(2026, 8, 4, 10, 0);
+  deltas.forEach((delta, i) => {
+    const d = new Date(start.getTime() + i * 60000);
+    times.push(`${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`);
+    values.push(Number((base + delta + Math.sin(i / 3) * 6).toFixed(1)));
+  });
+  return { times, values, current: values[values.length - 1], total: 12583.4 };
+})();
+
 const RIGHT_TABS = [
   { key: "basic", label: "基础信息" },
   { key: "tech", label: "技术参数" },
@@ -664,6 +679,48 @@ export default function Screen() {
       }],
     };
 
+    const flowOption = {
+      backgroundColor: "transparent",
+      grid: { top: 18, right: 12, bottom: 22, left: 42 },
+      tooltip: { trigger: "axis" },
+      xAxis: {
+        type: "category",
+        boundaryGap: false,
+        data: FLOW_TREND.times,
+        axisLine: { lineStyle: { color: "rgba(64,158,255,0.3)" } },
+        axisLabel: { color: "#8a94a6", fontSize: 9, interval: 4 },
+        axisTick: { show: false },
+      },
+      yAxis: {
+        type: "value",
+        name: "m³/h",
+        nameTextStyle: { color: "#8a94a6", fontSize: 9 },
+        min: 380,
+        max: 480,
+        axisLine: { lineStyle: { color: "rgba(64,158,255,0.3)" } },
+        axisLabel: { color: "#8a94a6", fontSize: 9 },
+        splitLine: { lineStyle: { color: "rgba(64,158,255,0.1)" } },
+        axisTick: { show: false },
+      },
+      series: [{
+        type: "line",
+        smooth: true,
+        symbol: "none",
+        data: FLOW_TREND.values,
+        lineStyle: { color: "#00b4ff", width: 1.6 },
+        itemStyle: { color: "#00b4ff" },
+        areaStyle: {
+          color: {
+            type: "linear", x: 0, y: 0, x2: 0, y2: 1,
+            colorStops: [
+              { offset: 0, color: "rgba(0,180,255,0.35)" },
+              { offset: 1, color: "rgba(0,180,255,0.02)" },
+            ],
+          },
+        },
+      }],
+    };
+
     return (
       <div className="flex flex-col h-full overflow-auto p-2 gap-2">
         {/* 卡片1：设备管路图纸统计 */}
@@ -714,6 +771,31 @@ export default function Screen() {
             }}
           />
           <div className="text-[10px] text-screen-muted mt-0.5">点击柱状图查看该系统改造明细</div>
+        </div>
+
+        {/* 卡片4：实时流量监测（占位，静态展示，后续接入实时数据源） */}
+        <div className="bg-black/30 border border-[#40A9FF]/25 p-2 rounded-none">
+          <div className="text-xs text-[#00b4ff] font-medium mb-1" style={{ textShadow: "0 0 6px rgba(0,180,255,0.5)" }}>
+            实时流量监测
+          </div>
+          <div className="grid grid-cols-2 gap-2 mb-1.5">
+            <div className="bg-black/30 border border-[#40A9FF]/25 p-2">
+              <div className="text-[10px] text-screen-muted">瞬时流量</div>
+              <div className="text-lg font-bold text-[#00b4ff] mt-0.5">
+                {FLOW_TREND.current}
+                <span className="text-[10px] text-screen-muted font-normal ml-1">m³/h</span>
+              </div>
+            </div>
+            <div className="bg-black/30 border border-[#40A9FF]/25 p-2">
+              <div className="text-[10px] text-screen-muted">累计流量</div>
+              <div className="text-lg font-bold text-[#52c41a] mt-0.5">
+                {FLOW_TREND.total}
+                <span className="text-[10px] text-screen-muted font-normal ml-1">m³</span>
+              </div>
+            </div>
+          </div>
+          <ReactECharts option={flowOption} style={{ height: 140 }} />
+          <div className="text-[10px] text-screen-muted mt-0.5">近30分钟流量趋势（当前为静态示例数据，后续接入实时数据源）</div>
         </div>
       </div>
     );
@@ -1492,11 +1574,11 @@ export default function Screen() {
             <DevNote
               id="screen-left-panel"
               title="左侧面板（信息图表/结构导航）"
-              summary="两种模式：信息图表（统计数据与趋势图表）或结构导航（设备/管路结构树），点击侧边按钮切换"
+              summary="两种模式：信息图表（统计数据与趋势图表）或结构导航（设备/管路结构树），点击侧边按钮切换；工程总览下仅显示信息图表，不提供结构树"
               items={[
                 { label: "数据来源", value: "图表模式：screenStats.equipmentTotal/pipelineTotal、ONLINE_COUNT=230、alarms 长度与告警列表（取前5条）、systems 辅机系统列表；结构树模式：按 viewMode/focusMode 选择 overviewTreeData/equipmentTreeData/pipelineTreeData/panoramaTreeData" },
                 { label: "图表内容", value: "统计卡（设备总数/管路总数/在线设备/今日告警）、机组出力趋势、水头/流量监测、告警数量趋势、设备在线率、辅机系统状态（全部标记“运行中”）、实时告警列表" },
-                { label: "交互逻辑", value: "右上角“-”折叠；侧边“结构树/图表”按钮切换模式；结构树点击节点 → handleSelectNode 选中并联动右侧基础信息与中央高亮；图表数据点支持逐层钻取（见钻取弹窗标注）" },
+                { label: "交互逻辑", value: "右上角“-”折叠；侧边“结构树/图表”按钮切换模式（仅数字孪生厂区下可用）；结构树点击节点 → handleSelectNode 选中并联动右侧基础信息与中央高亮；图表数据点支持逐层钻取（见钻取弹窗标注）" },
                 { label: "权限", value: "大屏所有已登录用户可用" },
                 { label: "后续步骤", value: "正式系统：统计值由实时数据服务推送（每5秒刷新），树数据由结构树服务返回" },
               ]}
@@ -1511,25 +1593,27 @@ export default function Screen() {
                 <ChevronLeft size={12} />
               </button>
               <div className="flex-1 overflow-hidden pt-6">
-                {leftPanelMode === "chart"
+                {viewMode === "overview" || leftPanelMode === "chart"
                   ? renderLeftChartContent()
                   : renderLeftTreeContent()}
               </div>
             </div>
             </DevNote>
-            <button
-              onClick={() =>
-                setLeftPanelMode(leftPanelMode === "chart" ? "tree" : "chart")
-              }
-              title={leftPanelMode === "chart" ? "切换到结构树模式" : "切换到图表模式"}
-              className="absolute right-[-18px] top-1/2 -translate-y-1/2 z-20 flex flex-col items-center gap-0.5 px-1 py-2.5 bg-black/70 border border-[#40A9FF]/50 text-[#40A9FF] hover:bg-[#40A9FF]/30 hover:border-[#40A9FF] hover:text-white transition-colors cursor-pointer rounded-none"
-            >
-              <ChevronRight size={10} />
-              <span className="text-xs font-bold leading-tight">
-                {leftPanelMode === "chart" ? "结构树" : "图表"}
-              </span>
-              <span className="text-[10px] text-screen-muted">切换</span>
-            </button>
+            {viewMode !== "overview" && (
+              <button
+                onClick={() =>
+                  setLeftPanelMode(leftPanelMode === "chart" ? "tree" : "chart")
+                }
+                title={leftPanelMode === "chart" ? "切换到结构树模式" : "切换到图表模式"}
+                className="absolute right-[-18px] top-1/2 -translate-y-1/2 z-20 flex flex-col items-center gap-0.5 px-1 py-2.5 bg-black/70 border border-[#40A9FF]/50 text-[#40A9FF] hover:bg-[#40A9FF]/30 hover:border-[#40A9FF] hover:text-white transition-colors cursor-pointer rounded-none"
+              >
+                <ChevronRight size={10} />
+                <span className="text-xs font-bold leading-tight">
+                  {leftPanelMode === "chart" ? "结构树" : "图表"}
+                </span>
+                <span className="text-[10px] text-screen-muted">切换</span>
+              </button>
+            )}
           </div>
         ) : (
           <button

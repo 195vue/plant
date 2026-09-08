@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>body{margin:0;background:#fff}</style>
+</head>
+<body>
+<svg id="er2" width="1200" height="1120" viewBox="0 0 1200 1120" xmlns="http://www.w3.org/2000/svg" font-family="Microsoft YaHei, SimHei, sans-serif">
+<defs>
+<marker id="arr2" markerWidth="12" markerHeight="10" refX="10" refY="4" orient="auto" markerUnits="userSpaceOnUse">
+<path d="M0,0 L11,4 L0,8 Z" fill="#2E75B6"/>
+</marker>
+</defs>
+<rect width="1200" height="1120" fill="#ffffff"/>
+
+<!-- 主干线：管理员（x=430，内侧） -->
+<line x1="430" y1="130" x2="430" y2="970" stroke="#2E75B6" stroke-width="1.8"/>
+<!-- 主干线：操作人员（x=390，外侧） -->
+<line x1="390" y1="150" x2="390" y2="870" stroke="#2E75B6" stroke-width="1.8"/>
+
+<!-- 管理员图标 -->
+<g fill="#2E75B6">
+<circle cx="300" cy="192" r="11"/>
+<path d="M 284 232 L 284 218 Q 284 206 300 206 Q 316 206 316 218 L 316 232 Z"/>
+</g>
+<text x="300" y="272" text-anchor="middle" font-size="24" fill="#000">管理员</text>
+<line x1="330" y1="210" x2="430" y2="210" stroke="#2E75B6" stroke-width="1.8"/>
+
+<!-- 操作人员图标 -->
+<g fill="#2E75B6">
+<circle cx="230" cy="682" r="11"/>
+<path d="M 214 722 L 214 708 Q 214 696 230 696 Q 246 696 246 708 L 246 722 Z"/>
+</g>
+<text x="230" y="762" text-anchor="middle" font-size="24" fill="#000">操作人员</text>
+<line x1="260" y1="700" x2="390" y2="700" stroke="#2E75B6" stroke-width="1.8"/>
+
+<!-- 管理员分支：8条（cy-10） -->
+<line x1="430" y1="130" x2="488" y2="130" stroke="#2E75B6" stroke-width="1.8" marker-end="url(#arr2)"/>
+<line x1="430" y1="250" x2="488" y2="250" stroke="#2E75B6" stroke-width="1.8" marker-end="url(#arr2)"/>
+<line x1="430" y1="370" x2="488" y2="370" stroke="#2E75B6" stroke-width="1.8" marker-end="url(#arr2)"/>
+<line x1="430" y1="490" x2="488" y2="490" stroke="#2E75B6" stroke-width="1.8" marker-end="url(#arr2)"/>
+<line x1="430" y1="610" x2="488" y2="610" stroke="#2E75B6" stroke-width="1.8" marker-end="url(#arr2)"/>
+<line x1="430" y1="730" x2="488" y2="730" stroke="#2E75B6" stroke-width="1.8" marker-end="url(#arr2)"/>
+<line x1="430" y1="850" x2="488" y2="850" stroke="#2E75B6" stroke-width="1.8" marker-end="url(#arr2)"/>
+<line x1="430" y1="970" x2="488" y2="970" stroke="#2E75B6" stroke-width="1.8" marker-end="url(#arr2)"/>
+
+<!-- 操作人员分支：7条（cy+10，不含系统配置） -->
+<line x1="390" y1="150" x2="488" y2="150" stroke="#2E75B6" stroke-width="1.8" marker-end="url(#arr2)"/>
+<line x1="390" y1="270" x2="488" y2="270" stroke="#2E75B6" stroke-width="1.8" marker-end="url(#arr2)"/>
+<line x1="390" y1="390" x2="488" y2="390" stroke="#2E75B6" stroke-width="1.8" marker-end="url(#arr2)"/>
+<line x1="390" y1="510" x2="488" y2="510" stroke="#2E75B6" stroke-width="1.8" marker-end="url(#arr2)"/>
+<line x1="390" y1="630" x2="488" y2="630" stroke="#2E75B6" stroke-width="1.8" marker-end="url(#arr2)"/>
+<line x1="390" y1="750" x2="488" y2="750" stroke="#2E75B6" stroke-width="1.8" marker-end="url(#arr2)"/>
+<line x1="390" y1="870" x2="488" y2="870" stroke="#2E75B6" stroke-width="1.8" marker-end="url(#arr2)"/>
+
+<!-- 8个椭圆 -->
+<ellipse cx="620" cy="140" rx="130" ry="40" fill="#fff" stroke="#000" stroke-width="1.5"/>
+<text x="620" y="148" text-anchor="middle" font-size="22" fill="#000">工作台</text>
+<ellipse cx="620" cy="260" rx="130" ry="40" fill="#fff" stroke="#000" stroke-width="1.5"/>
+<text x="620" y="268" text-anchor="middle" font-size="22" fill="#000">设备数字化</text>
+<ellipse cx="620" cy="380" rx="130" ry="40" fill="#fff" stroke="#000" stroke-width="1.5"/>
+<text x="620" y="388" text-anchor="middle" font-size="22" fill="#000">管道数字化</text>
+<ellipse cx="620" cy="500" rx="130" ry="40" fill="#fff" stroke="#000" stroke-width="1.5"/>
+<text x="620" y="508" text-anchor="middle" font-size="22" fill="#000">结构树管理</text>
+<ellipse cx="620" cy="620" rx="130" ry="40" fill="#fff" stroke="#000" stroke-width="1.5"/>
+<text x="620" y="628" text-anchor="middle" font-size="22" fill="#000">属性管理</text>
+<ellipse cx="620" cy="740" rx="130" ry="40" fill="#fff" stroke="#000" stroke-width="1.5"/>
+<text x="620" y="748" text-anchor="middle" font-size="22" fill="#000">图纸管理</text>
+<ellipse cx="620" cy="860" rx="130" ry="40" fill="#fff" stroke="#000" stroke-width="1.5"/>
+<text x="620" y="868" text-anchor="middle" font-size="22" fill="#000">模型管理</text>
+<ellipse cx="620" cy="980" rx="130" ry="40" fill="#fff" stroke="#000" stroke-width="1.5"/>
+<text x="620" y="988" text-anchor="middle" font-size="22" fill="#000">系统配置</text>
+</svg>
+</body>
+</html>

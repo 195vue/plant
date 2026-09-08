@@ -146,13 +146,6 @@ export function Scene3D({ viewMode, focusMode, selectedNode, onSelectNode, onEnt
     );
   };
 
-  const handleOverviewMarkerClick = (name: string, detail: string) => {
-    onSelectNode?.(name);
-    message.info(
-      `实际项目中：三维相机将飞行定位并高亮“${name}”，右侧将打开${detail}。`
-    );
-  };
-
   const handleFreeRoam = () => {
     if (roamingMode === "free") {
       setRoamingMode("none");
@@ -477,47 +470,11 @@ export function Scene3D({ viewMode, focusMode, selectedNode, onSelectNode, onEnt
         </svg>
       </div>
 
-      {/* 大坝标记 - 点击展示大坝统计信息 */}
-      <DevNote
-        id="scene-overview-dam"
-        title="大坝标记点（工程总览）"
-        summary="工程总览场景中点击大坝标记，展示大坝基础信息与监测数据"
-        items={[
-          { label: "数据来源", value: "静态文案：坝高134m、上游水位608.5m、库容12.3亿m³" },
-          { label: "交互逻辑", value: "点击 → onSelectNode(\"大坝主体\") 选中该节点（右侧切回基础信息），并提示“相机飞行定位并高亮大坝主体，右侧打开大坝基础信息、上下游水位、坝体监测指标及关联告警”" },
-          { label: "联动", value: "选中后中央出现高亮框，右侧面板由“统计信息”切换为“属性信息”5Tab" },
-          { label: "后续步骤", value: "正式系统：点击后 UE5 相机飞行至大坝模型，右侧加载坝体监测面板" },
-          { label: "权限", value: "大屏所有已登录用户可用" },
-        ]}
-        wrapClassName="absolute z-20 top-[38%] left-1/2 -translate-x-1/2"
-      >
-      <div
-        className="cursor-pointer group"
-        onClick={() =>
-          handleOverviewMarkerClick(
-            "大坝主体",
-            "大坝基础信息、上下游水位、坝体监测指标及关联告警"
-          )
-        }
-      >
-        <div className="relative">
-          {/* 发光标记点 */}
-          <div className="w-8 h-8 rounded-full bg-cyan-400/30 animate-ping absolute -inset-2" />
-          <div className="w-4 h-4 rounded-full bg-cyan-400 border-2 border-white shadow-lg shadow-cyan-400/50" />
-          {/* 标签 - 带测点数据 */}
-          <div className="absolute top-6 left-1/2 -translate-x-1/2 whitespace-nowrap bg-black/75 backdrop-blur-sm px-3 py-1.5 border border-[#40A9FF]/30 group-hover:border-cyan-400 transition-colors" style={{ borderRadius: 0 }}>
-            <div className="text-xs text-cyan-300 font-medium">大坝主体 (坝高134m)</div>
-            <div className="text-[10px] text-blue-300/70 mt-0.5">上游水位 608.5m · 库容 12.3亿m³</div>
-          </div>
-        </div>
-      </div>
-      </DevNote>
-
-      {/* 厂房标记 - 点击进入微观场景 */}
+      {/* 厂房标记 - 点击进入数字孪生厂区 */}
       <DevNote
         id="scene-overview-plant"
         title="坝后厂房标记点（工程总览）"
-        summary="点击厂房标记从工程总览进入厂区模型（厂房全景）"
+        summary="点击厂房标记从工程总览进入数字孪生厂区（厂房全景）"
         items={[
           { label: "数据来源", value: "静态文案：4台机组、总出力612.3MW、机组4/4运行" },
           { label: "交互逻辑", value: "点击 → onEnterInterior(\"panorama\")：viewMode 切为 interior、focusMode=panorama，提示“相机从工程总览飞行进入坝后厂房，加载建筑/设备/管网模型并默认定位发电机层”" },
@@ -554,7 +511,7 @@ export function Scene3D({ viewMode, focusMode, selectedNode, onSelectNode, onEnt
 
       {/* 操作提示 */}
       <div className="absolute bottom-[5%] left-1/2 -translate-x-1/2 text-xs text-[#40A9FF]/70 bg-black/60 backdrop-blur-sm px-4 py-1.5 rounded-none border border-cyan-500/20 z-10">
-        点击大坝查看详情 · 点击坝后厂房进入厂区模型
+        点击坝后厂房进入数字孪生厂区
       </div>
     </div>
   );
