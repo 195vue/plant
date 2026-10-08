@@ -48,6 +48,18 @@ import {
 } from "@/mock/structureTree";
 import { dictCategories, dictItems } from "@/mock";
 import { DevNote } from "@/components/devNotes/DevNote";
+import * as XLSX from "xlsx";
+
+// 导入结构列（其余列视为末级节点的属性列）
+const STRUCT_IMPORT_COLUMNS = [
+  "节点名称",
+  "KKS编码",
+  "父节点KKS",
+  "节点分类",
+  "层级",
+  "排序号",
+  "对象类型",
+];
 
 // 层级配置
 const levelConfig: Record<NodeLevel, { label: string; color: any; icon: React.ReactNode }> = {
@@ -79,36 +91,35 @@ const getTreeLeafLabel = (treeType: TreeType) => {
 };
 
 const getTemplateCsv = (treeType: TreeType) => {
+  // 结构列（固定 7 列）+ 属性列（列名即属性名，仅末级设备/管路填写，目录行留空）
+  const header = "节点名称,KKS编码,父节点KKS,节点分类,层级,排序号,对象类型,型号规格,额定功率(kW),材质,生产厂家";
   if (treeType === "total") {
     return [
-      "节点名称,KKS编码,父节点KKS,节点分类,层级,排序号,对象类型",
-      "1号机组,1,,系统目录,一级,1,",
-      "1号机组水泵水轮机,1MFA,1,系统目录,二级,1,",
-      "1号机组转轮,1MFA10HB001,1MFA,设备,四级,1,水泵水轮机",
-      "技术供水系统,1SVA,,系统目录,一级,2,",
-      "1号机冷却水主管,1SVA10BR001A,1SVA10BR001,管路,四级,1,技术供水管路",
+      header,
+      "1号机组,1,,系统目录,一级,1,,,,,",
+      "1号机组水泵水轮机,1MFA,1,系统目录,二级,1,,,,,",
+      "1号机组转轮,1MFA10HB001,1MFA,设备,四级,1,水泵水轮机,HL-XXX-300,300,不锈钢,东方电机",
+      "技术供水系统,1SVA,,系统目录,一级,2,,,,,",
+      "1号机冷却水主管,1SVA10BR001A,1SVA10BR001,管路,四级,1,技术供水管路,DN600,,碳钢,",
     ].join("\n");
   }
   const objectCategory = treeType === "equipment" ? "设备" : "管路";
   const matchType = treeType === "equipment" ? "水泵水轮机" : "技术供水管路";
   const examples = treeType === "equipment"
     ? [
-        "1号机组,1,,系统目录,一级,1,",
-        "1号机组水泵水轮机,1MFA,1,系统目录,二级,1,",
-        "1号机组转动部件,1MFA10,1MFA,系统目录,三级,1,",
-        `1号机组转轮,1MFA10HB001,1MFA10,${objectCategory},四级,1,${matchType}`,
+        "1号机组,1,,系统目录,一级,1,,,,,",
+        "1号机组水泵水轮机,1MFA,1,系统目录,二级,1,,,,,",
+        "1号机组转动部件,1MFA10,1MFA,系统目录,三级,1,,,,,",
+        `1号机组转轮,1MFA10HB001,1MFA10,${objectCategory},四级,1,${matchType},HL-XXX-300,300,不锈钢,东方电机`,
       ]
     : [
-        "技术供水系统,1SVA,,系统目录,一级,1,",
-        "1号机技术供水,1SVA10,1SVA,系统目录,二级,1,",
-        "冷却水支路,1SVA10BR001,1SVA10,系统目录,三级,1,",
-        `冷却水主管,1SVA10BR001A,1SVA10BR001,${objectCategory},四级,1,${matchType}`,
+        "技术供水系统,1SVA,,系统目录,一级,1,,,,,",
+        "1号机技术供水,1SVA10,1SVA,系统目录,二级,1,,,,,",
+        "冷却水支路,1SVA10BR001,1SVA10,系统目录,三级,1,,,,,",
+        `冷却水主管,1SVA10BR001A,1SVA10BR001,${objectCategory},四级,1,${matchType},DN600,,碳钢,`,
       ];
 
-  return [
-    "节点名称,KKS编码,父节点KKS,节点分类,层级,排序号,对象类型",
-    ...examples,
-  ].join("\n");
+  return [header, ...examples].join("\n");
 };
 
 // ===== 总结构树更新辅助函数（不可变更新，新增/编辑/删除后自动重算统计） =====
@@ -308,6 +319,7 @@ export default function StructureTreeManage() {
   const [importOpen, setImportOpen] = useState(false);
   const [importFile, setImportFile] = useState<File | null>(null);
   const [importPreview, setImportPreview] = useState<any[]>([]);
+  const [importAttrColumns, setImportAttrColumns] = useState<string[]>([]);
   const importFileRef = useRef<HTMLInputElement>(null);
 
   const matchKeys = useMemo(() => collectMatchKeys(displayTree, keyword), [keyword, displayTree]);
@@ -524,32 +536,100 @@ export default function StructureTreeManage() {
     setImportOpen(true);
     setImportFile(null);
     setImportPreview([]);
+    setImportAttrColumns([]);
   };
 
+  // 解析导入文件（CSV/XLSX）：识别结构列，其余列作为末级节点属性列
   const handleImportFileChange = (file: File | null) => {
     setImportFile(file);
-    if (file) {
-      const sample = treeType === "equipment"
-        ? [
-            { name: "3号机组", kks: "3", parentKks: "", category: "系统目录", level: "一级", sort: 3, status: "可导入" },
-            { name: "3号机组水泵水轮机", kks: "3MFA", parentKks: "3", category: "系统目录", level: "二级", sort: 1, status: "可导入" },
-            { name: "3号机组转轮", kks: "3MFA10HB001", parentKks: "3MFA", category: "设备", level: "四级", sort: 1, matchType: "水泵水轮机", status: "可导入" },
-          ]
-        : treeType === "total"
-        ? [
-            { name: "3号机组", kks: "3", parentKks: "", category: "系统目录", level: "一级", sort: 3, status: "可导入" },
-            { name: "3号机组水泵水轮机", kks: "3MFA", parentKks: "3", category: "系统目录", level: "二级", sort: 1, status: "可导入" },
-            { name: "3号机组转轮", kks: "3MFA10HB001", parentKks: "3MFA", category: "设备", level: "四级", sort: 1, matchType: "水泵水轮机", status: "可导入" },
-            { name: "3号机冷却水主管", kks: "3SVA10BR001", parentKks: "3SVA10", category: "管路", level: "四级", sort: 1, matchType: "技术供水管路", status: "可导入" },
-          ]
-        : [
-            { name: "技术供水系统", kks: "3SVA", parentKks: "", category: "系统目录", level: "一级", sort: 3, status: "可导入" },
-            { name: "3号机技术供水", kks: "3SVA10", parentKks: "3SVA", category: "系统目录", level: "二级", sort: 1, status: "可导入" },
-            { name: "3号机冷却水主管", kks: "3SVA10BR001", parentKks: "3SVA10", category: "管路", level: "四级", sort: 1, matchType: "技术供水管路", status: "可导入" },
-          ];
-      setImportPreview(sample);
-      message.success(`已读取文件「${file.name}」，共 ${sample.length} 条待导入数据`);
-    }
+    setImportPreview([]);
+    setImportAttrColumns([]);
+    if (!file) return;
+
+    const isExcel = /\.(xlsx|xls)$/i.test(file.name);
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const data = e.target?.result;
+        const workbook = isExcel
+          ? XLSX.read(new Uint8Array(data as ArrayBuffer), { type: "array" })
+          : XLSX.read(String(data || ""), { type: "string" });
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        if (!sheet) {
+          message.error("文件内容为空或无法解析");
+          return;
+        }
+        const rawRows = XLSX.utils.sheet_to_json<Record<string, any>>(sheet, {
+          defval: "",
+          raw: false,
+        });
+        const headers = Object.keys(rawRows[0] || {});
+        // 结构列之外的列视为属性列（列名即属性名）
+        const attrColumns = headers.filter(
+          (h) => !STRUCT_IMPORT_COLUMNS.includes(String(h).trim()),
+        );
+        const cell = (row: Record<string, any>, key: string) =>
+          String(row[key] ?? "").trim();
+
+        const preview = rawRows
+          .map((row) => {
+            const attributes: Record<string, string> = {};
+            attrColumns.forEach((col) => {
+              const value = cell(row, col);
+              if (value) attributes[col] = value;
+            });
+            return {
+              name: cell(row, "节点名称"),
+              kks: cell(row, "KKS编码"),
+              parentKks: cell(row, "父节点KKS"),
+              category: cell(row, "节点分类"),
+              level: cell(row, "层级"),
+              sort: Number(cell(row, "排序号")) || 1,
+              matchType: cell(row, "对象类型"),
+              attributes,
+              status: "可导入",
+            };
+          })
+          .filter((row) => row.name || row.kks);
+
+        // 状态校验：必填项 / 文件内KKS重复 / 父节点缺失（父节点须存在于文件或现有总树）
+        const existKks = new Set<string>();
+        const walkKks = (ns: TreeNode[]) =>
+          ns.forEach((n) => {
+            existKks.add(n.kks.toUpperCase());
+            if (n.children) walkKks(n.children);
+          });
+        walkKks(totalTree);
+        const fileKks = new Set(preview.map((r) => r.kks.toUpperCase()));
+        const seen = new Set<string>();
+        preview.forEach((row) => {
+          const kksKey = row.kks.toUpperCase();
+          if (!row.name) row.status = "缺少节点名称";
+          else if (!row.kks) row.status = "缺少KKS编码";
+          else if (seen.has(kksKey)) row.status = "KKS重复";
+          else if (
+            row.parentKks &&
+            !existKks.has(row.parentKks.toUpperCase()) &&
+            !fileKks.has(row.parentKks.toUpperCase())
+          )
+            row.status = "父节点缺失";
+          if (row.kks) seen.add(kksKey);
+        });
+
+        setImportPreview(preview);
+        setImportAttrColumns(attrColumns);
+        const importable = preview.filter((r) => r.status === "可导入").length;
+        message.success(
+          `已读取文件「${file.name}」，共 ${preview.length} 条（可导入 ${importable} 条${
+            attrColumns.length > 0 ? `，识别属性列 ${attrColumns.length} 个` : ""
+          }）`,
+        );
+      } catch {
+        message.error("文件解析失败，请确认格式为 .csv / .xlsx");
+      }
+    };
+    if (isExcel) reader.readAsArrayBuffer(file);
+    else reader.readAsText(file, "utf-8");
   };
 
   const handleConfirmImport = () => {
@@ -569,11 +649,18 @@ export default function StructureTreeManage() {
       importPreview.forEach((row: any) => {
         if (row.status !== "可导入" || !row.kks) return;
         const matchType = row.matchType?.trim() || undefined;
+        const attrs =
+          row.attributes && Object.keys(row.attributes).length > 0
+            ? (row.attributes as Record<string, string>)
+            : undefined;
         const existing = findNodeByKks(nextTree, row.kks);
         if (existing) {
-          // 已存在节点：导入行带对象类型则覆盖更新（批量维护对象类型），空值保持原状
-          if (matchType && existing.matchType !== matchType) {
-            nextTree = patchNode(nextTree, existing.id, { matchType });
+          // 已存在节点：导入行带对象类型/属性则覆盖更新（批量维护），空值保持原状
+          const patch: Partial<TreeNode> = {};
+          if (matchType && existing.matchType !== matchType) patch.matchType = matchType;
+          if (attrs) patch.attributes = { ...(existing.attributes || {}), ...attrs };
+          if (Object.keys(patch).length > 0) {
+            nextTree = patchNode(nextTree, existing.id, patch);
             updated += 1;
           }
           return;
@@ -595,6 +682,7 @@ export default function StructureTreeManage() {
           kks: row.kks,
           sort: row.sort || 1,
           matchType,
+          attributes: attrs,
           childCount: 0,
           descendantCount: 0,
           equipmentCount: category === "equipment" || category === "pipeline" ? 1 : 0,
@@ -607,7 +695,7 @@ export default function StructureTreeManage() {
       });
       setTotalTree(nextTree);
       message.success(
-        `导入完成：新增 ${added} 个节点，更新 ${updated} 个节点对象类型`
+        `导入完成：新增 ${added} 个节点，更新 ${updated} 个节点（对象类型/属性）`
       );
     } else {
       message.success(`导入成功，共新增 ${importPreview.length} 个节点`);
@@ -1273,10 +1361,10 @@ export default function StructureTreeManage() {
         <DevNote
           id="structure-import-modal"
           title="批量导入结构树弹窗"
-          summary="通过CSV/XLSX批量导入节点，导入前可预览校验结果"
+          summary="通过CSV/XLSX批量导入节点及其末级属性，导入前可预览校验结果"
           items={[
-            { label: "校验规则", value: "支持 .csv/.xlsx；单次最多500条；必填列：节点名称/父节点KKS；KKS编码不可重复；模板列：节点名称/KKS编码/父节点KKS/节点分类/层级/排序号/对象类型（对象类型填写模板库「自动匹配类型」，用于批量维护对象类型）" },
-            { label: "交互逻辑", value: "选择文件后解析生成导入预览（名称/KKS/父节点KKS/分类/层级/对象类型/状态可导入）；底部显示“N条可导入”；确认导入 → 已存在KKS的节点若带对象类型则覆盖更新，不存在则新增节点；提示“新增N个节点，更新M个节点对象类型”；下载模板 → 生成带对象类型列的结构树导入模板.csv" },
+            { label: "校验规则", value: "支持 .csv/.xlsx；单次最多500条；结构列：节点名称/KKS编码/父节点KKS/节点分类/层级/排序号/对象类型，其余列（列名即属性名）视为末级节点属性列；必填：节点名称/KKS编码；文件内KKS不可重复；父节点KKS须存在于文件或现有总树" },
+            { label: "交互逻辑", value: "选择文件后解析生成导入预览（名称/KKS/父节点KKS/分类/层级/对象类型/属性数）；确认导入 → 已存在KKS的节点带对象类型/属性则覆盖更新，不存在则新增，属性写入末级节点（仅设备/管路末级有属性）；提示“新增N个节点，更新M个节点（对象类型/属性）”；导入后在右侧节点详情可查看属性" },
             { label: "后续步骤", value: "正式系统：服务端校验KKS唯一性与父子关系并批量写入" },
             { label: "权限", value: "管理员/操作人员" },
           ]}
@@ -1291,9 +1379,10 @@ export default function StructureTreeManage() {
               <ul className="text-[11px] text-admin-muted space-y-1.5">
                 <li>• 支持 <b>.csv / .xlsx</b> 格式</li>
                 <li>• 单次最多导入 500 条</li>
-                <li>• 需包含必填列：<br />节点名称 / 父节点KKS</li>
+                <li>• 需包含必填列：<br />节点名称 / KKS编码</li>
                 <li>• KKS编码不可重复</li>
                 <li>• 父节点KKS为空表示根节点</li>
+                <li>• 结构列之外的列＝属性列<br />（列名即属性名，仅末级设备/管路填写）</li>
               </ul>
               <button className="btn-success text-xs w-full mt-3 flex items-center justify-center gap-1" onClick={handleDownloadTemplate}>
                 <Download size={12} /> 下载导入模板
@@ -1315,7 +1404,12 @@ export default function StructureTreeManage() {
                 <div className="text-xs font-medium text-admin-text flex items-center gap-1">
                   <Eye size={13} /> 导入预览（{importPreview.length} 条）
                 </div>
-                <Tag color="green">{importPreview.filter(p => p.status === "可导入").length} 条可导入</Tag>
+                <div className="flex items-center gap-2">
+                  {importAttrColumns.length > 0 && (
+                    <span className="text-[11px] text-admin-muted">属性列 {importAttrColumns.length} 个</span>
+                  )}
+                  <Tag color="green">{importPreview.filter(p => p.status === "可导入").length} 条可导入</Tag>
+                </div>
               </div>
               <div className="border border-admin-border rounded overflow-hidden max-h-[260px] overflow-y-auto">
                 <table className="w-full text-xs">
@@ -1328,6 +1422,7 @@ export default function StructureTreeManage() {
                       <th className="px-3 py-2 text-left text-admin-muted font-medium border-b border-admin-border">分类</th>
                       <th className="px-3 py-2 text-left text-admin-muted font-medium border-b border-admin-border">层级</th>
                       <th className="px-3 py-2 text-left text-admin-muted font-medium border-b border-admin-border">对象类型</th>
+                      <th className="px-3 py-2 text-left text-admin-muted font-medium border-b border-admin-border">属性</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1340,6 +1435,13 @@ export default function StructureTreeManage() {
                         <td className="px-3 py-1.5"><Tag color={treeType === "equipment" ? "green" : "cyan"}>{row.category}</Tag></td>
                         <td className="px-3 py-1.5"><Tag color={row.level === "一级" ? "blue" : row.level === "二级" ? "cyan" : row.level === "三级" ? "purple" : "orange"}>{row.level}</Tag></td>
                         <td className="px-3 py-1.5">{row.matchType || <span className="text-admin-muted">-</span>}</td>
+                        <td className="px-3 py-1.5">
+                          {Object.keys(row.attributes || {}).length > 0 ? (
+                            <Tag color="purple">{Object.keys(row.attributes).length} 项</Tag>
+                          ) : (
+                            <span className="text-admin-muted">-</span>
+                          )}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -1778,6 +1880,9 @@ function NodeDetailPanel({
   }, [path, node]);
   const leafLabel2 = treeType === "total" ? "末级节点" : treeType === "equipment" ? "末级设备" : "末级管路";
   const leafUnit2 = treeType === "total" ? "个" : treeType === "equipment" ? "台" : "条";
+  // 属性信息：仅末级设备/管路维护，来自结构树属性表格批量导入
+  const attrEntries = Object.entries(node.attributes || {});
+  const isLeafObject = node.category === "equipment" || node.category === "pipeline";
 
   return (
     <DevNote
@@ -1785,7 +1890,7 @@ function NodeDetailPanel({
       title="右侧节点详情面板"
       summary="展示选中节点的路径、基础信息、直接子节点与操作入口"
       items={[
-        { label: "数据来源", value: "node（当前选中节点）与 path（节点路径链，getNodePath）；基础信息含 名称/KKS/层级（含同级数）/分类/排序号/直接子节点数/后代数/末级设备或管路数" },
+        { label: "数据来源", value: "node（当前选中节点）与 path（节点路径链，getNodePath）；基础信息含 名称/KKS/层级（含同级数）/分类/排序号/直接子节点数/后代数/末级设备或管路数；末级节点（设备/管路）额外展示从结构树属性表格导入的属性信息" },
         { label: "交互逻辑", value: "无选中时显示“请选择节点查看详情”；有选中时头部显示图标+名称+KKS；面包屑路径；直接子节点列表（可点击进入下级，显示KKS/名称/数量/层级Tag）；L4节点无“新增子节点”按钮" },
         { label: "底部操作", value: readOnly ? "只读视图：设备/管路结构树由总结构树勾选生成，仅可查看节点信息，无增删改入口" : "新增子节点（L1-L3）/编辑节点/删除节点（删除提示含N个子节点一并删除）" },
         { label: "使用说明", value: "固定提示：四级且分类为设备/管路=可关联末级节点；系统目录=仅分类用；修改结构树会同步影响设备数字化/管道数字化页筛选" },
@@ -1852,6 +1957,33 @@ function NodeDetailPanel({
             </div>
           </div>
         </div>
+
+        {/* 属性信息：仅末级节点（设备/管路）维护，来自批量导入的结构树属性表格 */}
+        {(isLeafObject || attrEntries.length > 0) && (
+          <div>
+            <div className="text-xs font-medium text-admin-text mb-2 flex items-center justify-between">
+              <span>属性信息{attrEntries.length > 0 ? `（${attrEntries.length}）` : ""}</span>
+              <span className="text-[11px] text-admin-muted">仅末级设备/管路</span>
+            </div>
+            {attrEntries.length > 0 ? (
+              <div className="border border-admin-border rounded overflow-hidden text-xs">
+                {attrEntries.map(([key, value], idx) => (
+                  <div
+                    key={key}
+                    className={`grid grid-cols-[auto_1fr] ${idx > 0 ? "border-t border-admin-border" : ""}`}
+                  >
+                    <div className="p-2 bg-gray-50/60 text-admin-muted text-right min-w-[110px]">{key}</div>
+                    <div className="p-2 break-all">{value}</div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="border border-dashed border-admin-border rounded p-3 text-center text-[11px] text-admin-muted">
+                暂无属性，可通过「批量导入」上传结构树属性表格（Excel）导入
+              </div>
+            )}
+          </div>
+        )}
 
         {/* 直接子节点列表 */}
         {node.children && node.children.length > 0 && (

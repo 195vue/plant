@@ -99,7 +99,14 @@ export default function AttributeManage() {
   const requestedObject = Number.isFinite(requestedId)
     ? filteredObjects.find((item) => item.id === requestedId)
     : null;
-  const selectedObject = requestedObject || filteredObjects[0] || null;
+  // 点击结构树末级节点：优先显示与该节点 KKS 精确匹配的对象（而非范围过滤后的第一条）
+  const kksMatchedObject = treeFilter?.kks
+    ? objects.find(
+        (item) => item.code.toUpperCase() === treeFilter.kks.toUpperCase(),
+      )
+    : null;
+  const selectedObject =
+    requestedObject || kksMatchedObject || filteredObjects[0] || null;
 
   const classifier = selectedObject
     ? getObjectClassifier(tab, selectedObject)

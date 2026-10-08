@@ -20,6 +20,9 @@ import AttributeManage from "@/pages/AttributeManage";
 // 图纸管理
 import DrawingList from "@/pages/drawing/List";
 
+// 模型管理
+import ModelList from "@/pages/model/List";
+
 // 系统配置
 import OrgManage from "@/pages/system/Org";
 import PositionManage from "@/pages/system/Position";
@@ -83,6 +86,9 @@ export default function App() {
 
           {/* 图纸管理 */}
           <Route path="drawing" element={<DrawingList />} />
+
+          {/* 模型管理 */}
+          <Route path="model" element={<ModelList />} />
 
           {/* 系统配置 */}
           <Route path="system/org" element={<Navigate to="/admin/system/department" replace />} />

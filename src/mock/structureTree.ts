@@ -27,6 +27,7 @@ export interface TreeNode {
   kks: string;
   sort: number;
   matchType?: string;   // 对象类型（设备类型/管路用途），在结构树管理中维护，用于属性模板自动匹配
+  attributes?: Record<string, string>; // 末级节点属性（仅设备/管路末级维护，随结构树持久化）
   childCount: number;     // 直接子节点数
   descendantCount: number; // 所有后代数
   equipmentCount: number;  // 末级设备/管路数

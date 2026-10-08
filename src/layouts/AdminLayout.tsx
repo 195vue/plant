@@ -24,6 +24,7 @@ import {
   ClipboardList,
   LogIn,
   X,
+  Boxes,
 } from "lucide-react";
 import { useAuthStore } from "@/store/auth";
 import { ConfirmModal } from "@/components/common/Modal";
@@ -115,6 +116,12 @@ export function AdminLayout() {
       ],
     },
     {
+      key: "model",
+      label: "模型管理",
+      icon: <Boxes size={18} />,
+      path: "/admin/model",
+    },
+    {
       key: "drawing",
       label: "图纸管理",
       icon: <FileText size={18} />,
@@ -197,6 +204,7 @@ export function AdminLayout() {
     if (menu.key === "screen") return true;
     if (menu.key === "dashboard") return true;
     if (menu.key === "digital") return true;
+    if (menu.key === "model") return true;
     if (menu.key === "drawing") return true;
     return hasPermission(menu.key);
   });
