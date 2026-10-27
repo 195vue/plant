@@ -1,10 +1,15 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import ReactECharts from "echarts-for-react";
-import { ChevronLeft, ChevronRight, FileText, Play } from "lucide-react";
+import { ChevronLeft, ChevronRight, FileText, Play, Droplets } from "lucide-react";
 import { useAuthStore } from "@/store/auth";
 import { TopNav } from "@/components/screen/TopNav";
-import { Scene3D } from "@/components/screen/Scene3D";
+import {
+  Scene3D,
+  pipelineSystems,
+  resolvePipelineSystem,
+  type PlayPathRequest,
+} from "@/components/screen/Scene3D";
 import { BottomBar } from "@/components/screen/BottomBar";
 import { TreePanel, type TreeNodeData } from "@/components/common/TreePanel";
 import DrillDownModal, {
@@ -34,12 +39,25 @@ import {
   waterUsageData,
   generateReformRecords,
 } from "@/mock/screen";
-import { systems, alarms, screenStats, roamingPaths } from "@/mock/index";
+import { systems, alarms, screenStats } from "@/mock/index";
 import type { RoamingPath } from "@/types";
+import { useRoamingPaths } from "@/lib/roamingPaths";
 import { DevNote } from "@/components/devNotes/DevNote";
 
 const ONLINE_COUNT = 230;
 const OFFLINE_COUNT = 18;
+
+// 管路运行数据（原型模拟，正式系统由实时测点推送）
+const PIPE_RUNTIME: Record<
+  string,
+  { flow: string; pressure: string; direction: string }
+> = {
+  技术供水主管: { flow: "320m³/h", pressure: "0.80MPa", direction: "正向 →" },
+  排水主管: { flow: "180m³/h", pressure: "0.12MPa", direction: "反向 ←" },
+  气系统主管: { flow: "—", pressure: "0.65MPa", direction: "正向 →" },
+  透平油主管: { flow: "45m³/h", pressure: "0.35MPa", direction: "正向 →" },
+  消防水主管: { flow: "0m³/h", pressure: "0.50MPa", direction: "待命" },
+};
 
 function inferTemplateClassifier(
   scope: AttributeTemplateScope,
@@ -214,7 +232,21 @@ export default function Screen() {
     start: waterUsageData.month[0].date,
     end: waterUsageData.month[waterUsageData.month.length - 1].date,
   }));
-  const [roamingPlay, setRoamingPlay] = useState<RoamingPath | null>(null);
+  // 漫游路线（与后台漫游路线管理页共享 localStorage 数据）
+  const pathList = useRoamingPaths();
+  const [playPathRequest, setPlayPathRequest] = useState<PlayPathRequest | null>(null);
+  // 已开启水流的管路系统（按单个模型 / 按系统控制，无全局开关）
+  const [waterOnSystems, setWaterOnSystems] = useState<string[]>([]);
+
+  const handlePlayPath = (path: RoamingPath) => {
+    setPlayPathRequest({ path, token: Date.now() });
+  };
+
+  const handleWaterSystemToggle = (name: string) => {
+    setWaterOnSystems((prev) =>
+      prev.includes(name) ? prev.filter((item) => item !== name) : [...prev, name]
+    );
+  };
 
   const [drillDownOpen, setDrillDownOpen] = useState(false);
   const [drillDownData, setDrillDownData] = useState<DrillDownSession | null>(null);
@@ -1345,10 +1377,10 @@ export default function Screen() {
         {/* 卡片1：漫游路径（与工具栏漫游路径组件保持一致） */}
         <div className="bg-black/30 border border-[#40A9FF]/25 p-2 rounded-none">
           <div className="text-xs text-[#40A9FF] font-medium mb-2" style={{ textShadow: "0 0 6px rgba(64,169,255,0.5)" }}>
-            漫游路径（{roamingPaths.length}）
+            漫游路径（{pathList.length}）
           </div>
           <div className="space-y-1">
-            {roamingPaths.map((path) => (
+            {pathList.map((path) => (
               <div key={path.id} className="bg-black/30 border border-[#40A9FF]/20 px-2 py-1.5 text-xs rounded-none">
                 <div className="flex items-center justify-between gap-2">
                   <div className="min-w-0 flex-1">
@@ -1359,15 +1391,11 @@ export default function Screen() {
                       </span>
                     </div>
                     <div className="text-screen-muted mt-0.5 truncate" title={path.description}>
-                      {path.description}
+                      {path.description || `约${path.duration}秒`}
                     </div>
                   </div>
                   <button
-                    onClick={() =>
-                      message.info(
-                        `实际项目中：将按“${path.name}”的关键帧自动飞行，依次经过设定对象，并按各节点设置的朝向、速度和停留时长播放（约${path.duration}秒）。`,
-                      )
-                    }
+                    onClick={() => handlePlayPath(path)}
                     title="播放路径"
                     className="flex-shrink-0 text-[#40A9FF] hover:text-white hover:bg-[#40A9FF]/20 p-1 rounded-none transition-colors"
                   >
@@ -1491,12 +1519,66 @@ export default function Screen() {
     );
   };
 
-  // 右侧栏：选中节点后展示 3 张卡片（图纸统计 / 属性资料 / 改造资料）
+  // 右侧栏：选中节点后展示卡片（管路节点追加运行状态卡）
   const renderRightNodeCards = () => {
     const nodeDocs = nodeInfo?.documents || [];
     const nodeReforms = generateReformRecords(selectedNode!);
+    const waterSystemName = resolvePipelineSystem(selectedNode!.title);
+    const runtime = waterSystemName ? PIPE_RUNTIME[waterSystemName] : undefined;
+    const waterOn = waterSystemName
+      ? waterOnSystems.includes(waterSystemName)
+      : false;
     return (
       <div className="flex flex-col h-full overflow-auto p-2 gap-2">
+        {/* 卡片0：运行状态（仅管路节点） */}
+        {selectedNode!.type === "component" && (
+          <div className="bg-black/30 border border-[#13C2C2]/30 p-2 rounded-none">
+            <div className="flex items-center justify-between mb-1.5">
+              <span
+                className="text-xs text-[#13C2C2] font-medium"
+                style={{ textShadow: "0 0 6px rgba(19,194,194,0.5)" }}
+              >
+                运行状态
+              </span>
+              <button
+                onClick={() => {
+                  if (!waterSystemName) {
+                    message.info("该管件暂未关联水流系统，正式系统需在模型上绑定所属管路系统。");
+                    return;
+                  }
+                  handleWaterSystemToggle(waterSystemName);
+                }}
+                className={`flex items-center gap-1 border px-1.5 py-0.5 text-[10px] transition-colors ${
+                  waterOn
+                    ? "border-cyan-400/60 bg-cyan-500/20 text-cyan-300"
+                    : "border-[#40A9FF]/25 text-screen-muted hover:text-white"
+                }`}
+              >
+                <Droplets size={11} />
+                {waterOn ? "水流开启" : "水流关闭"}
+              </button>
+            </div>
+            <div className="grid grid-cols-2 gap-1.5 text-xs">
+              <div className="bg-black/30 px-2 py-1">
+                <div className="text-[10px] text-screen-muted">流量</div>
+                <div className="text-screen-text">{runtime?.flow ?? "—"}</div>
+              </div>
+              <div className="bg-black/30 px-2 py-1">
+                <div className="text-[10px] text-screen-muted">压力</div>
+                <div className="text-screen-text">{runtime?.pressure ?? "—"}</div>
+              </div>
+              <div className="col-span-2 bg-black/30 px-2 py-1 flex items-center justify-between">
+                <span className="text-[10px] text-screen-muted">流向</span>
+                <span className="text-screen-text">{runtime?.direction ?? "—"}</span>
+              </div>
+            </div>
+            <div className="mt-1 text-[10px] text-screen-muted">
+              所属系统：{waterSystemName ?? "未关联"} · 水流状态：
+              {waterOn ? "流动" : "静止"}
+            </div>
+          </div>
+        )}
+
         {/* 卡片1：图纸统计（列表展示当前节点图纸，点击条目弹窗展示） */}
         <div className="bg-black/30 border border-[#40A9FF]/25 p-2 rounded-none">
           <div className="text-xs text-[#40A9FF] font-medium mb-2" style={{ textShadow: "0 0 6px rgba(64,169,255,0.5)" }}>
@@ -1632,19 +1714,23 @@ export default function Screen() {
           selectedNode={selectedNode}
           onSelectNode={handleSceneSelectNode}
           onEnterInterior={(focus) => handleEnterInterior(focus)}
+          waterOnSystems={waterOnSystems}
+          onWaterSystemToggle={handleWaterSystemToggle}
+          playPathRequest={playPathRequest}
         />
 
         {rightPanelVisible ? (
           <DevNote
             id="screen-right-panel"
             title="右侧面板（大屏数据/节点信息）"
-            summary="未选中节点时展示 3 张卡片：漫游路径/用水量统计/告警信息；选中设备或管路后替换为 3 张卡片：图纸统计/属性资料/改造资料"
+            summary="未选中节点时展示 3 张卡片：漫游路径/用水量统计/告警信息；选中设备后为 3 张卡片（图纸统计/属性资料/改造资料），选中管路节点时追加“运行状态”卡片"
             items={[
-              { label: "默认卡片", value: "漫游路径：展示全部漫游路径（roamingPaths，与工具栏漫游路径组件一致，点击播放提示自动飞行）；用水量统计：技术供水系统用水量（年/月/日快捷选择器 + 自定义时间范围，Mock 数据）；告警信息：复用 alarms 告警列表" },
-              { label: "选中节点卡片", value: "图纸统计：nodeInfo.documents 图纸列表，点击条目弹窗展示图纸；属性资料：复用属性模板基础信息 + 技术参数；改造资料：generateReformRecords Mock 生成（正式系统由后台接口返回）" },
-              { label: "切换规则", value: "selectedNode 为空 → 默认 3 张卡片；选中节点 → 节点 3 张卡片；切换选中对象自动刷新" },
+              { label: "默认卡片", value: "漫游路径：pathList 来自 useRoamingPaths()（与后台“漫游路线”页共享 localStorage），点击播放 → playPathRequest 驱动三维路径漫游；用水量统计：技术供水系统用水量（年/月/日快捷选择器 + 自定义时间范围，Mock 数据）；告警信息：复用 alarms 告警列表" },
+              { label: "选中节点卡片", value: "运行状态（仅管路节点）：显示所属系统、流量/压力/流向，并提供该系统的水流开关；图纸统计：nodeInfo.documents 图纸列表，点击条目弹窗展示图纸；属性资料：复用属性模板基础信息 + 技术参数；改造资料：generateReformRecords Mock 生成（正式系统由后台接口返回）" },
+              { label: "水流联动", value: "水流以“管路系统”为最小粒度：单个管件与整系统共用同一开关；系统内任一开关变化，该系统下所有管路同步流动/静止" },
+              { label: "切换规则", value: "selectedNode 为空 → 默认 3 张卡片；选中节点 → 节点卡片（管路多一张运行状态）；切换选中对象自动刷新" },
               { label: "权限", value: "大屏所有已登录用户可查看" },
-              { label: "后续步骤", value: "正式系统：用水量由计量服务返回，改造资料由改造管理接口返回，图纸预览加载 CAD/DWG 转换图" },
+              { label: "后续步骤", value: "正式系统：流量/压力由实时数据服务推送，改造资料与图纸由后台接口返回" },
             ]}
             wrapClassName="flex-shrink-0"
           >

@@ -25,6 +25,7 @@ import {
   LogIn,
   X,
   Boxes,
+  Map,
 } from "lucide-react";
 import { useAuthStore } from "@/store/auth";
 import { ConfirmModal } from "@/components/common/Modal";
@@ -168,6 +169,12 @@ export function AdminLayout() {
           label: "属性模板库",
           icon: <Layers3 size={16} />,
           path: "/admin/system/attribute-template",
+        },
+        {
+          key: "system-roaming",
+          label: "漫游路线",
+          icon: <Map size={16} />,
+          path: "/admin/roaming",
         },
         {
           key: "system-log",

@@ -9,17 +9,15 @@ import {
   Plus,
   Pencil,
   Trash2,
-  Columns,
-  Ruler,
-  ArrowUpDown,
-  RotateCw,
+  Eye,
   EyeOff,
-  Focus,
   RotateCcw,
+  CircleDashed,
+  Droplets,
 } from "lucide-react";
 import { Modal, ConfirmModal } from "@/components/common/Modal";
 import { message } from "@/components/common/Message";
-import { roamingPaths } from "@/mock";
+import { useRoamingPaths, setRoamingPaths } from "@/lib/roamingPaths";
 import type { RoamingPath } from "@/types";
 import damBg from "@/assets/db.png";
 import panoramaBg from "@/assets/qj.png";
@@ -27,12 +25,29 @@ import equipmentBg from "@/assets/sb.png";
 import pipelineBg from "@/assets/gd.png";
 import { DevNote } from "@/components/devNotes/DevNote";
 
+export interface PlayPathRequest {
+  path: RoamingPath;
+  token: number;
+}
+
+interface SelectionNode {
+  title: string;
+  code?: string;
+  type?: string;
+  children?: SelectionNode[];
+}
+
 interface Scene3DProps {
   viewMode: "overview" | "interior";
   focusMode: "panorama" | "equipment" | "pipeline";
-  selectedNode?: { title: string; code?: string };
+  selectedNode?: SelectionNode;
   onSelectNode?: (title: string, kind?: "equipment" | "pipeline") => void;
   onEnterInterior?: (focus: "panorama" | "equipment" | "pipeline") => void;
+  /** 已开启水流的管路系统名（单个或系统粒度控制，无全局开关） */
+  waterOnSystems?: string[];
+  onWaterSystemToggle?: (name: string) => void;
+  /** 大屏右侧或后台发起的路线播放请求 */
+  playPathRequest?: PlayPathRequest | null;
 }
 
 type FloorKey =
@@ -65,7 +80,7 @@ const equipmentPoints = [
 ];
 
 // 管路系统数据
-const pipelineSystems = [
+export const pipelineSystems = [
   { name: "技术供水主管", y: 25, color: "blue", width: "70%", data: "流量:320m³/h 压力:0.8MPa" },
   { name: "排水主管", y: 38, color: "green", width: "60%", data: "流量:180m³/h 液位:正常" },
   { name: "气系统主管", y: 51, color: "yellow", width: "65%", data: "压力:0.65MPa 温度:28℃" },
@@ -73,20 +88,67 @@ const pipelineSystems = [
   { name: "消防水主管", y: 77, color: "red", width: "50%", data: "压力:0.5MPa 就绪" },
 ];
 
-export function Scene3D({ viewMode, focusMode, selectedNode, onSelectNode, onEnterInterior }: Scene3DProps) {
+// 设备/管件 → 所属管路系统（用于单体水流控制）
+const PIPELINE_KEYWORDS: Array<[string, string]> = [
+  ["技术供水", "技术供水主管"],
+  ["供水", "技术供水主管"],
+  ["排水", "排水主管"],
+  ["气系统", "气系统主管"],
+  ["空压", "气系统主管"],
+  ["透平油", "透平油主管"],
+  ["消防", "消防水主管"],
+  ["进水阀", "技术供水主管"],
+  ["闸门", "技术供水主管"],
+];
+
+export function resolvePipelineSystem(title: string): string | undefined {
+  if (pipelineSystems.some((pipe) => pipe.name === title)) return title;
+  return PIPELINE_KEYWORDS.find(([keyword]) => title.includes(keyword))?.[1];
+}
+
+export function Scene3D({
+  viewMode,
+  focusMode,
+  selectedNode,
+  onSelectNode,
+  onEnterInterior,
+  waterOnSystems = [],
+  onWaterSystemToggle,
+  playPathRequest = null,
+}: Scene3DProps) {
   const [fps, setFps] = useState(60);
   const [roamingMode, setRoamingMode] = useState<"none" | "free" | "path">(
     "none"
   );
   const [showPathModal, setShowPathModal] = useState(false);
-  const [pathList, setPathList] = useState<RoamingPath[]>(roamingPaths);
+  const pathList = useRoamingPaths();
   const [deletePathId, setDeletePathId] = useState<number | null>(null);
   const [recording, setRecording] = useState(false);
-  const [activeTool, setActiveTool] = useState<
-    "none" | "clip" | "measure" | "stretch" | "rotate" | "hide" | "isolate"
-  >("none");
   const [sceneTransition, setSceneTransition] = useState(false);
   const [activeFloor, setActiveFloor] = useState<FloorKey>("all");
+
+  // 显隐 / 透明度控制
+  const [hiddenNames, setHiddenNames] = useState<string[]>([]);
+  const [opacityMap, setOpacityMap] = useState<Record<string, number>>({});
+
+  const isNameVisible = (name: string) => !hiddenNames.includes(name);
+
+  const getOpacity = (name: string) => opacityMap[name] ?? 1;
+
+  // 水流按管路系统单独开关，默认全部静止
+  const isWaterFlowing = (systemName: string) =>
+    waterOnSystems.includes(systemName);
+
+  // 后台/侧栏发起的路线播放
+  useEffect(() => {
+    if (!playPathRequest) return;
+    setRoamingMode("path");
+    setShowPathModal(false);
+    message.info(
+      `实际项目中：将按“${playPathRequest.path.name}”的关键帧自动飞行，依次经过设定对象，并按各节点设置的朝向、速度和停留时长播放。`
+    );
+  }, [playPathRequest]);
+
 
   // 场景切换过渡动画
   useEffect(() => {
@@ -194,79 +256,154 @@ export function Scene3D({ viewMode, focusMode, selectedNode, onSelectNode, onEnt
       duration: 60,
       description: "用户自定义录制路线",
     };
-    setPathList([...pathList, newPath]);
+    setRoamingPaths([...pathList, newPath]);
     message.success(
-      "原型已生成一条自定义路线；实际项目中还将保存关键帧、相机朝向、停留时长和播放速度。"
+      "已生成一条自定义路线并保存；实际项目中还将保存关键帧、相机朝向、停留时长和播放速度。"
     );
   };
 
   const handleDeletePath = () => {
     if (deletePathId !== null) {
-      setPathList(pathList.filter((p) => p.id !== deletePathId));
+      setRoamingPaths(pathList.filter((p) => p.id !== deletePathId));
       message.success("路径已删除");
       setDeletePathId(null);
     }
   };
 
-  const TOOL_CONFIG = {
-    clip: {
-      name: "剖切",
-      needSelection: false,
-      description: "将生成可拖动的剖切面，可沿X、Y、Z轴调整位置，查看厂房和设备内部结构",
-    },
-    measure: {
-      name: "测量",
-      needSelection: false,
-      description: "将进入空间测量模式，依次点击模型点位后显示距离、高差或夹角",
-    },
-    stretch: {
-      name: "伸缩",
-      needSelection: true,
-      description: "将沿装配轴分解选中模型的构件，便于查看内部组成和装配关系",
-    },
-    rotate: {
-      name: "旋转",
-      needSelection: true,
-      description: "将围绕选中模型中心旋转观察，并保留当前缩放和观察距离",
-    },
-    hide: {
-      name: "隐藏",
-      needSelection: true,
-      description: "将临时隐藏选中模型，以便查看其后方或内部被遮挡的对象",
-    },
-    isolate: {
-      name: "孤立",
-      needSelection: true,
-      description: "将隐藏其他对象，仅保留选中模型及必要的空间定位参照",
-    },
-  } as const;
+  // ===== 选中对象/系统 → 可批量控制的目标集合 =====
+  const selection = (() => {
+    const node = selectedNode;
+    const sceneNames = [
+      ...equipmentPoints.map((item) => item.name),
+      ...pipelineSystems.map((item) => item.name),
+    ];
+    if (!node) {
+      return {
+        names: [] as string[],
+        systemName: undefined as string | undefined,
+        isGroup: false,
+      };
+    }
 
-  const handleToolToggle = (
-    tool: "clip" | "measure" | "stretch" | "rotate" | "hide" | "isolate"
-  ) => {
-    const config = TOOL_CONFIG[tool];
-    if (config.needSelection && !selectedNode) {
-      message.warning(
-        `请先选择设备或管件模型；实际项目中选中后，${config.description}。`
+    const isGroup =
+      node.type === "system" || node.type === "usage" || !!node.children?.length;
+
+    // 单个模型：只控制自身
+    if (!isGroup) {
+      const systemName = resolvePipelineSystem(node.title);
+      return {
+        names: sceneNames.includes(node.title)
+          ? [node.title]
+          : systemName
+            ? [systemName]
+            : [],
+        systemName,
+        isGroup: false,
+      };
+    }
+
+    // 系统 / 分组：批量控制其下所有模型
+    const titles: string[] = [];
+    const walk = (item: SelectionNode) => {
+      titles.push(item.title);
+      item.children?.forEach(walk);
+    };
+    walk(node);
+
+    const systemName =
+      resolvePipelineSystem(node.title) ??
+      titles.map((title) => resolvePipelineSystem(title)).find(Boolean);
+
+    const names = new Set<string>();
+    titles.forEach((title) => {
+      if (sceneNames.includes(title)) names.add(title);
+    });
+    if (systemName) {
+      pipelineSystems
+        .filter((pipe) => pipe.name === systemName)
+        .forEach((pipe) => names.add(pipe.name));
+      equipmentPoints
+        .filter((item) => resolvePipelineSystem(item.name) === systemName)
+        .forEach((item) => names.add(item.name));
+    }
+
+    return { names: [...names], systemName, isGroup: true };
+  })();
+
+  const targetNames = selection.names;
+  const hasTarget = targetNames.length > 0;
+  const allTargetsVisible =
+    hasTarget && targetNames.every((name) => !hiddenNames.includes(name));
+  const currentOpacity = hasTarget ? (opacityMap[targetNames[0]] ?? 1) : 1;
+  const waterOn =
+    !!selection.systemName && waterOnSystems.includes(selection.systemName);
+
+  const requireSelection = () => {
+    if (hasTarget) return true;
+    message.warning("请先在三维视口或结构树中选择设备、管件或系统");
+    return false;
+  };
+
+  // 是否显示（单个或整组）
+  const handleToggleVisible = () => {
+    if (!requireSelection()) return;
+    if (allTargetsVisible) {
+      setHiddenNames((prev) => Array.from(new Set([...prev, ...targetNames])));
+      message.success(
+        selection.isGroup
+          ? `已隐藏该系统下 ${targetNames.length} 个模型`
+          : `已隐藏“${targetNames[0]}”，再次点击可恢复`
       );
       return;
     }
-    if (activeTool === tool) {
-      setActiveTool("none");
-      message.info(
-        `实际项目中：将退出${config.name}模式，并清除本次${config.name}产生的临时操作标记。`
-      );
-    } else {
-      setActiveTool(tool);
-      message.info(`实际项目中：${config.description}。`);
+    setHiddenNames((prev) => prev.filter((name) => !targetNames.includes(name)));
+    message.success(
+      selection.isGroup ? "已恢复该系统全部模型显示" : "已恢复显示"
+    );
+  };
+
+  // 透明度：不透明 → 半透明 → 淡显
+  const OPACITY_STEPS = [1, 0.6, 0.3];
+
+  const handleCycleOpacity = () => {
+    if (!requireSelection()) return;
+    const index = OPACITY_STEPS.findIndex(
+      (value) => Math.abs(value - currentOpacity) < 0.01
+    );
+    const next = OPACITY_STEPS[(index + 1) % OPACITY_STEPS.length];
+    setOpacityMap((prev) => {
+      const draft = { ...prev };
+      targetNames.forEach((name) => {
+        draft[name] = next;
+      });
+      return draft;
+    });
+    message.success(
+      `已设为${next === 1 ? "不透明" : next === 0.6 ? "半透明" : "淡显"}（${Math.round(
+        next * 100
+      )}%）`
+    );
+  };
+
+  // 水流效果：按单个模型所属系统 / 整个系统控制
+  const handleToggleWater = () => {
+    if (!requireSelection()) return;
+    if (!selection.systemName) {
+      message.warning("当前对象不属于任何管路系统，没有水流效果");
+      return;
     }
+    onWaterSystemToggle?.(selection.systemName);
+    message.success(
+      waterOn
+        ? `已关闭“${selection.systemName}”水流`
+        : `已开启“${selection.systemName}”水流`
+    );
   };
 
   const handleResetTools = () => {
-    setActiveTool("none");
-    message.info(
-      "实际项目中：将清除剖切面和测量标记，恢复隐藏、孤立、伸缩及旋转前的模型状态。"
-    );
+    setHiddenNames([]);
+    setOpacityMap({});
+    message.info("已恢复全部模型显示和默认透明度");
   };
 
   // ===== 场景1：工程总览 - 水电站全景 =====
@@ -616,6 +753,8 @@ export function Scene3D({ viewMode, focusMode, selectedNode, onSelectNode, onEnt
       {/* 厂房融合视图 - 透明覆盖层 */}
       <div className="absolute inset-0 flex items-center justify-center" style={{ paddingTop: "16%" }}>
         <div className="relative" style={{ width: "90%", height: "74%" }}>
+          {/* 厂房建筑（外框 + 楼层分隔） */}
+          <div className="absolute inset-0 pointer-events-none">
           {/* 厂房外框 - 透明边框 */}
           <div className="absolute inset-0 rounded-none" style={{ 
             border: "1px solid rgba(64,169,255,0.25)", 
@@ -678,14 +817,18 @@ export function Scene3D({ viewMode, focusMode, selectedNode, onSelectNode, onEnt
               }}
             />
           )}
+          </div>
 
           {/* ========== 第1层：管网系统（底层） ========== */}
           <div className="absolute inset-0" style={{ opacity: pipelineHighlight, transition: "opacity 0.5s" }}>
-            {pipelineSystems.map((pipe) => (
+            {pipelineSystems.map((pipe) => {
+              if (!isNameVisible(pipe.name)) return null;
+              const flowing = isWaterFlowing(pipe.name);
+              return (
               <div
                 key={pipe.name}
-                className={`absolute left-[6%] right-[6%] pipe-flow-${pipe.color} ${focusMode === "pipeline" ? "cursor-pointer group" : ""}`}
-                style={{ top: `${pipe.y}%` }}
+                className={`absolute left-[6%] right-[6%] ${flowing ? `pipe-flow-${pipe.color}` : ""} ${focusMode === "pipeline" ? "cursor-pointer group" : ""}`}
+                style={{ top: `${pipe.y}%`, opacity: getOpacity(pipe.name) }}
                 onClick={() => focusMode === "pipeline" && handlePipelineClick(pipe.name)}
               >
                 <div className="relative h-8 rounded" style={{
@@ -703,7 +846,7 @@ export function Scene3D({ viewMode, focusMode, selectedNode, onSelectNode, onEnt
                   overflow: "hidden",
                   boxShadow: focusMode === "pipeline" ? `0 0 12px ${pipe.color === "blue" ? "rgba(24,144,255,0.3)" : pipe.color === "green" ? "rgba(82,196,26,0.3)" : "rgba(250,173,20,0.3)"}` : "none",
                 }}>
-                  <div className="pipe-flow absolute inset-0" />
+                  {flowing && <div className="pipe-flow absolute inset-0" />}
                 </div>
                 {/* 管路标签 + 测点数据气泡 */}
                 <div className="absolute -top-5 left-2 text-xs font-medium"
@@ -718,16 +861,19 @@ export function Scene3D({ viewMode, focusMode, selectedNode, onSelectNode, onEnt
                   <div className="text-[9px] opacity-80" style={{ color: "#c5d0de" }}>{pipe.data}</div>
                 </div>
               </div>
-            ))}
+              );
+            })}
           </div>
 
           {/* ========== 第2层：设备分布（顶层） ========== */}
           <div className="absolute inset-0" style={{ opacity: equipmentHighlight, transition: "opacity 0.5s" }}>
-            {equipmentPoints.map((eq) => (
+            {equipmentPoints.map((eq) => {
+              if (!isNameVisible(eq.name)) return null;
+              return (
               <div
                 key={eq.name}
                 className={`absolute ${focusMode === "equipment" ? "cursor-pointer group" : ""}`}
-                style={{ left: `${eq.x}%`, top: `${eq.y}%`, transform: "translate(-50%, -50%)" }}
+                style={{ left: `${eq.x}%`, top: `${eq.y}%`, transform: "translate(-50%, -50%)", opacity: getOpacity(eq.name) }}
                 onClick={() => focusMode === "equipment" && handleEquipmentClick(eq.name)}
               >
                 {/* 光环 */}
@@ -767,7 +913,8 @@ export function Scene3D({ viewMode, focusMode, selectedNode, onSelectNode, onEnt
                     </div>
                   </div>
               </div>
-            ))}
+              );
+            })}
           </div>
 
           {/* ========== 图例与信息层 ========== */}
@@ -976,83 +1123,77 @@ export function Scene3D({ viewMode, focusMode, selectedNode, onSelectNode, onEnt
       <DevNote
         id="scene-toolbar"
         title="3D模型操作工具栏（右侧）"
-        summary="剖切/测量/伸缩/旋转/隐藏/孤立工具，漫游控制与重置"
+        summary="显隐切换 / 透明度选择 / 水流开关，支持单个模型与整系统批量控制；另有漫游与重置"
         items={[
-          { label: "模型工具", value: "剖切/测量无需先选模型；伸缩/旋转/隐藏/孤立需先选中对象，否则提示“请先选择设备或管件模型”；再次点击已激活工具退出该模式" },
-          { label: "漫游控制", value: "自由漫游：WASD移动/鼠标转向/滚轮调速；路径漫游：打开路径列表弹窗，播放默认或自定义路径；录制中显示红色“停止录制”，停止后本地生成“自定义路线N”追加到列表" },
-          { label: "重置", value: "清除剖切面、测量标记，恢复隐藏/孤立/伸缩/旋转前的模型状态（原型 message 占位）" },
-          { label: "数据来源", value: "activeTool/roamingMode/recording 本地状态；pathList 初始为 roamingPaths（mock），自定义路径 id=Date.now()" },
-          { label: "后续步骤", value: "正式系统：工具由 UE5 交互服务实现，漫游路径持久化到服务端" },
-          { label: "权限", value: "大屏所有已登录用户可用" },
+          { label: "模型控制", value: "三个按钮：是否显示、透明度（100%/60%/30% 循环）、水流效果开关；需先在三维视口或左侧结构树中选择对象" },
+          { label: "单个模型", value: "选中设备或管件 → 只作用于自身；隐藏、透明度、水流均实时生效" },
+          { label: "按系统批量", value: "在结构树选中系统/分组节点（如某台机组下的供水系统）→ 按钮同样出现，批量控制该系统下所有模型的显隐、透明度与水流" },
+          { label: "水流规则", value: "取消全局水流开关，只能按单个模型或按系统开启；默认全部静止，开启后对应管路才渲染流动动画" },
+          { label: "漫游控制", value: "自由漫游：WASD移动/鼠标转向/滚轮调速；路径漫游：打开路径列表弹窗，播放默认或自定义路径；录制中显示红色“停止录制”，停止后生成“自定义路线N”并保存" },
+          { label: "重置", value: "恢复全部模型显示与默认透明度（水流开关需单独关闭）" },
+          { label: "数据来源", value: "hiddenNames/opacityMap 为三维场景本地状态；waterOnSystems 由 Screen 持有，与右侧运行状态卡片共用；pathList 来自 useRoamingPaths()" },
+          { label: "后续步骤", value: "正式系统：显隐与透明度通过模型实例属性控制；水流由流量测点驱动，流量为 0 时自动静止" },
         ]}
         wrapClassName="absolute right-3 top-1/2 -translate-y-1/2 z-10"
       >
       <div className="flex flex-col gap-1.5 p-1.5 rounded-none bg-black/60 backdrop-blur-sm border border-screen-border">
         <button
-          onClick={() => handleToolToggle("clip")}
-          title="剖切"
-          className={`w-9 h-9 rounded-noneflex items-center justify-center transition-colors ${
-            activeTool === "clip"
-              ? "bg-blue-600 text-white"
-              : "text-screen-text hover:bg-gray-700"
+          onClick={handleToggleVisible}
+          title={
+            !hasTarget
+              ? "请先选择对象或系统"
+              : allTargetsVisible
+                ? selection.isGroup
+                  ? "隐藏该系统全部模型"
+                  : "隐藏"
+                : "显示"
+          }
+          className={`w-9 h-9 flex items-center justify-center transition-colors ${
+            !hasTarget
+              ? "text-screen-muted opacity-40 cursor-not-allowed"
+              : allTargetsVisible
+                ? "text-screen-text hover:bg-gray-700"
+                : "bg-blue-600 text-white"
           }`}
         >
-          <Columns size={18} />
+          {allTargetsVisible ? <Eye size={18} /> : <EyeOff size={18} />}
         </button>
         <button
-          onClick={() => handleToolToggle("measure")}
-          title="测量"
-          className={`w-9 h-9 rounded-noneflex items-center justify-center transition-colors ${
-            activeTool === "measure"
-              ? "bg-blue-600 text-white"
-              : "text-screen-text hover:bg-gray-700"
+          onClick={handleCycleOpacity}
+          title={hasTarget ? "透明度（100% / 60% / 30%）" : "请先选择对象或系统"}
+          className={`flex h-11 w-9 flex-col items-center justify-center gap-0.5 transition-colors ${
+            !hasTarget
+              ? "text-screen-muted opacity-40 cursor-not-allowed"
+              : currentOpacity < 1
+                ? "bg-blue-600 text-white"
+                : "text-screen-text hover:bg-gray-700"
           }`}
         >
-          <Ruler size={18} />
+          <CircleDashed size={15} />
+          <span className="text-[8px] leading-none">
+            {Math.round(currentOpacity * 100)}%
+          </span>
         </button>
         <button
-          onClick={() => handleToolToggle("stretch")}
-          title="伸缩"
-          className={`w-9 h-9 rounded-noneflex items-center justify-center transition-colors ${
-            activeTool === "stretch"
-              ? "bg-blue-600 text-white"
-              : "text-screen-text hover:bg-gray-700"
+          onClick={handleToggleWater}
+          title={
+            !hasTarget
+              ? "请先选择对象或系统"
+              : !selection.systemName
+                ? "该对象无水流效果"
+                : waterOn
+                  ? "关闭水流"
+                  : "开启水流"
+          }
+          className={`w-9 h-9 flex items-center justify-center transition-colors ${
+            !hasTarget || !selection.systemName
+              ? "text-screen-muted opacity-40 cursor-not-allowed"
+              : waterOn
+                ? "bg-cyan-600 text-white"
+                : "text-screen-text hover:bg-gray-700"
           }`}
         >
-          <ArrowUpDown size={18} />
-        </button>
-        <button
-          onClick={() => handleToolToggle("rotate")}
-          title="旋转"
-          className={`w-9 h-9 rounded-noneflex items-center justify-center transition-colors ${
-            activeTool === "rotate"
-              ? "bg-blue-600 text-white"
-              : "text-screen-text hover:bg-gray-700"
-          }`}
-        >
-          <RotateCw size={18} />
-        </button>
-        <button
-          onClick={() => handleToolToggle("hide")}
-          title="隐藏"
-          className={`w-9 h-9 rounded-noneflex items-center justify-center transition-colors ${
-            activeTool === "hide"
-              ? "bg-blue-600 text-white"
-              : "text-screen-text hover:bg-gray-700"
-          }`}
-        >
-          <EyeOff size={18} />
-        </button>
-        <button
-          onClick={() => handleToolToggle("isolate")}
-          title="孤立"
-          className={`w-9 h-9 rounded-noneflex items-center justify-center transition-colors ${
-            activeTool === "isolate"
-              ? "bg-blue-600 text-white"
-              : "text-screen-text hover:bg-gray-700"
-          }`}
-        >
-          <Focus size={18} />
+          <Droplets size={18} />
         </button>
         <div className="w-full h-px bg-screen-border my-0.5" />
         <button
@@ -1103,9 +1244,9 @@ export function Scene3D({ viewMode, focusMode, selectedNode, onSelectNode, onEnt
         title="漫游路径管理弹窗"
         summary="查看/播放/编辑/删除漫游路径，并支持录制生成自定义路线"
         items={[
-          { label: "数据来源", value: "pathList：初始为 roamingPaths（mock，含默认路线）；点击“新建路径/停止录制”后生成自定义路径（id=Date.now()，名称“自定义路线N”）" },
+          { label: "数据来源", value: "pathList 来自 useRoamingPaths()（localStorage 持久化），与后台“漫游路线”管理页共享同一份数据；录制生成的路线同样写入该存储" },
           { label: "交互逻辑", value: "播放：进入 path 漫游模式并按关键帧自动飞行；编辑：仅自定义路径提供，点击提示打开编辑窗口（改名称/途经点/朝向/停留时长/速度）；删除：弹确认框，仅自定义路径可删" },
-          { label: "录制流程", value: "footer 在录制中显示橙色“停止录制”，否则显示“新建路径”；录制开始后 WASD 移动记录相机轨迹，停止后生成自定义路线" },
+          { label: "录制流程", value: "footer 在录制中显示橙色“停止录制”，否则显示“新建路径”；录制开始后在三维视口内 WASD 移动记录相机轨迹，停止后生成自定义路线并保存" },
           { label: "权限", value: "大屏所有已登录用户可用（浏览人员不可修改漫游路径——原型未限制，正式系统按角色控制）" },
           { label: "后续步骤", value: "正式系统：路径数据持久化到服务端并支持多人共享；浏览人员仅可播放不可编辑" },
         ]}
@@ -1226,7 +1367,7 @@ export function Scene3D({ viewMode, focusMode, selectedNode, onSelectNode, onEnt
         items={[
           { label: "触发条件", value: "仅自定义路径（type=custom）行内点击删除按钮 → 记录 deletePathId 并弹出确认框" },
           { label: "交互逻辑", value: "确认 → pathList.filter 移除该路径并提示“路径已删除”；取消 → 关闭弹窗" },
-          { label: "数据来源", value: "pathList 本地状态（原型不持久化）" },
+          { label: "数据来源", value: "pathList 来自 useRoamingPaths()，删除后同步写入 localStorage 并通知后台漫游路线页" },
           { label: "权限", value: "大屏所有已登录用户可用" },
         ]}
       >

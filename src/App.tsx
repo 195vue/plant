@@ -23,6 +23,9 @@ import DrawingList from "@/pages/drawing/List";
 // 模型管理
 import ModelList from "@/pages/model/List";
 
+// 漫游路线
+import RoamingPaths from "@/pages/RoamingPaths";
+
 // 系统配置
 import OrgManage from "@/pages/system/Org";
 import PositionManage from "@/pages/system/Position";
@@ -89,6 +92,9 @@ export default function App() {
 
           {/* 模型管理 */}
           <Route path="model" element={<ModelList />} />
+
+          {/* 漫游路线 */}
+          <Route path="roaming" element={<RoamingPaths />} />
 
           {/* 系统配置 */}
           <Route path="system/org" element={<Navigate to="/admin/system/department" replace />} />
