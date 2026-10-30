@@ -6,14 +6,18 @@ import {
   CheckCircle2,
   FileArchive,
   FileText,
+  Files,
+  Link2,
   Pencil,
   SkipForward,
+  X,
 } from "lucide-react";
 import { Modal } from "@/components/common/Modal";
 import { UploadBox, FormItem } from "@/components/common/UploadBox";
 import { message } from "@/components/common/Message";
 import { Tag } from "@/components/common/Tag";
 import ModelLinkSelector, {
+  getRecommendedModelOptions,
   type ModelLinkOption,
 } from "@/pages/drawing/components/ModelLinkSelector";
 import { DevNote } from "@/components/devNotes/DevNote";
@@ -50,6 +54,7 @@ interface UploadModalProps {
   defaultDirectoryId: number;
   directories: readonly UploadDirectoryOption[];
   existingNames: readonly string[];
+  existingCodes: readonly string[];
   modelOptions: readonly ModelLinkOption[];
   onClose: () => void;
   onSubmit: (form: UploadFormValues) => void;
@@ -98,8 +103,32 @@ export interface BatchUploadFormValues {
   remark: string;
 }
 
+export interface MultiUploadItem {
+  id: string;
+  file: File;
+  name: string;
+  code: string;
+  extension: string;
+  sizeText: string;
+  linkedModelKeys: string[];
+  status: "ready" | "failed";
+  reason?: string;
+  validationError?: string;
+}
+
+export interface MultiUploadFormValues {
+  mode: "multi";
+  major: string;
+  category: string;
+  position: string;
+  directoryId: number;
+  items: MultiUploadItem[];
+  remark: string;
+}
+
 export type UploadFormValues =
   | SingleUploadFormValues
+  | MultiUploadFormValues
   | BatchUploadFormValues;
 
 interface CommonFormState {
@@ -120,6 +149,7 @@ interface SingleFormState {
 const VALID_BATCH_EXTENSIONS = new Set(["PDF", "DWG"]);
 const MAX_BATCH_FILE_SIZE = 50 * 1024 * 1024;
 const MAX_BATCH_VALID_COUNT = 100;
+const MAX_MULTI_COUNT = 50;
 
 function getFileExtension(fileName: string) {
   return fileName.split(".").pop()?.toUpperCase() || "";
@@ -167,12 +197,58 @@ function validateBatchItem(
   return { name, status: "ready", reason: undefined };
 }
 
+/** 按默认编号递增，跳过已被占用的编号 */
+function nextAvailableCode(baseCode: string, usedCodes: readonly string[]) {
+  const match = baseCode.match(/^(.*?)(\d+)$/);
+  if (!match) return baseCode;
+  const prefix = match[1];
+  const width = match[2].length;
+  const used = new Set(usedCodes);
+  let value = Number(match[2]);
+  while (used.has(`${prefix}${String(value).padStart(width, "0")}`)) {
+    value += 1;
+  }
+  return `${prefix}${String(value).padStart(width, "0")}`;
+}
+
+/** 多文件逐行校验：名称/编号需在资料库与本次批次内唯一 */
+function validateMultiItem(
+  item: MultiUploadItem,
+  items: readonly MultiUploadItem[],
+  existingNames: readonly string[],
+  existingCodes: readonly string[],
+): Pick<MultiUploadItem, "status" | "reason"> {
+  if (item.validationError) {
+    return { status: "failed", reason: item.validationError };
+  }
+  const name = normalizeName(item.name);
+  const code = item.code.trim();
+  if (!name) return { status: "failed", reason: "资料名称不能为空" };
+  if (!code) return { status: "failed", reason: "资料编号不能为空" };
+  if (
+    existingNames.some((existing) => normalizeName(existing) === name) ||
+    items.some(
+      (other) => other.id !== item.id && normalizeName(other.name) === name,
+    )
+  ) {
+    return { status: "failed", reason: "存在同名资料，请修改名称" };
+  }
+  if (
+    existingCodes.includes(code) ||
+    items.some((other) => other.id !== item.id && other.code.trim() === code)
+  ) {
+    return { status: "failed", reason: "资料编号重复，请修改编号" };
+  }
+  return { status: "ready", reason: undefined };
+}
+
 export default function UploadModal({
   open,
   defaultCode,
   defaultDirectoryId,
   directories,
   existingNames,
+  existingCodes,
   modelOptions,
   onClose,
   onSubmit,
@@ -193,6 +269,18 @@ export default function UploadModal({
   const [batchItems, setBatchItems] = useState<BatchUploadItem[]>([]);
   const [parsingZip, setParsingZip] = useState(false);
   const [batchSubmitted, setBatchSubmitted] = useState(false);
+  const [multiItems, setMultiItems] = useState<MultiUploadItem[]>([]);
+  const [selectedMultiIds, setSelectedMultiIds] = useState<string[]>([]);
+  const [batchLinkOpen, setBatchLinkOpen] = useState(false);
+  const [batchLinkKeys, setBatchLinkKeys] = useState<string[]>([]);
+  const [batchApplyMode, setBatchApplyMode] = useState<"merge" | "override">(
+    "merge",
+  );
+  const [onlyUnlinked, setOnlyUnlinked] = useState(false);
+  const [linkIndex, setLinkIndex] = useState<number | null>(null);
+  const [linkDraftKeys, setLinkDraftKeys] = useState<string[]>([]);
+  const [draggingMulti, setDraggingMulti] = useState(false);
+  const multiInputRef = useRef<HTMLInputElement>(null);
   const wasOpenRef = useRef(false);
 
   useEffect(() => {
@@ -214,6 +302,14 @@ export default function UploadModal({
       setBatchItems([]);
       setParsingZip(false);
       setBatchSubmitted(false);
+      setMultiItems([]);
+      setSelectedMultiIds([]);
+      setBatchLinkOpen(false);
+      setBatchLinkKeys([]);
+      setBatchApplyMode("merge");
+      setOnlyUnlinked(false);
+      setLinkIndex(null);
+      setLinkDraftKeys([]);
     }
     wasOpenRef.current = open;
   }, [defaultCode, defaultDirectoryId, open]);
@@ -331,6 +427,234 @@ export default function UploadModal({
     );
   };
 
+  const revalidateMultiItems = (next: MultiUploadItem[]) =>
+    next.map((item) => ({
+      ...item,
+      ...validateMultiItem(item, next, existingNames, existingCodes),
+    }));
+
+  const appendMultiFiles = (files: File[]) => {
+    if (files.length === 0) return;
+    const usedCodes = [...existingCodes, ...multiItems.map((item) => item.code)];
+    const accepted: MultiUploadItem[] = [];
+    let duplicated = 0;
+    let overflow = false;
+
+    files.forEach((file) => {
+      if (multiItems.length + accepted.length >= MAX_MULTI_COUNT) {
+        overflow = true;
+        return;
+      }
+      if (
+        [...multiItems, ...accepted].some(
+          (item) =>
+            item.file.name === file.name && item.file.size === file.size,
+        )
+      ) {
+        duplicated += 1;
+        return;
+      }
+
+      const extension = getFileExtension(file.name);
+      const code = nextAvailableCode(defaultCode, usedCodes);
+      usedCodes.push(code);
+
+      let validationError: string | undefined;
+      if (!VALID_BATCH_EXTENSIONS.has(extension)) {
+        validationError = "仅支持PDF、DWG格式";
+      } else if (file.size > MAX_BATCH_FILE_SIZE) {
+        validationError = "单个文件不能超过50MB";
+      }
+
+      accepted.push({
+        id: `${Date.now()}-${accepted.length}-${file.name}`,
+        file,
+        name: removeExtension(file.name),
+        code,
+        extension,
+        sizeText: formatSize(file.size),
+        linkedModelKeys: [],
+        status: "ready",
+        validationError,
+      });
+    });
+
+    if (accepted.length > 0) {
+      setMultiItems((items) => revalidateMultiItems([...items, ...accepted]));
+      message.info(`已添加 ${accepted.length} 个文件，可逐份挂接模型`);
+    }
+    if (duplicated > 0) message.warning(`已跳过 ${duplicated} 个重复文件`);
+    if (overflow) {
+      message.warning(`单次最多上传 ${MAX_MULTI_COUNT} 个文件`);
+    }
+  };
+
+  const updateMultiItem = (
+    id: string,
+    patch: Partial<Pick<MultiUploadItem, "name" | "code">>,
+  ) => {
+    setMultiItems((items) =>
+      revalidateMultiItems(
+        items.map((item) => (item.id === id ? { ...item, ...patch } : item)),
+      ),
+    );
+  };
+
+  const removeMultiItem = (id: string) => {
+    setMultiItems((items) => {
+      const next = items.filter((item) => item.id !== id);
+      return revalidateMultiItems(next);
+    });
+    setSelectedMultiIds((ids) => ids.filter((item) => item !== id));
+  };
+
+  const recommendKeysFor = (item: MultiUploadItem) =>
+    getRecommendedModelOptions(
+      modelOptions,
+      `${item.code} ${item.name} ${item.file.name}`,
+    ).map((option) => option.key);
+
+  const openLinkEditor = (index: number) => {
+    const item = multiItems[index];
+    if (!item) return;
+    setLinkIndex(index);
+    setLinkDraftKeys(
+      item.linkedModelKeys.length > 0
+        ? item.linkedModelKeys
+        : recommendKeysFor(item),
+    );
+  };
+
+  const saveLink = (goNext: boolean) => {
+    if (linkIndex === null) return;
+    const currentIndex = linkIndex;
+    const currentKeys = [...linkDraftKeys];
+    setMultiItems((items) =>
+      items.map((item, index) =>
+        index === currentIndex
+          ? { ...item, linkedModelKeys: currentKeys }
+          : item,
+      ),
+    );
+
+    const nextItem = multiItems[currentIndex + 1];
+    if (goNext && nextItem) {
+      setLinkIndex(currentIndex + 1);
+      setLinkDraftKeys(
+        nextItem.linkedModelKeys.length > 0
+          ? nextItem.linkedModelKeys
+          : recommendKeysFor(nextItem),
+      );
+      return;
+    }
+
+    setLinkIndex(null);
+    message.success(`第 ${currentIndex + 1} 份资料的挂接关系已保存`);
+  };
+
+  const copyPreviousLink = () => {
+    if (linkIndex === null || linkIndex === 0) return;
+    setLinkDraftKeys([...multiItems[linkIndex - 1].linkedModelKeys]);
+    message.info("已复制上一份资料的挂接模型，可继续调整");
+  };
+
+  const toggleMultiSelect = (id: string) =>
+    setSelectedMultiIds((ids) =>
+      ids.includes(id) ? ids.filter((item) => item !== id) : [...ids, id],
+    );
+
+  const toggleSelectAll = () => {
+    const selectable = multiItems.filter((item) => item.status === "ready");
+    const allSelected =
+      selectable.length > 0 &&
+      selectable.every((item) => selectedMultiIds.includes(item.id));
+    setSelectedMultiIds(allSelected ? [] : selectable.map((item) => item.id));
+  };
+
+  const openBatchLink = () => {
+    const targets = multiItems.filter(
+      (item) => selectedMultiIds.includes(item.id) && item.status === "ready",
+    );
+    if (targets.length === 0) {
+      message.warning("请先勾选要挂接的资料");
+      return;
+    }
+    const firstKeys = [...targets[0].linkedModelKeys].sort().join("|");
+    const allSame = targets.every(
+      (item) => [...item.linkedModelKeys].sort().join("|") === firstKeys,
+    );
+    setBatchLinkKeys(
+      allSame && targets[0].linkedModelKeys.length > 0
+        ? [...targets[0].linkedModelKeys]
+        : recommendKeysFor(targets[0]),
+    );
+    setBatchApplyMode("merge");
+    setBatchLinkOpen(true);
+  };
+
+  const saveBatchLink = () => {
+    const ids = selectedMultiItems
+      .filter((item) => item.status === "ready")
+      .map((item) => item.id);
+    if (ids.length === 0) return;
+    if (batchLinkKeys.length === 0) {
+      message.warning("请选择要挂接的模型");
+      return;
+    }
+    setMultiItems((items) =>
+      items.map((item) => {
+        if (!ids.includes(item.id)) return item;
+        const linkedModelKeys =
+          batchApplyMode === "merge"
+            ? Array.from(new Set([...item.linkedModelKeys, ...batchLinkKeys]))
+            : [...batchLinkKeys];
+        return { ...item, linkedModelKeys };
+      }),
+    );
+    setBatchLinkOpen(false);
+    message.success(`已为 ${ids.length} 份资料保存挂接关系`);
+  };
+
+  const clearSelectedLinks = () => {
+    if (selectedMultiItems.length === 0) {
+      message.warning("请先勾选要清除挂接的资料");
+      return;
+    }
+    const ids = selectedMultiItems.map((item) => item.id);
+    setMultiItems((items) =>
+      items.map((item) =>
+        ids.includes(item.id) ? { ...item, linkedModelKeys: [] } : item,
+      ),
+    );
+    message.success(`已清除 ${ids.length} 份资料的挂接关系`);
+  };
+
+  const multiLinkedCount = multiItems.filter(
+    (item) => item.linkedModelKeys.length > 0,
+  ).length;
+  const visibleMultiItems = onlyUnlinked
+    ? multiItems.filter((item) => item.linkedModelKeys.length === 0)
+    : multiItems;
+  const linkItem = linkIndex !== null ? multiItems[linkIndex] : undefined;
+  const selectableMultiItems = multiItems.filter(
+    (item) => item.status === "ready",
+  );
+  const selectedMultiItems = multiItems.filter((item) =>
+    selectedMultiIds.includes(item.id),
+  );
+  const allSelectableSelected =
+    selectableMultiItems.length > 0 &&
+    selectableMultiItems.every((item) => selectedMultiIds.includes(item.id));
+  const linkGroupCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    multiItems.forEach((item) => {
+      if (item.linkedModelKeys.length === 0) return;
+      const key = [...item.linkedModelKeys].sort().join("|");
+      counts.set(key, (counts.get(key) || 0) + 1);
+    });
+    return counts;
+  }, [multiItems]);
+
   const validateCommon = () => {
     if (!common.directoryId) {
       message.warning("请选择所属目录");
@@ -382,6 +706,32 @@ export default function UploadModal({
         ),
       );
       setBatchSubmitted(true);
+      return;
+    }
+
+    if (mode === "multi") {
+      if (multiItems.length === 0) {
+        message.warning("请选择要上传的资料文件");
+        return;
+      }
+      const failedCount = multiItems.filter(
+        (item) => item.status === "failed",
+      ).length;
+      if (failedCount > 0) {
+        message.warning(
+          `有 ${failedCount} 个文件校验未通过，请修改名称/编号或移除后再上传`,
+        );
+        return;
+      }
+      onSubmit({
+        mode: "multi",
+        major: common.major,
+        category: common.category,
+        position: common.position,
+        directoryId: common.directoryId!,
+        items: multiItems,
+        remark: common.remark,
+      });
       return;
     }
 
@@ -484,7 +834,16 @@ export default function UploadModal({
     </>
   );
 
+  const submitLabel = batchSubmitted
+    ? "完成"
+    : mode === "single"
+      ? "确认上传"
+      : mode === "multi"
+        ? `确认上传（${multiItems.length}份）`
+        : `确认导入${batchStatistics.ready ? `（${batchStatistics.ready}项）` : ""}`;
+
   return (
+    <>
     <Modal
       open={open}
       onClose={onClose}
@@ -500,27 +859,23 @@ export default function UploadModal({
             onClick={handleSubmit}
             disabled={parsingZip}
           >
-            {batchSubmitted
-              ? "完成"
-              : mode === "single"
-                ? "确认上传"
-                : `确认导入${batchStatistics.ready ? `（${batchStatistics.ready}项）` : ""}`}
+            {submitLabel}
           </button>
         </>
       }
     >
       <DevNote
         id="drawing-upload-mode"
-        title="上传模式切换（单个/批量）"
-        summary="选择单个资料上传或ZIP压缩包批量上传"
+        title="上传模式切换（单个/多文件/压缩包）"
+        summary="支持单个资料上传、多文件逐份挂接模型上传，以及ZIP压缩包批量上传"
         items={[
-          { label: "交互逻辑", value: "两个Tab切换 mode（single/batch）；批量导入提交后锁定，按钮文案变为“确认导入（N项）/完成/关闭”" },
-          { label: "校验规则", value: "提交时逐项校验：所属目录/专业/分类/位置必填；单文件模式校验编号、名称、文件；批量模式校验ZIP文件与可导入项" },
+          { label: "交互逻辑", value: "三个Tab切换 mode（single/multi/batch）；多文件模式逐行编辑名称与编号，并逐份挂接模型；压缩包导入提交后锁定，按钮文案变为“确认导入（N项）/完成/关闭”" },
+          { label: "校验规则", value: "提交时逐项校验：所属目录/专业/分类/位置必填；单文件模式校验编号、名称、文件；多文件模式每份资料名称/编号在资料库与本次批次内唯一且必须挂接模型；压缩包模式校验ZIP文件与可导入项" },
           { label: "权限", value: "管理员/操作人员可上传；浏览人员无上传入口" },
         ]}
         wrapClassName="block w-full"
       >
-      <div className="mb-5 grid grid-cols-2 overflow-hidden rounded-lg border border-admin-border bg-slate-50 p-1">
+      <div className="mb-5 grid grid-cols-3 overflow-hidden rounded-lg border border-admin-border bg-slate-50 p-1">
         <button
           type="button"
           disabled={batchSubmitted}
@@ -533,6 +888,19 @@ export default function UploadModal({
         >
           <FileText size={16} />
           单个资料上传
+        </button>
+        <button
+          type="button"
+          disabled={batchSubmitted}
+          className={`flex items-center justify-center gap-2 rounded-md px-4 py-2.5 text-sm transition ${
+            mode === "multi"
+              ? "bg-white font-medium text-admin-primary shadow-sm"
+              : "text-admin-muted hover:text-admin-text"
+          }`}
+          onClick={() => setMode("multi")}
+        >
+          <Files size={16} />
+          多文件上传
         </button>
         <button
           type="button"
@@ -624,6 +992,279 @@ export default function UploadModal({
               sourceText={`${single.code} ${single.name} ${single.file?.name || ""}`}
             />
           </FormItem>
+        </>
+      ) : mode === "multi" ? (
+        <>
+          <DevNote
+            id="drawing-upload-multi"
+            title="多文件上传（逐份挂接模型）"
+            summary="一次多选PDF/DWG，每个文件独立生成资料记录，可逐份挂接模型"
+            items={[
+              { label: "交互逻辑", value: "点击或拖拽多选文件（≤50个）→ 每行自动生成递增值资料编号与文件名去扩展名的资料名称，可逐行修改；每行“挂接模型”打开独立挂接弹窗，保存后仅作用于该份资料" },
+              { label: "挂接能力", value: "挂接模型为可选项，与单个上传一致，也可上传后在资料列表继续挂接；支持勾选多份批量挂接（一次选择应用到所有勾选行，已有挂接可选合并/覆盖），也支持逐份挂接；逐份弹窗支持KKS自动推荐（按编号+名称+文件名识别）、设备/管路结构树多选、“从上一份复制”与“保存并下一份”连续编辑" },
+              { label: "校验规则", value: "仅PDF/DWG且单文件≤50MB；每份资料名称、编号在资料库与本次批次内唯一；挂接状态仅展示，不阻断上传" },
+              { label: "后续步骤", value: "正式系统：多文件直传对象存储，逐份创建资料记录与挂接关系" },
+            ]}
+            wrapClassName="block w-full"
+          >
+          <div className="mb-4 rounded border border-blue-100 bg-blue-50/60 px-3 py-2 text-xs leading-5 text-blue-700">
+            可一次选择多个PDF/DWG（最多50个，单文件≤50MB）；每个文件独立生成V1.0资料记录。挂接模型为可选项，可勾选多份批量挂接同一组模型，也可上传后在资料列表中继续挂接。
+          </div>
+          {commonFields}
+
+          <FormItem label="资料文件" required>
+            <input
+              ref={multiInputRef}
+              type="file"
+              multiple
+              accept=".pdf,.dwg"
+              className="hidden"
+              onChange={(event) => {
+                appendMultiFiles(Array.from(event.target.files || []));
+                event.target.value = "";
+              }}
+            />
+            <div
+              className={`cursor-pointer rounded border-2 border-dashed p-5 text-center transition-colors ${
+                draggingMulti
+                  ? "border-admin-primary bg-blue-50"
+                  : "border-admin-border hover:border-admin-primary hover:bg-blue-50"
+              }`}
+              onClick={() => multiInputRef.current?.click()}
+              onDragOver={(event) => {
+                event.preventDefault();
+                setDraggingMulti(true);
+              }}
+              onDragLeave={() => setDraggingMulti(false)}
+              onDrop={(event) => {
+                event.preventDefault();
+                setDraggingMulti(false);
+                appendMultiFiles(Array.from(event.dataTransfer.files || []));
+              }}
+            >
+              <Files size={28} className="mx-auto mb-2 text-admin-muted" />
+              <p className="text-sm text-admin-text">点击或拖拽多个文件到此处</p>
+              <p className="mt-1 text-xs text-admin-muted">
+                支持PDF/DWG，最多{MAX_MULTI_COUNT}个，单文件≤50MB，重复文件自动跳过
+              </p>
+            </div>
+          </FormItem>
+
+          {multiItems.length > 0 && (
+            <div className="overflow-hidden rounded border border-admin-border">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-admin-border bg-gray-50 px-3 py-2.5">
+                <div>
+                  <div className="text-xs font-medium text-admin-text">
+                    待上传文件（{multiItems.length}个）
+                  </div>
+                  <div className="mt-0.5 text-[10px] text-admin-muted">
+                    挂接可选，上传后也可在资料列表继续挂接
+                  </div>
+                </div>
+                <div className="flex flex-wrap items-center gap-3 text-[11px]">
+                  <span
+                    className={
+                      multiLinkedCount === multiItems.length
+                        ? "text-green-600"
+                        : "text-admin-muted"
+                    }
+                  >
+                    已挂接 {multiLinkedCount}/{multiItems.length}
+                  </span>
+                  <label className="flex cursor-pointer items-center gap-1 text-admin-muted">
+                    <input
+                      type="checkbox"
+                      checked={onlyUnlinked}
+                      onChange={(event) => setOnlyUnlinked(event.target.checked)}
+                    />
+                    仅看未挂接
+                  </label>
+                  <span className="text-admin-muted">
+                    已选 {selectedMultiItems.length} 份
+                  </span>
+                  <button
+                    type="button"
+                    className="rounded border border-admin-primary px-2 py-1 text-admin-primary transition hover:bg-blue-50 disabled:cursor-not-allowed disabled:border-admin-border disabled:text-admin-muted"
+                    disabled={selectedMultiItems.length === 0}
+                    onClick={openBatchLink}
+                  >
+                    批量挂接
+                  </button>
+                  <button
+                    type="button"
+                    className="rounded border border-admin-border px-2 py-1 text-admin-muted transition hover:text-admin-text disabled:cursor-not-allowed disabled:opacity-50"
+                    disabled={selectedMultiItems.length === 0}
+                    onClick={clearSelectedLinks}
+                  >
+                    清除挂接
+                  </button>
+                </div>
+              </div>
+              <div className="max-h-[320px] overflow-auto">
+                <table className="w-full text-xs">
+                  <thead className="sticky top-0 z-10 bg-white text-admin-muted">
+                    <tr className="border-b border-admin-border">
+                      <th className="w-8 px-2 py-2 text-left font-medium">
+                        <input
+                          type="checkbox"
+                          checked={allSelectableSelected}
+                          disabled={selectableMultiItems.length === 0}
+                          onChange={toggleSelectAll}
+                          title="全选"
+                        />
+                      </th>
+                      <th className="w-10 px-2 py-2 text-left font-medium">序号</th>
+                      <th className="w-[170px] px-2 py-2 text-left font-medium">文件名</th>
+                      <th className="w-[180px] px-2 py-2 text-left font-medium">资料名称</th>
+                      <th className="w-[120px] px-2 py-2 text-left font-medium">资料编号</th>
+                      <th className="w-20 px-2 py-2 text-left font-medium">格式/大小</th>
+                      <th className="w-[110px] px-2 py-2 text-left font-medium">挂接模型</th>
+                      <th className="px-2 py-2 text-left font-medium">校验结果</th>
+                      <th className="w-10 px-2 py-2 text-left font-medium">操作</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {visibleMultiItems.length === 0 ? (
+                      <tr>
+                        <td
+                          colSpan={9}
+                          className="px-3 py-6 text-center text-admin-muted"
+                        >
+                          全部文件均已挂接模型
+                        </td>
+                      </tr>
+                    ) : (
+                      visibleMultiItems.map((item) => {
+                        const index = multiItems.findIndex(
+                          (target) => target.id === item.id,
+                        );
+                        const unlinked = item.linkedModelKeys.length === 0;
+                        const isGroup =
+                          !unlinked &&
+                          (linkGroupCounts.get(
+                            [...item.linkedModelKeys].sort().join("|"),
+                          ) || 0) > 1;
+                        return (
+                          <tr
+                            key={item.id}
+                            className={`border-b border-admin-border last:border-0 ${
+                              item.status === "failed" ? "bg-red-50/50" : ""
+                            }`}
+                          >
+                            <td className="px-2 py-2">
+                              <input
+                                type="checkbox"
+                                checked={selectedMultiIds.includes(item.id)}
+                                disabled={item.status !== "ready"}
+                                onChange={() => toggleMultiSelect(item.id)}
+                              />
+                            </td>
+                            <td className="px-2 py-2 text-admin-muted">
+                              {index + 1}
+                            </td>
+                            <td
+                              className="max-w-[170px] truncate px-2 py-2 text-admin-text"
+                              title={item.file.name}
+                            >
+                              {item.file.name}
+                            </td>
+                            <td className="px-2 py-2">
+                              <input
+                                className="input-base h-8 w-full text-xs"
+                                value={item.name}
+                                onChange={(event) =>
+                                  updateMultiItem(item.id, {
+                                    name: event.target.value,
+                                  })
+                                }
+                              />
+                            </td>
+                            <td className="px-2 py-2">
+                              <input
+                                className="input-base h-8 w-full font-mono text-xs"
+                                value={item.code}
+                                onChange={(event) =>
+                                  updateMultiItem(item.id, {
+                                    code: event.target.value,
+                                  })
+                                }
+                              />
+                            </td>
+                            <td className="px-2 py-2">
+                              <Tag
+                                color={
+                                  item.extension === "PDF"
+                                    ? "red"
+                                    : item.extension === "DWG"
+                                      ? "blue"
+                                      : "gray"
+                                }
+                              >
+                                {item.extension || "未知"}
+                              </Tag>
+                              <div className="mt-0.5 text-[10px] text-admin-muted">
+                                {item.sizeText}
+                              </div>
+                            </td>
+                            <td className="px-2 py-2">
+                              <div className="flex flex-wrap items-center gap-1">
+                                <button
+                                  type="button"
+                                  className={`flex items-center gap-1 text-xs hover:underline ${
+                                    unlinked
+                                      ? "text-admin-muted"
+                                      : "text-cyan-700"
+                                  }`}
+                                  onClick={() => openLinkEditor(index)}
+                                >
+                                  <Link2 size={12} />
+                                  {unlinked
+                                    ? "去挂接"
+                                    : `已挂接${item.linkedModelKeys.length}`}
+                                </button>
+                                {isGroup && <Tag color="cyan">同组</Tag>}
+                              </div>
+                            </td>
+                            <td className="px-2 py-2">
+                              {item.status === "failed" ? (
+                                <span className="flex items-start gap-1 text-red-600">
+                                  <AlertCircle
+                                    size={13}
+                                    className="mt-0.5 flex-shrink-0"
+                                  />
+                                  {item.reason}
+                                </span>
+                              ) : unlinked ? (
+                                <span className="text-admin-muted">
+                                  未挂接（可稍后挂接）
+                                </span>
+                              ) : (
+                                <span className="flex items-center gap-1 text-green-600">
+                                  <CheckCircle2 size={13} />
+                                  校验通过
+                                </span>
+                              )}
+                            </td>
+                            <td className="px-2 py-2">
+                              <button
+                                type="button"
+                                className="text-admin-muted hover:text-admin-danger"
+                                title="移除文件"
+                                onClick={() => removeMultiItem(item.id)}
+                              >
+                                <X size={14} />
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+          </DevNote>
         </>
       ) : (
         <>
@@ -787,5 +1428,138 @@ export default function UploadModal({
         />
       </FormItem>
     </Modal>
+
+    <Modal
+      open={linkIndex !== null && Boolean(linkItem)}
+      onClose={() => setLinkIndex(null)}
+      title={
+        linkItem
+          ? `挂接模型 · 第 ${(linkIndex ?? 0) + 1}/${multiItems.length} 份`
+          : "挂接模型"
+      }
+      width={920}
+      footer={
+        <>
+          <button className="btn-default" onClick={() => setLinkIndex(null)}>
+            取消
+          </button>
+          <button
+            className="btn-default"
+            onClick={copyPreviousLink}
+            disabled={linkIndex === null || linkIndex === 0}
+          >
+            从上一份复制
+          </button>
+          <button className="btn-primary" onClick={() => saveLink(false)}>
+            保存
+          </button>
+          <button
+            className="btn-primary"
+            onClick={() => saveLink(true)}
+            disabled={linkIndex === null || linkIndex >= multiItems.length - 1}
+          >
+            保存并下一份
+          </button>
+        </>
+      }
+    >
+      {linkItem && (
+        <>
+          <div className="mb-4 rounded border border-blue-100 bg-blue-50/60 px-3 py-2 text-xs leading-5 text-blue-700">
+            当前资料：{linkItem.name}
+            <span className="ml-2 font-mono text-[11px] text-blue-600">
+              {linkItem.code}
+            </span>
+            <span className="ml-2 text-[11px] text-blue-500">
+              {linkItem.file.name}
+            </span>
+          </div>
+          <FormItem
+            label="挂接模型"
+            hint={`可选；当前弹窗仅作用于该份资料，已选 ${linkDraftKeys.length} 个对象`}
+          >
+            <ModelLinkSelector
+              options={modelOptions}
+              selectedKeys={linkDraftKeys}
+              onChange={setLinkDraftKeys}
+              sourceText={`${linkItem.code} ${linkItem.name} ${linkItem.file.name}`}
+            />
+          </FormItem>
+        </>
+      )}
+    </Modal>
+
+    <Modal
+      open={batchLinkOpen}
+      onClose={() => setBatchLinkOpen(false)}
+      title={`批量挂接模型 · 已选 ${selectedMultiItems.length} 份`}
+      width={920}
+      footer={
+        <>
+          <button className="btn-default" onClick={() => setBatchLinkOpen(false)}>
+            取消
+          </button>
+          <button className="btn-primary" onClick={saveBatchLink}>
+            保存挂接（{selectedMultiItems.length}份）
+          </button>
+        </>
+      }
+    >
+      {selectedMultiItems.length > 0 && (
+        <>
+          <div className="mb-4 rounded border border-blue-100 bg-blue-50/60 px-3 py-2 text-xs leading-5 text-blue-700">
+            <div>
+              本次选择将应用到以下 {selectedMultiItems.length} 份资料：
+            </div>
+            <div className="mt-1 text-[11px] text-blue-600">
+              {selectedMultiItems
+                .slice(0, 5)
+                .map((item) => item.file.name)
+                .join("、")}
+              {selectedMultiItems.length > 5
+                ? ` 等 ${selectedMultiItems.length} 份`
+                : ""}
+            </div>
+          </div>
+          {selectedMultiItems.some(
+            (item) => item.linkedModelKeys.length > 0,
+          ) && (
+            <div className="mb-4 flex items-center gap-4 text-xs text-admin-text">
+              <span className="text-admin-muted">已有挂接的处理方式：</span>
+              <label className="flex cursor-pointer items-center gap-1">
+                <input
+                  type="radio"
+                  checked={batchApplyMode === "merge"}
+                  onChange={() => setBatchApplyMode("merge")}
+                />
+                合并（保留原有挂接并追加）
+              </label>
+              <label className="flex cursor-pointer items-center gap-1">
+                <input
+                  type="radio"
+                  checked={batchApplyMode === "override"}
+                  onChange={() => setBatchApplyMode("override")}
+                />
+                覆盖（以本次选择为准）
+              </label>
+            </div>
+          )}
+          <FormItem
+            label="挂接模型"
+            hint={`将应用到 ${selectedMultiItems.length} 份资料；已选 ${batchLinkKeys.length} 个对象`}
+          >
+            <ModelLinkSelector
+              options={modelOptions}
+              selectedKeys={batchLinkKeys}
+              onChange={setBatchLinkKeys}
+              sourceText={`${selectedMultiItems[0].code} ${
+                selectedMultiItems[0].name
+              } ${selectedMultiItems[0].file.name}`}
+            />
+          </FormItem>
+        </>
+      )}
+    </Modal>
+    </>
   );
 }

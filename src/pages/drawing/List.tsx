@@ -493,6 +493,49 @@ export default function DrawingList() {
       return;
     }
 
+    if (form.mode === "multi") {
+      const now = formatDate(new Date());
+      const newRecords = form.items.map((item, index) => {
+        const id = nextRecordId + index;
+        const linkedModels = modelCandidates.filter((candidate) =>
+          item.linkedModelKeys.includes(candidate.key),
+        );
+        const version: DrawingVersion = {
+          id: id * 100 + 1,
+          drawingId: id,
+          version: "V1.0",
+          uploadTime: now,
+          uploadUser: "系统管理员",
+          fileSize: item.sizeText,
+          fileFormat: item.extension,
+          remark: form.remark.trim() || "多文件上传初始版本",
+        };
+        return {
+          id,
+          code: item.code.trim(),
+          name: item.name.trim(),
+          version: "V1.0",
+          major: form.major,
+          category: form.category,
+          position: form.position,
+          directoryId: form.directoryId,
+          fileFormat: item.extension,
+          fileSize: item.sizeText,
+          uploadUser: "系统管理员",
+          uploadTime: now,
+          remark: form.remark.trim(),
+          versions: [version],
+          modelLinks: linkedModels,
+        } satisfies DrawingRecord;
+      });
+
+      setData((items) => [...newRecords, ...items]);
+      setSelectedDirectoryId(form.directoryId);
+      setUploadOpen(false);
+      message.success(`多文件上传完成：共 ${newRecords.length} 份资料`);
+      return;
+    }
+
     const readyItems = form.items.filter((item) => item.status === "ready");
     const now = formatDate(new Date());
     const newRecords = readyItems.map((item, index) => {
@@ -1149,6 +1192,7 @@ export default function DrawingList() {
           name: `${"　".repeat(directory.depth)}${directory.name}`,
         }))}
         existingNames={data.map((item) => item.name)}
+        existingCodes={data.map((item) => item.code)}
         modelOptions={modelCandidates}
         onClose={() => setUploadOpen(false)}
         onSubmit={submitUpload}

@@ -111,6 +111,26 @@ function filterTreeByKeyword(
   });
 }
 
+/** 从资料编号/名称/文件名中识别唯一匹配的KKS对象（供单份/多份挂接复用） */
+export function getRecommendedModelOptions(
+  options: readonly ModelLinkOption[],
+  sourceText: string,
+): ModelLinkOption[] {
+  if (!sourceText.trim()) return [];
+  const codeCount = new Map<string, number>();
+  options.forEach((item) => {
+    const code = item.code.toUpperCase();
+    if (!code) return;
+    codeCount.set(code, (codeCount.get(code) || 0) + 1);
+  });
+  return options.filter(
+    (item) =>
+      Boolean(item.code) &&
+      codeCount.get(item.code.toUpperCase()) === 1 &&
+      includesExactCode(sourceText, item.code),
+  );
+}
+
 export default function ModelLinkSelector({
   options,
   selectedKeys,
@@ -157,21 +177,10 @@ export default function ModelLinkSelector({
     [optionById, visibleTree],
   );
 
-  const recommendedOptions = useMemo(() => {
-    if (!sourceText.trim()) return [];
-    const codeCount = new Map<string, number>();
-    options.forEach((item) => {
-      const code = item.code.toUpperCase();
-      if (!code) return;
-      codeCount.set(code, (codeCount.get(code) || 0) + 1);
-    });
-    return options.filter(
-      (item) =>
-        Boolean(item.code) &&
-        codeCount.get(item.code.toUpperCase()) === 1 &&
-        includesExactCode(sourceText, item.code),
-    );
-  }, [options, sourceText]);
+  const recommendedOptions = useMemo(
+    () => getRecommendedModelOptions(options, sourceText),
+    [options, sourceText],
+  );
 
   const selectedOptions = selectedKeys
     .map((key) => options.find((item) => item.key === key))
