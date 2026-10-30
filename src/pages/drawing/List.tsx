@@ -442,57 +442,6 @@ export default function DrawingList() {
   const makeCode = (id: number) => `2026-${String(id).padStart(3, "0")}`;
 
   const submitUpload = (form: UploadFormValues) => {
-    if (form.mode === "single") {
-      if (data.some((item) => item.code === form.code.trim())) {
-        message.warning("资料编号已存在");
-        return;
-      }
-      const id = nextRecordId;
-      const now = formatDate(new Date());
-      const fileSize = readableFileSize(form.file);
-      const fileFormat = getFileFormat(form.file.name, "PDF");
-      const linkedModels = modelCandidates.filter((item) =>
-        form.linkedModelKeys.includes(item.key),
-      );
-      const version: DrawingVersion = {
-        id: id * 100 + 1,
-        drawingId: id,
-        version: "V1.0",
-        uploadTime: now,
-        uploadUser: "系统管理员",
-        fileSize,
-        fileFormat,
-        remark: form.remark.trim() || "初始版本",
-      };
-      const newDrawing: DrawingRecord = {
-        id,
-        code: form.code.trim(),
-        name: form.name.trim(),
-        version: "V1.0",
-        major: form.major,
-        category: form.category,
-        position: form.position,
-        directoryId: form.directoryId,
-        fileFormat,
-        fileSize,
-        uploadUser: "系统管理员",
-        uploadTime: now,
-        remark: form.remark.trim(),
-        versions: [version],
-        modelLinks: linkedModels,
-      };
-
-      setData((items) => [newDrawing, ...items]);
-      setSelectedDirectoryId(form.directoryId);
-      setUploadOpen(false);
-      message.success(
-        linkedModels.length > 0
-          ? `资料上传成功，已挂接 ${linkedModels.length} 个对象`
-          : "资料上传成功，已生成V1.0",
-      );
-      return;
-    }
-
     if (form.mode === "multi") {
       const now = formatDate(new Date());
       const newRecords = form.items.map((item, index) => {
@@ -532,7 +481,7 @@ export default function DrawingList() {
       setData((items) => [...newRecords, ...items]);
       setSelectedDirectoryId(form.directoryId);
       setUploadOpen(false);
-      message.success(`多文件上传完成：共 ${newRecords.length} 份资料`);
+      message.success(`资料上传完成：共 ${newRecords.length} 份`);
       return;
     }
 

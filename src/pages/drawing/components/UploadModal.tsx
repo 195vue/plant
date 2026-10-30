@@ -60,19 +60,6 @@ interface UploadModalProps {
   onSubmit: (form: UploadFormValues) => void;
 }
 
-export interface SingleUploadFormValues {
-  mode: "single";
-  code: string;
-  name: string;
-  major: string;
-  category: string;
-  position: string;
-  directoryId: number;
-  linkedModelKeys: string[];
-  file: File;
-  remark: string;
-}
-
 export type BatchUploadStatus =
   | "ready"
   | "skipped"
@@ -126,10 +113,7 @@ export interface MultiUploadFormValues {
   remark: string;
 }
 
-export type UploadFormValues =
-  | SingleUploadFormValues
-  | MultiUploadFormValues
-  | BatchUploadFormValues;
+export type UploadFormValues = MultiUploadFormValues | BatchUploadFormValues;
 
 interface CommonFormState {
   major: string;
@@ -137,13 +121,6 @@ interface CommonFormState {
   position: string;
   directoryId?: number;
   remark: string;
-}
-
-interface SingleFormState {
-  code: string;
-  name: string;
-  linkedModelKeys: string[];
-  file?: File;
 }
 
 const VALID_BATCH_EXTENSIONS = new Set(["PDF", "DWG"]);
@@ -253,17 +230,12 @@ export default function UploadModal({
   onClose,
   onSubmit,
 }: UploadModalProps) {
-  const [mode, setMode] = useState<UploadFormValues["mode"]>("single");
+  const [mode, setMode] = useState<UploadFormValues["mode"]>("multi");
   const [common, setCommon] = useState<CommonFormState>({
     major: "",
     category: "",
     position: "",
     remark: "",
-  });
-  const [single, setSingle] = useState<SingleFormState>({
-    code: "",
-    name: "",
-    linkedModelKeys: [],
   });
   const [zipFile, setZipFile] = useState<File>();
   const [batchItems, setBatchItems] = useState<BatchUploadItem[]>([]);
@@ -285,18 +257,13 @@ export default function UploadModal({
 
   useEffect(() => {
     if (open && !wasOpenRef.current) {
-      setMode("single");
+      setMode("multi");
       setCommon({
         major: "",
         category: "",
         position: "",
         directoryId: defaultDirectoryId,
         remark: "",
-      });
-      setSingle({
-        code: defaultCode,
-        name: "",
-        linkedModelKeys: [],
       });
       setZipFile(undefined);
       setBatchItems([]);
@@ -709,58 +676,26 @@ export default function UploadModal({
       return;
     }
 
-    if (mode === "multi") {
-      if (multiItems.length === 0) {
-        message.warning("请选择要上传的资料文件");
-        return;
-      }
-      const failedCount = multiItems.filter(
-        (item) => item.status === "failed",
-      ).length;
-      if (failedCount > 0) {
-        message.warning(
-          `有 ${failedCount} 个文件校验未通过，请修改名称/编号或移除后再上传`,
-        );
-        return;
-      }
-      onSubmit({
-        mode: "multi",
-        major: common.major,
-        category: common.category,
-        position: common.position,
-        directoryId: common.directoryId!,
-        items: multiItems,
-        remark: common.remark,
-      });
+    if (multiItems.length === 0) {
+      message.warning("请选择要上传的资料文件");
       return;
     }
-
-    if (!single.code.trim()) {
-      message.warning("请填写资料编号");
-      return;
-    }
-    if (!single.name.trim()) {
-      message.warning("请填写资料名称");
-      return;
-    }
-    if (!single.file) {
-      message.warning("请选择资料文件");
-      return;
-    }
-    if (!VALID_BATCH_EXTENSIONS.has(getFileExtension(single.file.name))) {
-      message.warning("单个资料只支持PDF或DWG格式");
+    const failedCount = multiItems.filter(
+      (item) => item.status === "failed",
+    ).length;
+    if (failedCount > 0) {
+      message.warning(
+        `有 ${failedCount} 个文件校验未通过，请修改名称/编号或移除后再上传`,
+      );
       return;
     }
     onSubmit({
-      mode: "single",
-      code: single.code,
-      name: single.name,
+      mode: "multi",
       major: common.major,
       category: common.category,
       position: common.position,
       directoryId: common.directoryId!,
-      linkedModelKeys: single.linkedModelKeys,
-      file: single.file,
+      items: multiItems,
       remark: common.remark,
     });
   };
@@ -836,11 +771,12 @@ export default function UploadModal({
 
   const submitLabel = batchSubmitted
     ? "完成"
-    : mode === "single"
-      ? "确认上传"
-      : mode === "multi"
+    : mode === "batch"
+      ? `确认导入${batchStatistics.ready ? `（${batchStatistics.ready}项）` : ""}`
+      : multiItems.length > 1
         ? `确认上传（${multiItems.length}份）`
-        : `确认导入${batchStatistics.ready ? `（${batchStatistics.ready}项）` : ""}`;
+        : "确认上传";
+  const singleFileMode = multiItems.length === 1;
 
   return (
     <>
@@ -866,29 +802,16 @@ export default function UploadModal({
     >
       <DevNote
         id="drawing-upload-mode"
-        title="上传模式切换（单个/多文件/压缩包）"
-        summary="支持单个资料上传、多文件逐份挂接模型上传，以及ZIP压缩包批量上传"
+        title="上传模式切换（文件/压缩包）"
+        summary="文件上传支持单个或多个PDF/DWG，逐份或批量挂接模型；压缩包支持ZIP批量导入"
         items={[
-          { label: "交互逻辑", value: "三个Tab切换 mode（single/multi/batch）；多文件模式逐行编辑名称与编号，并逐份挂接模型；压缩包导入提交后锁定，按钮文案变为“确认导入（N项）/完成/关闭”" },
-          { label: "校验规则", value: "提交时逐项校验：所属目录/专业/分类/位置必填；单文件模式校验编号、名称、文件；多文件模式每份资料名称/编号在资料库与本次批次内唯一且必须挂接模型；压缩包模式校验ZIP文件与可导入项" },
+          { label: "交互逻辑", value: "两个Tab切换 mode（multi/batch）；打开默认在文件上传，选择1个文件时按单份表单展示，2个及以上才出现勾选、批量挂接、仅看未挂接等批量能力；压缩包导入提交后锁定，按钮文案变为“确认导入（N项）/完成/关闭”" },
+          { label: "校验规则", value: "所属目录/专业/分类/位置必填；每份资料名称/编号在资料库与本次批次内唯一；仅PDF/DWG且单文件≤50MB；挂接状态仅展示，不阻断上传" },
           { label: "权限", value: "管理员/操作人员可上传；浏览人员无上传入口" },
         ]}
         wrapClassName="block w-full"
       >
-      <div className="mb-5 grid grid-cols-3 overflow-hidden rounded-lg border border-admin-border bg-slate-50 p-1">
-        <button
-          type="button"
-          disabled={batchSubmitted}
-          className={`flex items-center justify-center gap-2 rounded-md px-4 py-2.5 text-sm transition ${
-            mode === "single"
-              ? "bg-white font-medium text-admin-primary shadow-sm"
-              : "text-admin-muted hover:text-admin-text"
-          }`}
-          onClick={() => setMode("single")}
-        >
-          <FileText size={16} />
-          单个资料上传
-        </button>
+      <div className="mb-5 grid grid-cols-2 overflow-hidden rounded-lg border border-admin-border bg-slate-50 p-1">
         <button
           type="button"
           disabled={batchSubmitted}
@@ -900,7 +823,7 @@ export default function UploadModal({
           onClick={() => setMode("multi")}
         >
           <Files size={16} />
-          多文件上传
+          文件上传
         </button>
         <button
           type="button"
@@ -918,90 +841,15 @@ export default function UploadModal({
       </div>
       </DevNote>
 
-      {mode === "single" ? (
-        <>
-          <DevNote
-            id="drawing-upload-single"
-            title="单个资料上传"
-            summary="一次上传一个PDF/DWG文件并生成V1.0，可同时挂接设备/管路模型"
-            items={[
-              { label: "数据来源", value: "资料编号默认自动生成（2026-NNN，可修改）；上传后提交到 List 的 submitUpload：编号重复则警告“资料编号已存在”，否则新增记录 V1.0、上传人=系统管理员" },
-              { label: "校验规则", value: "文件仅支持PDF/DWG，≤50MB（UploadBox accept+maxSize，submitUpload 中 getFileFormat 校验）；编号/名称必填" },
-              { label: "交互逻辑", value: "填写编号/名称/专业/分类/位置/目录/备注；可选关联模型（KKS自动匹配+树选择，详见模型挂接标注）；确认后生成V1.0并提示“已挂接N个对象”" },
-              { label: "权限", value: "管理员/操作人员" },
-            ]}
-            wrapClassName="block w-full"
-          >
-          <div className="mb-4 rounded border border-blue-100 bg-blue-50/60 px-3 py-2 text-xs leading-5 text-blue-700">
-            一次上传一个PDF或DWG文件，单文件最大50MB；上传后直接生成V1.0，可同时挂接一个或多个设备、管路模型。
-          </div>
-          {commonFields}
-          <FormItem label="资料编号" required>
-            <input
-              className="input-base"
-              value={single.code}
-              onChange={(event) =>
-                setSingle((current) => ({
-                  ...current,
-                  code: event.target.value,
-                }))
-              }
-              placeholder="自动生成，可修改"
-            />
-          </FormItem>
-          <FormItem label="资料名称" required>
-            <input
-              className="input-base"
-              value={single.name}
-              onChange={(event) =>
-                setSingle((current) => ({
-                  ...current,
-                  name: event.target.value,
-                }))
-              }
-              placeholder="请输入资料名称"
-            />
-          </FormItem>
-          <FormItem label="资料文件" required>
-            <UploadBox
-              accept=".pdf,.dwg"
-              maxSize={50}
-              hint="支持PDF/DWG格式，单文件≤50MB"
-              onFileChange={(file) =>
-                setSingle((current) => ({
-                  ...current,
-                  file: file || undefined,
-                }))
-              }
-            />
-          </FormItem>
-          </DevNote>
-          <FormItem
-            label="关联模型"
-            hint="可选；支持KKS编码自动推荐、条件检索和多模型挂接"
-          >
-            <ModelLinkSelector
-              options={modelOptions}
-              selectedKeys={single.linkedModelKeys}
-              onChange={(linkedModelKeys) =>
-                setSingle((current) => ({
-                  ...current,
-                  linkedModelKeys,
-                }))
-              }
-              sourceText={`${single.code} ${single.name} ${single.file?.name || ""}`}
-            />
-          </FormItem>
-        </>
-      ) : mode === "multi" ? (
+      {mode === "multi" ? (
         <>
           <DevNote
             id="drawing-upload-multi"
-            title="多文件上传（逐份挂接模型）"
-            summary="一次多选PDF/DWG，每个文件独立生成资料记录，可逐份挂接模型"
+            title="文件上传（单份/多份，逐份挂接模型）"
+            summary="一次上传1个或多个PDF/DWG，每个文件独立生成资料记录，可逐份挂接模型"
             items={[
-              { label: "交互逻辑", value: "点击或拖拽多选文件（≤50个）→ 每行自动生成递增值资料编号与文件名去扩展名的资料名称，可逐行修改；每行“挂接模型”打开独立挂接弹窗，保存后仅作用于该份资料" },
-              { label: "挂接能力", value: "挂接模型为可选项，与单个上传一致，也可上传后在资料列表继续挂接；支持勾选多份批量挂接（一次选择应用到所有勾选行，已有挂接可选合并/覆盖），也支持逐份挂接；逐份弹窗支持KKS自动推荐（按编号+名称+文件名识别）、设备/管路结构树多选、“从上一份复制”与“保存并下一份”连续编辑" },
+              { label: "交互逻辑", value: "点击或拖拽选择文件（≤50个）→ 每行自动生成递增值资料编号与文件名去扩展名的资料名称，可逐行修改；仅1个文件时自动隐藏勾选、批量挂接等批量控件；每行“挂接模型”打开独立挂接弹窗，保存后仅作用于该份资料" },
+              { label: "挂接能力", value: "挂接模型为可选项，也可上传后在资料列表继续挂接；2个及以上文件时支持勾选多份批量挂接（一次选择应用到所有勾选行，已有挂接可选合并/覆盖），也支持逐份挂接；逐份弹窗支持KKS自动推荐（按编号+名称+文件名识别）、设备/管路结构树多选、“从上一份复制”与“保存并下一份”连续编辑" },
               { label: "校验规则", value: "仅PDF/DWG且单文件≤50MB；每份资料名称、编号在资料库与本次批次内唯一；挂接状态仅展示，不阻断上传" },
               { label: "后续步骤", value: "正式系统：多文件直传对象存储，逐份创建资料记录与挂接关系" },
             ]}
@@ -1043,7 +891,7 @@ export default function UploadModal({
               }}
             >
               <Files size={28} className="mx-auto mb-2 text-admin-muted" />
-              <p className="text-sm text-admin-text">点击或拖拽多个文件到此处</p>
+              <p className="text-sm text-admin-text">点击或拖拽PDF/DWG文件到此处（可多选）</p>
               <p className="mt-1 text-xs text-admin-muted">
                 支持PDF/DWG，最多{MAX_MULTI_COUNT}个，单文件≤50MB，重复文件自动跳过
               </p>
@@ -1079,40 +927,46 @@ export default function UploadModal({
                     />
                     仅看未挂接
                   </label>
-                  <span className="text-admin-muted">
-                    已选 {selectedMultiItems.length} 份
-                  </span>
-                  <button
-                    type="button"
-                    className="rounded border border-admin-primary px-2 py-1 text-admin-primary transition hover:bg-blue-50 disabled:cursor-not-allowed disabled:border-admin-border disabled:text-admin-muted"
-                    disabled={selectedMultiItems.length === 0}
-                    onClick={openBatchLink}
-                  >
-                    批量挂接
-                  </button>
-                  <button
-                    type="button"
-                    className="rounded border border-admin-border px-2 py-1 text-admin-muted transition hover:text-admin-text disabled:cursor-not-allowed disabled:opacity-50"
-                    disabled={selectedMultiItems.length === 0}
-                    onClick={clearSelectedLinks}
-                  >
-                    清除挂接
-                  </button>
+                  {!singleFileMode && (
+                    <>
+                      <span className="text-admin-muted">
+                        已选 {selectedMultiItems.length} 份
+                      </span>
+                      <button
+                        type="button"
+                        className="rounded border border-admin-primary px-2 py-1 text-admin-primary transition hover:bg-blue-50 disabled:cursor-not-allowed disabled:border-admin-border disabled:text-admin-muted"
+                        disabled={selectedMultiItems.length === 0}
+                        onClick={openBatchLink}
+                      >
+                        批量挂接
+                      </button>
+                      <button
+                        type="button"
+                        className="rounded border border-admin-border px-2 py-1 text-admin-muted transition hover:text-admin-text disabled:cursor-not-allowed disabled:opacity-50"
+                        disabled={selectedMultiItems.length === 0}
+                        onClick={clearSelectedLinks}
+                      >
+                        清除挂接
+                      </button>
+                    </>
+                  )}
                 </div>
               </div>
               <div className="max-h-[320px] overflow-auto">
                 <table className="w-full text-xs">
                   <thead className="sticky top-0 z-10 bg-white text-admin-muted">
                     <tr className="border-b border-admin-border">
-                      <th className="w-8 px-2 py-2 text-left font-medium">
-                        <input
-                          type="checkbox"
-                          checked={allSelectableSelected}
-                          disabled={selectableMultiItems.length === 0}
-                          onChange={toggleSelectAll}
-                          title="全选"
-                        />
-                      </th>
+                      {!singleFileMode && (
+                        <th className="w-8 px-2 py-2 text-left font-medium">
+                          <input
+                            type="checkbox"
+                            checked={allSelectableSelected}
+                            disabled={selectableMultiItems.length === 0}
+                            onChange={toggleSelectAll}
+                            title="全选"
+                          />
+                        </th>
+                      )}
                       <th className="w-10 px-2 py-2 text-left font-medium">序号</th>
                       <th className="w-[170px] px-2 py-2 text-left font-medium">文件名</th>
                       <th className="w-[180px] px-2 py-2 text-left font-medium">资料名称</th>
@@ -1127,7 +981,7 @@ export default function UploadModal({
                     {visibleMultiItems.length === 0 ? (
                       <tr>
                         <td
-                          colSpan={9}
+                          colSpan={singleFileMode ? 8 : 9}
                           className="px-3 py-6 text-center text-admin-muted"
                         >
                           全部文件均已挂接模型
@@ -1151,14 +1005,16 @@ export default function UploadModal({
                               item.status === "failed" ? "bg-red-50/50" : ""
                             }`}
                           >
-                            <td className="px-2 py-2">
-                              <input
-                                type="checkbox"
-                                checked={selectedMultiIds.includes(item.id)}
-                                disabled={item.status !== "ready"}
-                                onChange={() => toggleMultiSelect(item.id)}
-                              />
-                            </td>
+                            {!singleFileMode && (
+                              <td className="px-2 py-2">
+                                <input
+                                  type="checkbox"
+                                  checked={selectedMultiIds.includes(item.id)}
+                                  disabled={item.status !== "ready"}
+                                  onChange={() => toggleMultiSelect(item.id)}
+                                />
+                              </td>
+                            )}
                             <td className="px-2 py-2 text-admin-muted">
                               {index + 1}
                             </td>
@@ -1421,9 +1277,9 @@ export default function UploadModal({
           disabled={batchSubmitted}
           onChange={(event) => setCommonValue("remark", event.target.value)}
           placeholder={
-            mode === "single"
-              ? "请输入资料备注"
-              : "该备注将应用到本次成功导入的全部资料"
+            mode === "batch"
+              ? "该备注将应用到本次成功导入的全部资料"
+              : "该备注将应用到本次上传的全部资料"
           }
         />
       </FormItem>
