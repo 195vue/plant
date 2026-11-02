@@ -28,6 +28,7 @@ import {
   equipmentTreeData,
   pipelineTreeData,
   panoramaTreeData,
+  maintenanceTreeData,
   overallStats,
   equipmentInfo,
   componentInfo,
@@ -42,6 +43,17 @@ import {
 import { systems, alarms, screenStats } from "@/mock/index";
 import type { RoamingPath } from "@/types";
 import { useRoamingPaths } from "@/lib/roamingPaths";
+import {
+  addMaintenanceScene,
+  deleteMaintenanceScene,
+  renameMaintenanceScene,
+  useMaintenanceScenes,
+} from "@/lib/maintenanceScenes";
+import type {
+  MaintenanceSceneNode,
+  MaintenanceSceneRecord,
+} from "@/lib/maintenanceScenes";
+import { MaintenanceSceneModal } from "@/components/screen/MaintenanceSceneModal";
 import { DevNote } from "@/components/devNotes/DevNote";
 
 const ONLINE_COUNT = 230;
@@ -203,10 +215,19 @@ export default function Screen() {
   const { isAuthenticated, currentUser } = useAuthStore();
 
   const [viewMode, setViewMode] = useState<"overview" | "interior">("interior");
-  const [focusMode, setFocusMode] = useState<"panorama" | "equipment" | "pipeline">(
-    "panorama"
-  );
+  const [focusMode, setFocusMode] = useState<
+    "panorama" | "equipment" | "pipeline" | "maintenance"
+  >("panorama");
   const [selectedNode, setSelectedNode] = useState<TreeNodeData | undefined>();
+
+  // 检修场景（原型阶段与后台检修场景记录共享 localStorage 数据）
+  const maintenanceScenes = useMaintenanceScenes();
+  const [maintenanceOpen, setMaintenanceOpen] = useState(false);
+  const [currentMaintenanceId, setCurrentMaintenanceId] = useState<number | null>(
+    null
+  );
+  const currentMaintenanceScene =
+    maintenanceScenes.find((scene) => scene.id === currentMaintenanceId) ?? null;
 
   const [leftPanelVisible, setLeftPanelVisible] = useState(true);
   const [leftPanelMode, setLeftPanelMode] = useState<"chart" | "tree">("chart");
@@ -293,8 +314,16 @@ export default function Screen() {
   if (!currentUser) return null;
 
   const handleSceneChange = (
-    scene: "panorama" | "equipment" | "pipeline" | "overview"
+    scene: "panorama" | "equipment" | "pipeline" | "maintenance" | "overview"
   ) => {
+    if (scene === "maintenance") {
+      setViewMode("interior");
+      setFocusMode("maintenance");
+      setSelectedNode(undefined);
+      setOverviewActiveTab("stats");
+      setMaintenanceOpen(true);
+      return;
+    }
     if (scene === "overview") {
       setViewMode("overview");
       setFocusMode("panorama");
@@ -346,6 +375,32 @@ export default function Screen() {
     setRightActiveTab("basic");
   };
 
+  const handleLoadMaintenanceScene = (record: MaintenanceSceneRecord) => {
+    setViewMode("interior");
+    setFocusMode("maintenance");
+    setSelectedNode(undefined);
+    setCurrentMaintenanceId(record.id);
+    setMaintenanceOpen(false);
+    message.success(`已载入检修场景：${record.name}`);
+  };
+
+  const handleGenerateMaintenanceScene = (input: {
+    name: string;
+    nodes: MaintenanceSceneNode[];
+  }) => {
+    const record = addMaintenanceScene({
+      name: input.name,
+      nodes: input.nodes,
+      createdBy: currentUser.realName,
+    });
+    setViewMode("interior");
+    setFocusMode("maintenance");
+    setSelectedNode(undefined);
+    setCurrentMaintenanceId(record.id);
+    setMaintenanceOpen(false);
+    message.success(`检修场景已生成：${record.name}`);
+  };
+
   const handleGlobalReset = () => {
     setViewMode("interior");
     setFocusMode("panorama");
@@ -357,6 +412,8 @@ export default function Screen() {
     setOverviewActiveTab("stats");
     setDrillDownOpen(false);
     setDrillDownData(null);
+    setMaintenanceOpen(false);
+    setCurrentMaintenanceId(null);
     setSceneResetKey((key) => key + 1);
   };
 
@@ -367,6 +424,8 @@ export default function Screen() {
         return equipmentTreeData;
       case "pipeline":
         return pipelineTreeData;
+      case "maintenance":
+        return maintenanceTreeData;
       default:
         return panoramaTreeData;
     }
@@ -381,6 +440,7 @@ export default function Screen() {
   const nodeInfo = getNodeInfo();
   const selectedScope: AttributeTemplateScope =
     focusMode === "pipeline" ||
+    focusMode === "maintenance" ||
     selectedNode?.type === "component" ||
     selectedNode?.type === "usage"
       ? "pipeline"
@@ -1717,6 +1777,8 @@ export default function Screen() {
           waterOnSystems={waterOnSystems}
           onWaterSystemToggle={handleWaterSystemToggle}
           playPathRequest={playPathRequest}
+          maintenanceScene={currentMaintenanceScene}
+          onOpenMaintenancePicker={() => setMaintenanceOpen(true)}
         />
 
         {rightPanelVisible ? (
@@ -1759,6 +1821,25 @@ export default function Screen() {
       </div>
 
       <BottomBar key={`bottom-${sceneResetKey}`} onReset={handleGlobalReset} />
+
+      {/* 检修场景弹窗：选择历史检修场景或新建场景 */}
+      <MaintenanceSceneModal
+        open={maintenanceOpen}
+        onClose={() => setMaintenanceOpen(false)}
+        records={maintenanceScenes}
+        currentSceneId={currentMaintenanceId}
+        onLoad={handleLoadMaintenanceScene}
+        onGenerate={handleGenerateMaintenanceScene}
+        onRename={(id, name) => {
+          renameMaintenanceScene(id, name);
+          message.success("检修场景已重命名");
+        }}
+        onDelete={(id) => {
+          deleteMaintenanceScene(id);
+          if (currentMaintenanceId === id) setCurrentMaintenanceId(null);
+          message.success("检修场景已删除");
+        }}
+      />
 
       {/* 管路规格分布弹窗：点击管路统计柱状图后展示该系统下各规格管路长度 */}
       <Modal

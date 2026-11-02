@@ -14,10 +14,16 @@ import {
   RotateCcw,
   CircleDashed,
   Droplets,
+  Wrench,
 } from "lucide-react";
 import { Modal, ConfirmModal } from "@/components/common/Modal";
 import { message } from "@/components/common/Message";
 import { useRoamingPaths, setRoamingPaths } from "@/lib/roamingPaths";
+import {
+  getMaintenanceStatusMeta,
+  getMaintenanceSystemColor,
+  type MaintenanceSceneRecord,
+} from "@/lib/maintenanceScenes";
 import type { RoamingPath } from "@/types";
 import damBg from "@/assets/db.png";
 import panoramaBg from "@/assets/qj.png";
@@ -39,7 +45,7 @@ interface SelectionNode {
 
 interface Scene3DProps {
   viewMode: "overview" | "interior";
-  focusMode: "panorama" | "equipment" | "pipeline";
+  focusMode: "panorama" | "equipment" | "pipeline" | "maintenance";
   selectedNode?: SelectionNode;
   onSelectNode?: (title: string, kind?: "equipment" | "pipeline") => void;
   onEnterInterior?: (focus: "panorama" | "equipment" | "pipeline") => void;
@@ -48,6 +54,10 @@ interface Scene3DProps {
   onWaterSystemToggle?: (name: string) => void;
   /** 大屏右侧或后台发起的路线播放请求 */
   playPathRequest?: PlayPathRequest | null;
+  /** 当前展示的检修场景（为空时提示先选择场景） */
+  maintenanceScene?: MaintenanceSceneRecord | null;
+  /** 打开检修场景选择弹窗 */
+  onOpenMaintenancePicker?: () => void;
 }
 
 type FloorKey =
@@ -63,6 +73,7 @@ const sceneNames: Record<string, string> = {
   "interior-panorama": "厂房全景",
   "interior-equipment": "设备总览",
   "interior-pipeline": "管路总览",
+  "interior-maintenance": "检修场景",
 };
 
 // 设备分布数据
@@ -115,6 +126,8 @@ export function Scene3D({
   waterOnSystems = [],
   onWaterSystemToggle,
   playPathRequest = null,
+  maintenanceScene = null,
+  onOpenMaintenancePicker,
 }: Scene3DProps) {
   const [fps, setFps] = useState(60);
   const [roamingMode, setRoamingMode] = useState<"none" | "free" | "path">(
@@ -184,6 +197,8 @@ export function Scene3D({
       if (focusMode === "panorama") return `厂房全景 - ${floorInfo[activeFloor].name}`;
       if (focusMode === "equipment") return `设备总览 - ${floorInfo[activeFloor].name}`;
       if (focusMode === "pipeline") return `管路总览 - ${floorInfo[activeFloor].name}`;
+      if (focusMode === "maintenance")
+        return `检修场景 - ${maintenanceScene?.name ?? "未选择"}`;
     }
     return sceneNames["overview-panorama"];
   };
@@ -973,6 +988,242 @@ export function Scene3D({
   );
 };
 
+  // ===== 检修场景：只展示所选管路/阀门，并以立牌标注状态 =====
+  const renderMaintenanceScene = () => {
+    if (!maintenanceScene) {
+      return (
+        <div className="absolute inset-0">
+          <img
+            src={panoramaBg}
+            alt="检修场景"
+            className="w-full h-full object-cover"
+            style={{ filter: "brightness(0.35) saturate(0.7)" }}
+          />
+          <div className="absolute inset-0" style={{ background: "rgba(7, 11, 20, 0.7)" }} />
+          <div className="scene-grid absolute inset-0 opacity-15" />
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 z-10">
+            <div className="text-white text-lg font-bold tracking-widest">
+              尚未选择检修场景
+            </div>
+            <div className="text-screen-muted text-xs">
+              可从历史检修场景中载入，或新建一个检修场景
+            </div>
+            <button
+              onClick={onOpenMaintenancePicker}
+              className="mt-2 px-5 py-2 text-sm text-[#40A9FF] border border-[#40A9FF]/60 hover:bg-[#40A9FF]/20 hover:text-white transition-colors rounded-none"
+            >
+              选择检修场景
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    const systemNames = Array.from(
+      new Set(maintenanceScene.nodes.map((node) => node.system)),
+    );
+    const pipeStatusOptions = [
+      { label: "带压", color: "#ff4d4f" },
+      { label: "不带压", color: "#8c8c8c" },
+    ];
+    const valveStatusOptions = [
+      { label: "开", color: "#52c41a" },
+      { label: "关", color: "#8c8c8c" },
+      { label: "检修中", color: "#faad14" },
+    ];
+
+    return (
+      <div className="absolute inset-0">
+        <img
+          src={panoramaBg}
+          alt="检修场景"
+          className="w-full h-full object-cover"
+          style={{ filter: "brightness(0.5) saturate(0.85)" }}
+        />
+        <div className="absolute inset-0" style={{ background: "rgba(7, 11, 20, 0.62)" }} />
+        <div className="scene-grid absolute inset-0 opacity-15" />
+
+        {/* 场景信息 */}
+        <div className="absolute top-[4%] left-1/2 -translate-x-1/2 text-center z-10">
+          <div
+            className="text-white text-base font-bold tracking-widest px-4 py-1"
+            style={{
+              textShadow: "0 0 10px rgba(64,169,255,0.8)",
+              borderBottom: "1px solid rgba(64,169,255,0.3)",
+            }}
+          >
+            {maintenanceScene.name}
+          </div>
+          <div className="text-[#40A9FF]/70 text-xs mt-1">
+            {maintenanceScene.createdAt} · {maintenanceScene.createdBy} ·{" "}
+            {maintenanceScene.nodes.length} 个检修对象
+          </div>
+        </div>
+
+        {/* 重新选择场景 */}
+        <div className="absolute top-3 right-3 z-10">
+          <button
+            onClick={onOpenMaintenancePicker}
+            className="px-3 py-1.5 text-xs text-[#40A9FF] bg-black/60 border border-[#40A9FF]/50 hover:bg-[#40A9FF]/20 hover:text-white transition-colors rounded-none backdrop-blur-sm"
+          >
+            重新选择
+          </button>
+        </div>
+
+        {/* 选中对象模型 + 状态立牌 */}
+        <div className="absolute inset-0 flex items-center justify-center px-8 pt-[9%] pb-16 overflow-auto z-[5]">
+          <div className="flex flex-wrap items-start justify-center gap-4 max-w-[94%]">
+            {systemNames.map((system) => {
+              const systemColor = getMaintenanceSystemColor(system);
+              const nodes = maintenanceScene.nodes.filter(
+                (node) => node.system === system,
+              );
+              return (
+                <div
+                  key={system}
+                  className="bg-black/45 border backdrop-blur-sm px-4 py-3"
+                  style={{ borderColor: `${systemColor}66` }}
+                >
+                  <div className="flex items-center gap-2 mb-2">
+                    <span
+                      className="w-1.5 h-3.5"
+                      style={{ background: systemColor, boxShadow: `0 0 6px ${systemColor}` }}
+                    />
+                    <span className="text-xs text-white font-medium">{system}</span>
+                    <span className="text-[10px] text-screen-muted">
+                      ({nodes.length})
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap justify-center gap-x-8 gap-y-5">
+                    {nodes.map((node) => {
+                      const statusMeta = getMaintenanceStatusMeta(
+                        node.kind,
+                        node.status,
+                      );
+                      const statusColor = statusMeta.color;
+                      return (
+                        <div
+                          key={node.key}
+                          className="flex flex-col items-center cursor-pointer group"
+                          onClick={() => handlePipelineClick(node.title)}
+                        >
+                          {/* 状态立牌 */}
+                          <div className="flex flex-col items-center">
+                            <div
+                              className="px-2.5 py-1 text-xs font-medium transition-transform group-hover:-translate-y-0.5"
+                              style={{
+                                color: "#fff",
+                                background: `linear-gradient(180deg, ${statusColor}cc, ${statusColor}55)`,
+                                border: `1px solid ${statusColor}`,
+                                boxShadow: `0 0 10px ${statusColor}88`,
+                              }}
+                            >
+                              {statusMeta.label}
+                            </div>
+                            <div
+                              className="w-px h-3"
+                              style={{ background: statusColor }}
+                            />
+                            <div
+                              className="w-1.5 h-1.5 rotate-45 -mt-[3px]"
+                              style={{ background: statusColor }}
+                            />
+                          </div>
+
+                          {/* 模型 */}
+                          {node.kind === "pipe" ? (
+                            <div
+                              className="relative mt-1 w-40 h-5 transition-transform group-hover:scale-105"
+                              style={{
+                                background: `linear-gradient(180deg, ${systemColor}66, ${systemColor}22)`,
+                                border: `1px solid ${systemColor}`,
+                                boxShadow: `0 0 12px ${statusColor}55`,
+                              }}
+                            >
+                              <div
+                                className="absolute inset-y-1 left-1 right-1"
+                                style={{ background: `${systemColor}55` }}
+                              />
+                              <div
+                                className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-5"
+                                style={{ background: systemColor }}
+                              />
+                              <div
+                                className="absolute right-0 top-1/2 -translate-y-1/2 w-1.5 h-5"
+                                style={{ background: systemColor }}
+                              />
+                            </div>
+                          ) : (
+                            <div
+                              className="relative mt-1 w-12 h-12 flex items-center justify-center transition-transform group-hover:scale-110"
+                              style={{
+                                border: `2px solid ${systemColor}`,
+                                background: `${systemColor}26`,
+                                boxShadow: `0 0 12px ${statusColor}55`,
+                                borderRadius: "50%",
+                              }}
+                            >
+                              <Wrench size={18} style={{ color: systemColor }} />
+                              <span
+                                className="absolute w-2 h-2 rounded-full"
+                                style={{
+                                  top: -3,
+                                  right: -3,
+                                  background: statusColor,
+                                  boxShadow: `0 0 6px ${statusColor}`,
+                                }}
+                              />
+                            </div>
+                          )}
+
+                          <div className="mt-2 text-xs text-white text-center max-w-[180px]">
+                            {node.title}
+                          </div>
+                          <div className="text-[10px] text-screen-muted">
+                            {node.code}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* 状态图例 */}
+        <div className="absolute bottom-16 right-3 z-10 bg-black/60 border border-[#40A9FF]/30 backdrop-blur-sm p-2.5">
+          <div className="text-[10px] text-[#40A9FF]/70 mb-1.5">状态图例</div>
+          <div className="flex items-center gap-2 text-[10px] mb-1">
+            <span className="w-8 text-screen-muted">管路</span>
+            {pipeStatusOptions.map((item) => (
+              <span key={item.label} className="flex items-center gap-1" style={{ color: item.color }}>
+                <span
+                  className="w-3 h-1.5"
+                  style={{ background: item.color, boxShadow: `0 0 4px ${item.color}` }}
+                />
+                {item.label}
+              </span>
+            ))}
+          </div>
+          <div className="flex items-center gap-2 text-[10px]">
+            <span className="w-8 text-screen-muted">阀门</span>
+            {valveStatusOptions.map((item) => (
+              <span key={item.label} className="flex items-center gap-1" style={{ color: item.color }}>
+                <span
+                  className="w-2 h-2 rounded-full"
+                  style={{ background: item.color, boxShadow: `0 0 4px ${item.color}` }}
+                />
+                {item.label}
+              </span>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="flex-1 relative scene-placeholder overflow-hidden">
       {/* 3D 场景占位 - 模拟UE5渲染画面 */}
@@ -998,10 +1249,11 @@ export function Scene3D({
 
         {/* 根据场景渲染不同内容 */}
         {viewMode === "overview" && renderOverviewScene()}
-        {viewMode === "interior" && renderFusionScene()}
+        {viewMode === "interior" && focusMode !== "maintenance" && renderFusionScene()}
+        {viewMode === "interior" && focusMode === "maintenance" && renderMaintenanceScene()}
 
-        {/* 选中设备高亮框 */}
-        {selectedNode && (
+        {/* 选中设备高亮框（检修场景使用立牌标注，不显示居中高亮框） */}
+        {selectedNode && focusMode !== "maintenance" && (
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 border-2 border-blue-500 rounded-noneanimate-glow pointer-events-none">
             <div className="absolute -top-6 left-0 text-xs text-blue-400 bg-black/60 px-2 py-0.5 rounded-nonewhitespace-nowrap">
               {selectedNode.title}
@@ -1119,7 +1371,8 @@ export function Scene3D({
       </div>
       </DevNote>
 
-      {/* 右侧浮动工具栏 - 3D模型操作工具 */}
+      {/* 右侧浮动工具栏 - 3D模型操作工具（检修场景下只展示选中对象，隐藏模型工具栏） */}
+      {focusMode !== "maintenance" && (
       <DevNote
         id="scene-toolbar"
         title="3D模型操作工具栏（右侧）"
@@ -1237,6 +1490,7 @@ export function Scene3D({
         </button>
       </div>
       </DevNote>
+      )}
 
       {/* 漫游路径列表弹窗 */}
       <DevNote

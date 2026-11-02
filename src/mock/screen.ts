@@ -1483,6 +1483,60 @@ export const panoramaTreeData: TreeNodeData[] = [
   },
 ];
 
+// 各管网系统下的阀门节点（检修场景可选对象）
+const maintenanceValveNodes: Record<string, TreeNodeData[]> = {
+  "SYS-Tech": [
+    { key: "valve-1-1", title: "1#机组进水阀", code: "VAL-001", type: "valve" },
+    { key: "valve-1-2", title: "2#机组进水阀", code: "VAL-002", type: "valve" },
+    { key: "valve-1-3", title: "3#机组进水阀", code: "VAL-003", type: "valve" },
+    { key: "valve-1-4", title: "4#机组进水阀", code: "VAL-004", type: "valve" },
+  ],
+  "SYS-Drain": [
+    { key: "valve-2-1", title: "1#排水泵出口阀", code: "VAL-010", type: "valve" },
+    { key: "valve-2-2", title: "2#排水泵出口阀", code: "VAL-011", type: "valve" },
+    { key: "valve-2-3", title: "渗漏排水总阀", code: "VAL-012", type: "valve" },
+  ],
+  "SYS-Air": [
+    { key: "valve-3-1", title: "储气罐出口阀", code: "VAL-020", type: "valve" },
+    { key: "valve-3-2", title: "制动气源阀", code: "VAL-021", type: "valve" },
+  ],
+  "SYS-Oil": [
+    { key: "valve-4-1", title: "油压装置出口阀", code: "VAL-030", type: "valve" },
+    { key: "valve-4-2", title: "1#透平油供给阀", code: "VAL-031", type: "valve" },
+  ],
+  "SYS-Fire": [
+    { key: "valve-5-1", title: "消防水总阀", code: "VAL-040", type: "valve" },
+    { key: "valve-5-2", title: "厂房消火栓阀", code: "VAL-041", type: "valve" },
+  ],
+};
+
+// 检修场景结构树：辅机管网系统（管路）+ 各系统下的阀门
+export const maintenanceTreeData: TreeNodeData[] = (() => {
+  const pipelineGroup = panoramaTreeData.find((item) => item.key === "pan-pipeline");
+  if (!pipelineGroup) return [];
+  return [
+    {
+      ...pipelineGroup,
+      key: "mt-pipeline",
+      title: "辅机管网系统",
+      children: (pipelineGroup.children ?? []).map((system) => ({
+        ...system,
+        children: [
+          ...(system.children ?? []),
+          {
+            key: `${system.key}-valves`,
+            title: "阀门",
+            code: `${system.code}-VAL`,
+            type: "valve-group",
+            count: maintenanceValveNodes[system.key]?.length ?? 0,
+            children: maintenanceValveNodes[system.key] ?? [],
+          },
+        ],
+      })),
+    },
+  ];
+})();
+
 // 设备属性信息（Mock） - 详细数据
 export const equipmentInfo: Record<string, any> = {
   "1#水泵水轮机": {
