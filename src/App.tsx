@@ -38,6 +38,7 @@ import LoginLogManage from "@/pages/system/LoginLogReplica";
 import MenuManage from "@/pages/system/Menu";
 import StructureTreeManage from "@/pages/system/StructureTree";
 import AttributeTemplateManage from "@/pages/system/AttributeTemplate";
+import RetrofitList from "@/pages/system/RetrofitList";
 
 // 路由守卫
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -110,6 +111,7 @@ export default function App() {
           <Route path="system/log/operation" element={<OperationLogManage />} />
           <Route path="system/log/login" element={<LoginLogManage />} />
           <Route path="system/menu" element={<MenuManage />} />
+          <Route path="system/retrofit" element={<RetrofitList />} />
         </Route>
 
         {/* 404 */}

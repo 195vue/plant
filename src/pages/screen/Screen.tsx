@@ -35,7 +35,6 @@ import {
   generateNodeInfo,
   pipelineLengthBySystem,
   pipelineSpecBySystem,
-  reformStatsBySystem,
   reformDetailsBySystem,
   waterUsageData,
   generateReformRecords,
@@ -53,6 +52,11 @@ import type {
   MaintenanceSceneNode,
   MaintenanceSceneRecord,
 } from "@/lib/maintenanceScenes";
+import {
+  getRetrofitStatsBySystem,
+  retrofitSystemLabel,
+  useRetrofitRecords,
+} from "@/lib/retrofitRecords";
 import { MaintenanceSceneModal } from "@/components/screen/MaintenanceSceneModal";
 import { DevNote } from "@/components/devNotes/DevNote";
 
@@ -156,20 +160,113 @@ function StatCard({
   );
 }
 
-// 实时流量监测（占位静态数据，后续接入实时数据源后替换）
-const FLOW_TREND = (() => {
-  const base = 425;
+// ===== 实时流量监测假数据 =====
+// 24 小时 × 每小时 6 个点 = 144 个 m³/h，按时间顺序 00:00~24:00，10 分钟粒度
+const FLOW_24H: number[] = [
+  // 00:00 - 06:00 夜间低谷
+  325.2, 320.8, 318.5, 315.3, 312.1, 310.4, // 0h
+  308.6, 305.2, 302.8, 300.5, 298.3, 296.1, // 1h
+  295.4, 294.8, 295.1, 296.3, 298.5, 301.2, // 2h
+  303.8, 306.5, 310.2, 314.8, 318.5, 322.1, // 3h
+  326.4, 330.8, 335.2, 340.5, 346.1, 352.3, // 4h
+  358.7, 365.2, 372.1, 378.5, 385.2, 392.6, // 5h
+  // 06:00 - 08:00 爬坡
+  400.3, 408.5, 415.2, 422.8, 430.5, 438.2, // 6h
+  445.6, 452.3, 458.7, 464.5, 470.2, 475.8, // 7h
+  // 08:00 - 12:00 上午高峰
+  482.5, 488.3, 493.7, 498.5, 503.2, 508.7, // 8h
+  512.5, 516.3, 520.8, 524.5, 528.2, 532.7, // 9h
+  536.4, 539.8, 542.5, 545.2, 547.8, 549.5, // 10h
+  548.3, 545.7, 542.1, 538.4, 534.7, 530.2, // 11h
+  // 12:00 - 14:00 午间回落
+  525.8, 521.3, 516.5, 510.2, 504.8, 498.5, // 12h
+  492.1, 486.3, 480.5, 475.2, 470.8, 466.3, // 13h
+  // 14:00 - 18:00 下午高峰
+  462.5, 460.8, 463.2, 468.5, 475.3, 482.1, // 14h
+  488.7, 495.2, 501.8, 507.5, 513.2, 518.7, // 15h
+  524.3, 528.5, 532.1, 535.8, 538.2, 540.5, // 16h
+  542.1, 541.8, 539.2, 535.7, 531.2, 526.8, // 17h
+  // 18:00 - 20:00 傍晚下降
+  521.3, 515.7, 509.2, 502.8, 496.3, 490.5, // 18h
+  484.2, 477.8, 471.5, 465.2, 458.7, 452.1, // 19h
+  // 20:00 - 24:00 夜间
+  445.8, 439.2, 432.5, 425.8, 418.3, 410.2, // 20h
+  402.5, 395.1, 387.5, 379.8, 372.1, 365.4, // 21h
+  358.7, 352.1, 346.2, 340.5, 335.8, 331.2, // 22h
+  328.5, 326.1, 324.3, 322.1, 320.5, 318.8, // 23h
+];
+
+// 瞬时流量（m³/h），6 个值每分钟循环切换
+const INSTANT_FLOW = [425.6, 438.2, 452.1, 441.7, 433.5, 447.8];
+// 累计流量（m³），6 个值循环
+const TOTAL_FLOW = [12583.4, 12590.7, 12598.1, 12605.4, 12612.8, 12620.2];
+
+// 实时流量 hook：每分钟更新瞬时/累计，折线图 7 点 10 分钟粒度
+function useRealtimeFlow() {
+  const [tick, setTick] = useState(0);
+
+  useEffect(() => {
+    // 对齐到下一个整分钟
+    const alignMs = (() => {
+      const n = new Date();
+      const ms = n.getMilliseconds() + n.getSeconds() * 1000;
+      return 60000 - ms;
+    })();
+    let timerId: number;
+    const schedule = () => {
+      timerId = window.setTimeout(() => {
+        setTick((t) => t + 1);
+        timerId = window.setInterval(() => setTick((t) => t + 1), 60000);
+      }, alignMs);
+    };
+    schedule();
+    return () => {
+      window.clearTimeout(timerId);
+      window.clearInterval(timerId);
+    };
+  }, []);
+
+  // 瞬时 & 累计：6 值循环
+  const instantIndex = tick % INSTANT_FLOW.length;
+  const totalIndex = tick % TOTAL_FLOW.length;
+  const instant = INSTANT_FLOW[instantIndex];
+  const prevInstant = INSTANT_FLOW[(instantIndex - 1 + INSTANT_FLOW.length) % INSTANT_FLOW.length];
+  const total = TOTAL_FLOW[totalIndex];
+  const prevTotal = TOTAL_FLOW[(totalIndex - 1 + TOTAL_FLOW.length) % TOTAL_FLOW.length];
+
+  // 折线图 7 点窗口
+  const now = new Date();
+  const min10 = Math.floor(now.getMinutes() / 10) * 10; // 当前所属的 10 分钟点
+  const base = new Date(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours(), min10, 0, 0);
+
   const times: string[] = [];
-  const values: number[] = [];
-  const deltas = [8, 14, 6, -10, -4, 12, 18, 9, -6, -12, 4, 10, 16, 7, -8, -14, -2, 11, 17, 5, -7, -11, 3, 13, 19, 8, -5, -9, 6, 12];
-  const start = new Date(2026, 8, 4, 10, 0);
-  deltas.forEach((delta, i) => {
-    const d = new Date(start.getTime() + i * 60000);
-    times.push(`${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`);
-    values.push(Number((base + delta + Math.sin(i / 3) * 6).toFixed(1)));
-  });
-  return { times, values, current: values[values.length - 1], total: 12583.4 };
-})();
+  const values: (number | null)[] = [];
+  // 以当前 10 分钟点为中点，向前 30 分钟、向后 30 分钟，共 7 个刻度
+  // 例：当前 16:35 → 16:00 / 16:10 / 16:20 / 16:30 / 16:40 / 16:50 / 17:00
+  for (let i = -3; i <= 3; i++) {
+    const d = new Date(base.getTime() + i * 600000);
+    const hh = String(d.getHours()).padStart(2, "0");
+    const mm = String(d.getMinutes()).padStart(2, "0");
+    times.push(`${hh}:${mm}`);
+    // 这个 10 分钟点是否已过？
+    if (d.getTime() <= now.getTime()) {
+      // 从 144 点数组里取值
+      const idx = (d.getHours() * 6 + Math.floor(d.getMinutes() / 10) + 144) % 144;
+      values.push(FLOW_24H[idx]);
+    } else {
+      values.push(0); // 未到的补 0
+    }
+  }
+
+  return {
+    instant,
+    instantUp: instant > prevInstant,
+    total,
+    totalUp: total > prevTotal,
+    times,
+    values,
+  };
+}
 
 const RIGHT_TABS = [
   { key: "basic", label: "基础信息" },
@@ -228,6 +325,13 @@ export default function Screen() {
   );
   const currentMaintenanceScene =
     maintenanceScenes.find((scene) => scene.id === currentMaintenanceId) ?? null;
+
+  // 实时流量（每分钟刷新；折线图 7 点 10 分钟窗口，未到补 0）
+  const flow = useRealtimeFlow();
+
+  // 改造资料（与后台「改造资料汇总」共享 localStorage）
+  const retrofitRecords = useRetrofitRecords();
+  const retrofitStats = useMemo(() => getRetrofitStatsBySystem(), [retrofitRecords]);
 
   const [leftPanelVisible, setLeftPanelVisible] = useState(true);
   const [leftPanelMode, setLeftPanelMode] = useState<"chart" | "tree">("chart");
@@ -741,7 +845,7 @@ export default function Screen() {
       tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
       xAxis: {
         type: "category",
-        data: reformStatsBySystem.map((s) => s.system),
+        data: retrofitStats.map((s) => s.system),
         axisLine: { lineStyle: { color: "rgba(64,158,255,0.3)" } },
         axisLabel: { color: "#8a94a6", fontSize: 9, interval: 0 },
         axisTick: { show: false },
@@ -757,7 +861,7 @@ export default function Screen() {
       },
       series: [{
         type: "bar",
-        data: reformStatsBySystem.map((s) => s.count),
+        data: retrofitStats.map((s) => s.count),
         itemStyle: {
           color: {
             type: "linear", x: 0, y: 0, x2: 0, y2: 1,
@@ -778,17 +882,17 @@ export default function Screen() {
       xAxis: {
         type: "category",
         boundaryGap: false,
-        data: FLOW_TREND.times,
+        data: flow.times,
         axisLine: { lineStyle: { color: "rgba(64,158,255,0.3)" } },
-        axisLabel: { color: "#8a94a6", fontSize: 9, interval: 4 },
+        axisLabel: { color: "#8a94a6", fontSize: 9, interval: 0 },
         axisTick: { show: false },
       },
       yAxis: {
         type: "value",
         name: "m³/h",
         nameTextStyle: { color: "#8a94a6", fontSize: 9 },
-        min: 380,
-        max: 480,
+        min: 0,
+        max: 1000,
         axisLine: { lineStyle: { color: "rgba(64,158,255,0.3)" } },
         axisLabel: { color: "#8a94a6", fontSize: 9 },
         splitLine: { lineStyle: { color: "rgba(64,158,255,0.1)" } },
@@ -798,7 +902,8 @@ export default function Screen() {
         type: "line",
         smooth: true,
         symbol: "none",
-        data: FLOW_TREND.values,
+        connectNulls: false,
+        data: flow.values,
         lineStyle: { color: "#00b4ff", width: 1.6 },
         itemStyle: { color: "#00b4ff" },
         areaStyle: {
@@ -856,16 +961,25 @@ export default function Screen() {
             style={{ height: 170 }}
             onEvents={{
               click: (params: any) => {
-                const system = params?.name as string;
-                const items = reformDetailsBySystem[system];
-                if (items) setReformModal({ system, items });
+                const systemLabel = params?.name as string;
+                const statsItem = retrofitStats.find((s) => s.system === systemLabel);
+                if (!statsItem) return;
+                const items = retrofitRecords
+                  .filter((r) => r.system === statsItem.key)
+                  .map((r) => ({
+                    time: r.date,
+                    title: r.title,
+                    material: r.content,
+                    unit: r.location || "—",
+                  }));
+                if (items.length) setReformModal({ system: systemLabel, items });
               },
             }}
           />
           <div className="text-[10px] text-screen-muted mt-0.5">点击柱状图查看该系统改造明细</div>
         </div>
 
-        {/* 卡片4：实时流量监测（占位，静态展示，后续接入实时数据源） */}
+        {/* 卡片4：实时流量监测 */}
         <div className="bg-black/30 border border-[#40A9FF]/25 p-2 rounded-none">
           <div className="text-xs text-[#00b4ff] font-medium mb-1" style={{ textShadow: "0 0 6px rgba(0,180,255,0.5)" }}>
             实时流量监测
@@ -873,21 +987,27 @@ export default function Screen() {
           <div className="grid grid-cols-2 gap-2 mb-1.5">
             <div className="bg-black/30 border border-[#40A9FF]/25 p-2">
               <div className="text-[10px] text-screen-muted">瞬时流量</div>
-              <div className="text-lg font-bold text-[#00b4ff] mt-0.5">
-                {FLOW_TREND.current}
-                <span className="text-[10px] text-screen-muted font-normal ml-1">m³/h</span>
+              <div className="text-lg font-bold text-[#00b4ff] mt-0.5 flex items-center gap-1">
+                {flow.instant.toFixed(1)}
+                <span className="text-[10px] text-screen-muted font-normal">m³/h</span>
+                <span className={`text-xs font-bold ${flow.instantUp ? "text-[#ff4d4f]" : "text-[#52c41a]"}`}>
+                  {flow.instantUp ? "↑" : "↓"}
+                </span>
               </div>
             </div>
             <div className="bg-black/30 border border-[#40A9FF]/25 p-2">
               <div className="text-[10px] text-screen-muted">累计流量</div>
-              <div className="text-lg font-bold text-[#52c41a] mt-0.5">
-                {FLOW_TREND.total}
-                <span className="text-[10px] text-screen-muted font-normal ml-1">m³</span>
+              <div className="text-lg font-bold text-[#52c41a] mt-0.5 flex items-center gap-1">
+                {flow.total.toFixed(1)}
+                <span className="text-[10px] text-screen-muted font-normal">m³</span>
+                <span className={`text-xs font-bold ${flow.totalUp ? "text-[#ff4d4f]" : "text-[#52c41a]"}`}>
+                  {flow.totalUp ? "↑" : "↓"}
+                </span>
               </div>
             </div>
           </div>
           <ReactECharts option={flowOption} style={{ height: 140 }} />
-          <div className="text-[10px] text-screen-muted mt-0.5">近30分钟流量趋势（当前为静态示例数据，后续接入实时数据源）</div>
+          <div className="text-[10px] text-screen-muted mt-0.5">近1小时流量趋势（每分钟更新）</div>
         </div>
       </div>
     );

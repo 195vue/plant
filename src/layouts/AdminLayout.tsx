@@ -202,6 +202,12 @@ export function AdminLayout() {
           icon: <MenuIcon size={16} />,
           path: "/admin/system/menu",
         },
+        {
+          key: "system-retrofit",
+          label: "改造资料",
+          icon: <FileText size={16} />,
+          path: "/admin/system/retrofit",
+        },
       ],
     },
   ];
