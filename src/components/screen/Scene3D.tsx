@@ -92,11 +92,13 @@ const equipmentPoints = [
 
 // 管路系统数据
 export const pipelineSystems = [
-  { name: "技术供水主管", y: 25, color: "blue", width: "70%", data: "流量:320m³/h 压力:0.8MPa" },
-  { name: "排水主管", y: 38, color: "green", width: "60%", data: "流量:180m³/h 液位:正常" },
-  { name: "气系统主管", y: 51, color: "yellow", width: "65%", data: "压力:0.65MPa 温度:28℃" },
-  { name: "透平油主管", y: 64, color: "orange", width: "55%", data: "流量:45m³/h 油温:58℃" },
-  { name: "消防水主管", y: 77, color: "red", width: "50%", data: "压力:0.5MPa 就绪" },
+  { name: "技术供水主管", y: 25, color: "blue", width: "70%", data: "流量:320m³/h 压力:0.8MPa", abandoned: false },
+  { name: "旧技术供水管路", y: 31.5, color: "gray", width: "55%", data: "已废弃 · 2023年改造后停用", abandoned: true },
+  { name: "排水主管", y: 38, color: "green", width: "60%", data: "流量:180m³/h 液位:正常", abandoned: false },
+  { name: "气系统主管", y: 51, color: "yellow", width: "65%", data: "压力:0.65MPa 温度:28℃", abandoned: false },
+  { name: "旧排水管路", y: 57.5, color: "gray", width: "45%", data: "已废弃 · 2022年封堵", abandoned: true },
+  { name: "透平油主管", y: 64, color: "orange", width: "55%", data: "流量:45m³/h 油温:58℃", abandoned: false },
+  { name: "消防水主管", y: 77, color: "red", width: "50%", data: "压力:0.5MPa 就绪", abandoned: false },
 ];
 
 // 设备/管件 → 所属管路系统（用于单体水流控制）
@@ -143,6 +145,9 @@ export function Scene3D({
   // 显隐 / 透明度控制
   const [hiddenNames, setHiddenNames] = useState<string[]>([]);
   const [opacityMap, setOpacityMap] = useState<Record<string, number>>({});
+  // 废弃管道一键显隐（仅管路总览，默认隐藏）
+  const [showAbandoned, setShowAbandoned] = useState(false);
+  const abandonedCount = pipelineSystems.filter((pipe) => pipe.abandoned).length;
 
   const isNameVisible = (name: string) => !hiddenNames.includes(name);
 
@@ -837,8 +842,9 @@ export function Scene3D({
           {/* ========== 第1层：管网系统（底层） ========== */}
           <div className="absolute inset-0" style={{ opacity: pipelineHighlight, transition: "opacity 0.5s" }}>
             {pipelineSystems.map((pipe) => {
+              if (pipe.abandoned && !showAbandoned) return null;
               if (!isNameVisible(pipe.name)) return null;
-              const flowing = isWaterFlowing(pipe.name);
+              const flowing = !pipe.abandoned && isWaterFlowing(pipe.name);
               return (
               <div
                 key={pipe.name}
@@ -848,31 +854,33 @@ export function Scene3D({
               >
                 <div className="relative h-8 rounded" style={{
                   width: pipe.width,
-                  background: pipe.color === "blue" ? "rgba(24,144,255,0.15)" :
+                  background: pipe.color === "gray" ? "rgba(140,140,140,0.08)" :
+                             pipe.color === "blue" ? "rgba(24,144,255,0.15)" :
                              pipe.color === "green" ? "rgba(82,196,26,0.15)" :
                              pipe.color === "yellow" ? "rgba(250,173,20,0.15)" :
                              pipe.color === "orange" ? "rgba(255,133,20,0.15)" :
                              "rgba(255,77,79,0.15)",
-                  border: `1px solid ${pipe.color === "blue" ? "rgba(24,144,255,0.4)" :
+                  border: pipe.color === "gray" ? "1px dashed rgba(140,140,140,0.55)" :
+                          `1px solid ${pipe.color === "blue" ? "rgba(24,144,255,0.4)" :
                              pipe.color === "green" ? "rgba(82,196,26,0.4)" :
                              pipe.color === "yellow" ? "rgba(250,173,20,0.4)" :
                              pipe.color === "orange" ? "rgba(255,133,20,0.4)" :
                              "rgba(255,77,79,0.4)"}`,
                   overflow: "hidden",
-                  boxShadow: focusMode === "pipeline" ? `0 0 12px ${pipe.color === "blue" ? "rgba(24,144,255,0.3)" : pipe.color === "green" ? "rgba(82,196,26,0.3)" : "rgba(250,173,20,0.3)"}` : "none",
+                  boxShadow: focusMode === "pipeline" && pipe.color !== "gray" ? `0 0 12px ${pipe.color === "blue" ? "rgba(24,144,255,0.3)" : pipe.color === "green" ? "rgba(82,196,26,0.3)" : "rgba(250,173,20,0.3)"}` : "none",
                 }}>
                   {flowing && <div className="pipe-flow absolute inset-0" />}
                 </div>
                 {/* 管路标签 + 测点数据气泡 */}
                 <div className="absolute -top-5 left-2 text-xs font-medium"
                   style={{
-                    color: pipe.color === "blue" ? "#1890ff" : pipe.color === "green" ? "#52c41a" : pipe.color === "yellow" ? "#faad14" : "#ff8520",
+                    color: pipe.color === "gray" ? "#8c8c8c" : pipe.color === "blue" ? "#1890ff" : pipe.color === "green" ? "#52c41a" : pipe.color === "yellow" ? "#faad14" : pipe.color === "red" ? "#ff4d4f" : "#ff8520",
                     textShadow: "0 0 4px rgba(0,0,0,0.8)",
                     opacity: focusMode === "pipeline" ? 1 : 0.45,
                     transition: "opacity 0.5s",
                   }}
                 >
-                  <div>{pipe.name}</div>
+                  <div>{pipe.name}{pipe.abandoned && <span className="ml-1 text-[9px] px-1 border border-dashed" style={{ color: "#8c8c8c", borderColor: "rgba(140,140,140,0.6)" }}>废弃</span>}</div>
                   <div className="text-[9px] opacity-80" style={{ color: "#c5d0de" }}>{pipe.data}</div>
                 </div>
               </div>
@@ -951,6 +959,45 @@ export function Scene3D({
             </div>
           )}
 
+          {/* 废弃管道一键显隐开关 */}
+          {focusMode === "pipeline" && (
+            <DevNote
+              id="pipeline-abandoned-toggle"
+              title="废弃管道一键显隐"
+              summary="管路总览右上角的状态开关：一键显示/隐藏全部废弃管道（当前 2 条）"
+              items={[
+                { label: "数据来源", value: "pipelineSystems 中 abandoned: true 的管路（旧技术供水管路、旧排水管路）；正式系统由结构树节点的废弃标记驱动" },
+                { label: "交互逻辑", value: "开关默认关闭（隐藏）；打开后废弃管道以灰色虚线样式渲染并带「废弃」标签；仅管路总览模式显示该开关" },
+                { label: "联动规则", value: "废弃管道不参与水流动画与发光效果；隐藏时不占用图例计数" },
+                { label: "后续步骤", value: "正式系统：显隐状态写入用户偏好并同步 UE5 模型实例可见性" },
+              ]}
+              wrapClassName="absolute top-[4%] right-4 z-20"
+            >
+              <button
+                onClick={() => setShowAbandoned((v) => !v)}
+                className="flex items-center gap-2 px-2.5 py-1.5 bg-black/60 border backdrop-blur-sm text-[11px] transition-colors"
+                style={{
+                  borderColor: showAbandoned ? "rgba(140,140,140,0.7)" : "rgba(64,169,255,0.3)",
+                  color: showAbandoned ? "#d9d9d9" : "#40A9FF",
+                }}
+              >
+                {showAbandoned ? <Eye size={13} /> : <EyeOff size={13} />}
+                <span>废弃管道</span>
+                <span className="text-[9px] opacity-70">{abandonedCount}条</span>
+                {/* 开关轨道 */}
+                <span
+                  className="relative inline-block w-7 h-3.5 rounded-full transition-colors"
+                  style={{ background: showAbandoned ? "rgba(140,140,140,0.7)" : "rgba(64,169,255,0.25)" }}
+                >
+                  <span
+                    className="absolute top-0.5 w-2.5 h-2.5 rounded-full bg-white transition-all"
+                    style={{ left: showAbandoned ? "16px" : "2px" }}
+                  />
+                </span>
+              </button>
+            </DevNote>
+          )}
+
           {/* 管路图例 */}
           {focusMode === "pipeline" && (
             <div className="absolute bottom-3 right-3 flex flex-col gap-1.5 p-2.5 rounded-nonebg-black/60 border border-blue-500/30 backdrop-blur-sm">
@@ -961,6 +1008,7 @@ export function Scene3D({
                 { label: "气系统", color: "#faad14", count: "1,820m" },
                 { label: "透平油", color: "#ff8520", count: "2,330m" },
                 { label: "消防水", color: "#ff4d4f", count: "2,000m" },
+                ...(showAbandoned ? [{ label: "废弃管道", color: "#8c8c8c", count: "860m" }] : []),
               ].map((item) => (
                 <div key={item.label} className="flex items-center gap-2 text-[10px]">
                   <span className="w-4 h-1.5 rounded" style={{ background: item.color, boxShadow: `0 0 4px ${item.color}` }} />

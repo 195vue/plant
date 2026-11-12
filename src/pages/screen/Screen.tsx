@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import ReactECharts from "echarts-for-react";
-import { ChevronLeft, ChevronRight, FileText, Play, Droplets } from "lucide-react";
+import { ChevronLeft, ChevronRight, FileText, Play, Droplets, X } from "lucide-react";
 import { useAuthStore } from "@/store/auth";
 import { TopNav } from "@/components/screen/TopNav";
 import {
@@ -39,7 +39,7 @@ import {
   waterUsageData,
   generateReformRecords,
 } from "@/mock/screen";
-import { systems, alarms, screenStats } from "@/mock/index";
+import { systems, screenStats } from "@/mock/index";
 import type { RoamingPath } from "@/types";
 import { useRoamingPaths } from "@/lib/roamingPaths";
 import {
@@ -62,6 +62,79 @@ import { DevNote } from "@/components/devNotes/DevNote";
 
 const ONLINE_COUNT = 230;
 const OFFLINE_COUNT = 18;
+
+// 阀门开度数据（原型模拟，正式系统由实时测点推送）
+const VALVE_OPENING_UNITS = [
+  {
+    label: "1号机组",
+    valves: [
+      { name: "上导轴承冷却器进水阀", opening: 45 },
+      { name: "水导轴承冷却器进水阀", opening: 54 },
+      { name: "空气冷却器进水阀", opening: 60 },
+      { name: "工作密封进水阀", opening: 66 },
+      { name: "主轴密封冷却水阀", opening: 49 },
+    ],
+    realtime: [
+      { label: "厂房环境温度", value: 28.1, unit: "℃", max: 50 },
+      { label: "取水温度", value: 18.0, unit: "℃", max: 30 },
+      { label: "水头", value: 312.5, unit: "m", max: 400 },
+      { label: "机组负荷", value: 298.6, unit: "MW", max: 400 },
+      { label: "供水总管压力", value: 0.63, unit: "MPa", max: 1 },
+      { label: "上导轴温", value: 44.8, unit: "℃", max: 80 },
+      { label: "水导轴温", value: 42.6, unit: "℃", max: 80 },
+      { label: "冷风温度", value: 36.9, unit: "℃", max: 60 },
+      { label: "定子绕组温度", value: 70.4, unit: "℃", max: 120 },
+      { label: "主变油温", value: 53.2, unit: "℃", max: 100 },
+    ],
+    fetchTime: "2026-11-12 10:32:18",
+  },
+  {
+    label: "2号机组",
+    valves: [
+      { name: "上导轴承冷却器进水阀", opening: 48 },
+      { name: "水导轴承冷却器进水阀", opening: 57 },
+      { name: "空气冷却器进水阀", opening: 52 },
+      { name: "工作密封进水阀", opening: 70 },
+      { name: "主轴密封冷却水阀", opening: 53 },
+    ],
+    realtime: [
+      { label: "厂房环境温度", value: 27.2, unit: "℃", max: 50 },
+      { label: "取水温度", value: 17.4, unit: "℃", max: 30 },
+      { label: "水头", value: 314.2, unit: "m", max: 400 },
+      { label: "机组负荷", value: 300.5, unit: "MW", max: 400 },
+      { label: "供水总管压力", value: 0.62, unit: "MPa", max: 1 },
+      { label: "上导轴温", value: 45.6, unit: "℃", max: 80 },
+      { label: "水导轴温", value: 43.4, unit: "℃", max: 80 },
+      { label: "冷风温度", value: 37.8, unit: "℃", max: 60 },
+      { label: "定子绕组温度", value: 71.6, unit: "℃", max: 120 },
+      { label: "主变油温", value: 54.3, unit: "℃", max: 100 },
+    ],
+    fetchTime: "2026-11-12 10:32:19",
+  },
+  {
+    label: "3号机组",
+    valves: [
+      { name: "上导轴承冷却器进水阀", opening: 42 },
+      { name: "水导轴承冷却器进水阀", opening: 58 },
+      { name: "空气冷却器进水阀", opening: 55 },
+      { name: "工作密封进水阀", opening: 68 },
+      { name: "主轴密封冷却水阀", opening: 51 },
+    ],
+    realtime: [
+      { label: "厂房环境温度", value: 27.6, unit: "℃", max: 50 },
+      { label: "取水温度", value: 17.6, unit: "℃", max: 30 },
+      { label: "水头", value: 316.8, unit: "m", max: 400 },
+      { label: "机组负荷", value: 301.2, unit: "MW", max: 400 },
+      { label: "供水总管压力", value: 0.64, unit: "MPa", max: 1 },
+      { label: "上导轴温", value: 45.2, unit: "℃", max: 80 },
+      { label: "水导轴温", value: 43.0, unit: "℃", max: 80 },
+      { label: "冷风温度", value: 37.4, unit: "℃", max: 60 },
+      { label: "定子绕组温度", value: 71.0, unit: "℃", max: 120 },
+      { label: "主变油温", value: 53.9, unit: "℃", max: 100 },
+    ],
+    fetchTime: "2026-11-12 10:32:20",
+  },
+] as const;
 
 // 管路运行数据（原型模拟，正式系统由实时测点推送）
 const PIPE_RUNTIME: Record<
@@ -359,6 +432,11 @@ export default function Screen() {
   }));
   // 漫游路线（与后台漫游路线管理页共享 localStorage 数据）
   const pathList = useRoamingPaths();
+  // 阀门开度：右侧卡片机组切换 + “更多”大弹窗机组切换
+  const [valveUnit, setValveUnit] = useState(2);
+  const [valveModalOpen, setValveModalOpen] = useState(false);
+  const [valveModalUnit, setValveModalUnit] = useState(2);
+  const valveModalData = VALVE_OPENING_UNITS[valveModalUnit];
   const [playPathRequest, setPlayPathRequest] = useState<PlayPathRequest | null>(null);
   // 已开启水流的管路系统（按单个模型 / 按系统控制，无全局开关）
   const [waterOnSystems, setWaterOnSystems] = useState<string[]>([]);
@@ -1675,22 +1753,52 @@ export default function Screen() {
           <ReactECharts option={waterOption} style={{ height: 130 }} />
         </div>
 
-        {/* 卡片3：告警信息（复用现有告警组件） */}
+        {/* 卡片3：阀门开度（按机组切换，“更多”打开技术供水系统大弹窗） */}
         <div className="bg-black/30 border border-[#40A9FF]/25 p-2 rounded-none">
-          <div className="text-xs text-[#FAAD14] font-medium mb-2" style={{ textShadow: "0 0 6px rgba(250,173,20,0.5)" }}>
-            告警信息（{alarms.length}）
+          <div className="text-xs text-[#40A9FF] font-medium mb-2" style={{ textShadow: "0 0 6px rgba(64,169,255,0.5)" }}>
+            阀门开度
           </div>
-          <div className="space-y-1.5">
-            {alarms.map((alarm) => (
-              <div key={alarm.id} className="bg-black/30 px-2 py-1.5 text-xs border-l-2 rounded-none" style={{ borderLeftColor: alarm.level === "serious" ? "#ff4d4f" : alarm.level === "normal" ? "#faad14" : "#40A9FF" }}>
-                <div className="flex justify-between items-center">
-                  <span className="text-screen-text font-medium">{alarm.equipmentName}</span>
-                  <span className={`px-1.5 py-0.5 text-[10px] ${alarm.level === "serious" ? "bg-red-500/20 text-red-400" : alarm.level === "normal" ? "bg-orange-500/20 text-orange-400" : "bg-blue-500/20 text-blue-400"}`}>
-                    {alarm.type}
+          <div className="flex items-center gap-1 mb-2">
+            {VALVE_OPENING_UNITS.map((unit, index) => (
+              <button
+                key={unit.label}
+                onClick={() => setValveUnit(index)}
+                className={`px-2 py-0.5 text-[10px] rounded-none transition-colors ${
+                  valveUnit === index
+                    ? "bg-[#40A9FF] text-white"
+                    : "bg-black/30 text-screen-muted hover:text-white"
+                }`}
+              >
+                {unit.label}
+              </button>
+            ))}
+            <button
+              onClick={() => {
+                setValveModalUnit(valveUnit);
+                setValveModalOpen(true);
+              }}
+              className="ml-auto text-[10px] text-[#40A9FF] hover:text-white hover:underline transition-colors"
+            >
+              更多
+            </button>
+          </div>
+          <div className="space-y-2">
+            {VALVE_OPENING_UNITS[valveUnit].valves.map((valve) => (
+              <div key={valve.name}>
+                <div className="flex items-center justify-between gap-2">
+                  <span className="min-w-0 truncate text-[11px] text-screen-muted">
+                    {valve.name}
+                  </span>
+                  <span className="flex-shrink-0 font-mono text-[11px] text-[#13C2C2]">
+                    {valve.opening}%
                   </span>
                 </div>
-                <div className="text-screen-muted mt-0.5">{alarm.description}</div>
-                <div className="text-screen-muted mt-0.5">{alarm.time}</div>
+                <div className="mt-1 h-1 bg-black/50">
+                  <div
+                    className="h-full bg-[#13C2C2]"
+                    style={{ width: `${valve.opening}%`, boxShadow: "0 0 4px rgba(19,194,194,0.6)" }}
+                  />
+                </div>
               </div>
             ))}
           </div>
@@ -1905,9 +2013,9 @@ export default function Screen() {
           <DevNote
             id="screen-right-panel"
             title="右侧面板（大屏数据/节点信息）"
-            summary="未选中节点时展示 3 张卡片：漫游路径/用水量统计/告警信息；选中设备后为 3 张卡片（图纸统计/属性资料/改造资料），选中管路节点时追加“运行状态”卡片"
+            summary="未选中节点时展示 3 张卡片：漫游路径/用水量统计/阀门开度；选中设备后为 3 张卡片（图纸统计/属性资料/改造资料），选中管路节点时追加“运行状态”卡片"
             items={[
-              { label: "默认卡片", value: "漫游路径：pathList 来自 useRoamingPaths()（与后台“漫游路线”页共享 localStorage），点击播放 → playPathRequest 驱动三维路径漫游；用水量统计：技术供水系统用水量（年/月/日快捷选择器 + 自定义时间范围，Mock 数据）；告警信息：复用 alarms 告警列表" },
+              { label: "默认卡片", value: "漫游路径：pathList 来自 useRoamingPaths()（与后台“漫游路线”页共享 localStorage），点击播放 → playPathRequest 驱动三维路径漫游；用水量统计：技术供水系统用水量（年/月/日快捷选择器 + 自定义时间范围，Mock 数据）；阀门开度：按 1/2/3号机组切换展示 5 个阀门开度，点击“更多”打开技术供水系统大弹窗（实时数据 + 系统结构图 + 阀门开度计算值，弹窗顶部可切换机组）" },
               { label: "选中节点卡片", value: "运行状态（仅管路节点）：显示所属系统、流量/压力/流向，并提供该系统的水流开关；图纸统计：nodeInfo.documents 图纸列表，点击条目弹窗展示图纸；属性资料：复用属性模板基础信息 + 技术参数；改造资料：generateReformRecords Mock 生成（正式系统由后台接口返回）" },
               { label: "水流联动", value: "水流以“管路系统”为最小粒度：单个管件与整系统共用同一开关；系统内任一开关变化，该系统下所有管路同步流动/静止" },
               { label: "切换规则", value: "selectedNode 为空 → 默认 3 张卡片；选中节点 → 节点卡片（管路多一张运行状态）；切换选中对象自动刷新" },
@@ -1960,6 +2068,151 @@ export default function Screen() {
           message.success("检修场景已删除");
         }}
       />
+
+      {/* 阀门开度大弹窗：实时数据 + 技术供水系统结构图 + 计算值 */}
+      {valveModalOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 animate-fade-in"
+          onClick={() => setValveModalOpen(false)}
+        >
+          <div
+            className="flex h-[86vh] w-[1180px] max-w-[96vw] flex-col border border-[#40A9FF]/40 bg-[#04101f] shadow-[0_0_40px_rgba(64,169,255,0.25)]"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="flex items-center justify-between gap-4 border-b border-[#40A9FF]/25 px-4 py-2.5">
+              <div
+                className="text-sm font-medium text-screen-text"
+                style={{ textShadow: "0 0 6px rgba(64,169,255,0.5)" }}
+              >
+                阀门开度计算 · 技术供水系统
+              </div>
+              <div className="flex items-center gap-1">
+                {VALVE_OPENING_UNITS.map((unit, index) => (
+                  <button
+                    key={unit.label}
+                    onClick={() => setValveModalUnit(index)}
+                    className={`px-2.5 py-1 text-[11px] rounded-none transition-colors ${
+                      valveModalUnit === index
+                        ? "bg-[#40A9FF] text-white"
+                        : "bg-black/30 text-screen-muted hover:text-white"
+                    }`}
+                  >
+                    {unit.label}
+                  </button>
+                ))}
+                <button
+                  onClick={() => setValveModalOpen(false)}
+                  title="关闭"
+                  className="ml-3 p-1 text-screen-muted hover:text-white transition-colors"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+            </div>
+
+            <div className="grid min-h-0 flex-1 grid-cols-[250px_minmax(0,1fr)_300px] gap-2 p-2">
+              <div className="flex min-h-0 flex-col border border-[#40A9FF]/25 bg-black/30 p-3">
+                <div className="mb-1.5 flex items-center justify-between">
+                  <span className="text-xs text-[#40A9FF]">实时监测</span>
+                  <span className="text-[10px] text-screen-muted">REAL TIME</span>
+                </div>
+                <div className="mb-2 flex items-center justify-between border-b border-[#40A9FF]/20 pb-1.5 text-[10px]">
+                  <span className="text-screen-muted">取值时间</span>
+                  <span className="font-mono text-screen-text">
+                    {valveModalData.fetchTime}
+                  </span>
+                </div>
+                <div className="flex-1 space-y-2 overflow-auto">
+                  {valveModalData.realtime.map((item) => {
+                    const percent = Math.min(
+                      100,
+                      Math.max(0, (Number(item.value) / item.max) * 100),
+                    );
+                    return (
+                      <div key={item.label}>
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="min-w-0 truncate text-[11px] text-screen-muted">
+                            {item.label}
+                          </span>
+                          <span className="flex-shrink-0 font-mono text-xs text-screen-text">
+                            {item.value}
+                            <span className="ml-0.5 text-[10px] text-screen-muted">
+                              {item.unit}
+                            </span>
+                          </span>
+                        </div>
+                        <div className="mt-1 h-1 bg-black/50">
+                          <div
+                            className="h-full bg-[#40A9FF]"
+                            style={{
+                              width: `${percent}%`,
+                              boxShadow: "0 0 4px rgba(64,169,255,0.6)",
+                            }}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="flex min-h-0 min-w-0 flex-col border border-[#40A9FF]/25 bg-black/30 p-3">
+                <div className="mb-2 flex items-center justify-between">
+                  <span className="text-[11px] text-[#40A9FF]">
+                    技术供水系统结构图
+                  </span>
+                  <span className="text-[10px] text-screen-muted">
+                    {valveModalData.label} · AUTO
+                  </span>
+                </div>
+                <div className="flex min-h-0 flex-1 items-center justify-center overflow-hidden">
+                  <img
+                    src={`${import.meta.env.BASE_URL}valve-diagram.jpg`}
+                    alt="技术供水系统结构图"
+                    className="max-h-full max-w-full object-contain"
+                  />
+                </div>
+              </div>
+
+              <div className="flex min-h-0 flex-col border border-[#40A9FF]/25 bg-black/30 p-3">
+                <div className="mb-3 flex items-center justify-between">
+                  <span className="text-xs text-[#40A9FF]">
+                    计算值 · 阀门开度
+                  </span>
+                  <span className="text-[10px] text-screen-muted">AUTO</span>
+                </div>
+                <div className="space-y-3 overflow-auto">
+                  {valveModalData.valves.map((valve, index) => (
+                    <div
+                      key={valve.name}
+                      className="border border-[#40A9FF]/20 bg-black/30 p-2"
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full border border-[#13C2C2]/50 text-[10px] text-[#13C2C2]">
+                          {index + 1}
+                        </span>
+                        <span className="min-w-0 flex-1 truncate text-[11px] text-screen-text">
+                          {valve.name}
+                        </span>
+                        <span className="flex-shrink-0 font-mono text-sm text-[#13C2C2]">
+                          {valve.opening}
+                          <span className="text-[10px]">%</span>
+                        </span>
+                      </div>
+                      <div className="mt-2 h-1 bg-black/60">
+                        <div
+                          className="h-full bg-gradient-to-r from-[#0e6f74] to-[#13C2C2]"
+                          style={{ width: `${valve.opening}%` }}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 管路规格分布弹窗：点击管路统计柱状图后展示该系统下各规格管路长度 */}
       <Modal
