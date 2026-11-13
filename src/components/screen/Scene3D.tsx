@@ -14,14 +14,11 @@ import {
   RotateCcw,
   CircleDashed,
   Droplets,
-  Wrench,
 } from "lucide-react";
 import { Modal, ConfirmModal } from "@/components/common/Modal";
 import { message } from "@/components/common/Message";
 import { useRoamingPaths, setRoamingPaths } from "@/lib/roamingPaths";
 import {
-  getMaintenanceStatusMeta,
-  getMaintenanceSystemColor,
   type MaintenanceSceneRecord,
 } from "@/lib/maintenanceScenes";
 import type { RoamingPath } from "@/types";
@@ -56,8 +53,17 @@ interface Scene3DProps {
   playPathRequest?: PlayPathRequest | null;
   /** 当前展示的检修场景（为空时提示先选择场景） */
   maintenanceScene?: MaintenanceSceneRecord | null;
-  /** 打开检修场景选择弹窗 */
-  onOpenMaintenancePicker?: () => void;
+  /** 是否处于新建检修场景的选取状态 */
+  maintenancePickMode?: boolean;
+  /** 新建场景时已选对象 key，用于场景内高亮 */
+  maintenanceSelectedKeys?: string[];
+  /** 新建场景时点击设备/管道切换选中 */
+  onToggleMaintenanceNode?: (node: {
+    key: string;
+    title: string;
+    kind: "pipe" | "equipment";
+    system: string;
+  }) => void;
 }
 
 type FloorKey =
@@ -129,7 +135,9 @@ export function Scene3D({
   onWaterSystemToggle,
   playPathRequest = null,
   maintenanceScene = null,
-  onOpenMaintenancePicker,
+  maintenancePickMode = false,
+  maintenanceSelectedKeys = [],
+  onToggleMaintenanceNode,
 }: Scene3DProps) {
   const [fps, setFps] = useState(60);
   const [roamingMode, setRoamingMode] = useState<"none" | "free" | "path">(
@@ -203,7 +211,9 @@ export function Scene3D({
       if (focusMode === "equipment") return `设备总览 - ${floorInfo[activeFloor].name}`;
       if (focusMode === "pipeline") return `管路总览 - ${floorInfo[activeFloor].name}`;
       if (focusMode === "maintenance")
-        return `检修场景 - ${maintenanceScene?.name ?? "未选择"}`;
+        return maintenancePickMode
+          ? "检修场景 - 新建中"
+          : `检修场景 - ${maintenanceScene?.name ?? "全部设备与管道"}`;
     }
     return sceneNames["overview-panorama"];
   };
@@ -679,9 +689,12 @@ export function Scene3D({
     // panorama: 设备和管网都显示
     // equipment: 设备高亮，管网淡化
     // pipeline: 管网高亮，设备淡化
-    const equipmentHighlight = focusMode === "equipment" ? 1 : focusMode === "pipeline" ? 0.25 : 0.7;
-    const pipelineHighlight = focusMode === "pipeline" ? 1 : focusMode === "equipment" ? 0.25 : 0.7;
-    
+    const maintenanceMode = focusMode === "maintenance";
+    const equipmentHighlight =
+      focusMode === "equipment" ? 1 : focusMode === "pipeline" ? 0.25 : maintenanceMode ? 1 : 0.7;
+    const pipelineHighlight =
+      focusMode === "pipeline" ? 1 : focusMode === "equipment" ? 0.25 : maintenanceMode ? 1 : 0.7;
+
     let titleText = "厂房全景视图";
     let subtitleText = "设备与管网融合展示 · 通过顶部导航切换视图";
     if (focusMode === "equipment") {
@@ -690,6 +703,13 @@ export function Scene3D({
     } else if (focusMode === "pipeline") {
       titleText = "管路总览";
       subtitleText = "高亮显示管网系统，设备淡化 · 点击管路查看属性";
+    } else if (maintenanceMode) {
+      titleText = "检修场景";
+      subtitleText = maintenancePickMode
+        ? "点击场景中的设备或管道进行选择"
+        : maintenanceScene
+          ? `${maintenanceScene.name} · ${maintenanceScene.nodes.length} 个检修对象`
+          : "从右侧创建新场景，或载入历史检修场景";
     }
     
     return (
@@ -842,15 +862,36 @@ export function Scene3D({
           {/* ========== 第1层：管网系统（底层） ========== */}
           <div className="absolute inset-0" style={{ opacity: pipelineHighlight, transition: "opacity 0.5s" }}>
             {pipelineSystems.map((pipe) => {
-              if (pipe.abandoned && !showAbandoned) return null;
+              if (pipe.abandoned && !showAbandoned && !maintenanceMode) return null;
               if (!isNameVisible(pipe.name)) return null;
               const flowing = !pipe.abandoned && isWaterFlowing(pipe.name);
+              const pipeSelected = maintenanceSelectedKeys.includes(`pipe:${pipe.name}`);
+              const pipeSelectable = maintenanceMode && maintenancePickMode;
               return (
               <div
                 key={pipe.name}
-                className={`absolute left-[6%] right-[6%] ${flowing ? `pipe-flow-${pipe.color}` : ""} ${focusMode === "pipeline" ? "cursor-pointer group" : ""}`}
-                style={{ top: `${pipe.y}%`, opacity: getOpacity(pipe.name) }}
-                onClick={() => focusMode === "pipeline" && handlePipelineClick(pipe.name)}
+                className={`absolute left-[6%] right-[6%] ${flowing ? `pipe-flow-${pipe.color}` : ""} ${pipeSelectable || focusMode === "pipeline" ? "cursor-pointer group" : ""}`}
+                style={{
+                  top: `${pipe.y}%`,
+                  opacity: getOpacity(pipe.name),
+                  ...(pipeSelected
+                    ? {
+                        outline: "1px solid #13C2C2",
+                        outlineOffset: "3px",
+                        boxShadow: "0 0 18px rgba(19,194,194,0.35)",
+                      }
+                    : {}),
+                }}
+                onClick={() => {
+                  if (focusMode === "pipeline") handlePipelineClick(pipe.name);
+                  else if (pipeSelectable)
+                    onToggleMaintenanceNode?.({
+                      key: `pipe:${pipe.name}`,
+                      title: pipe.name,
+                      kind: "pipe",
+                      system: pipe.name,
+                    });
+                }}
               >
                 <div className="relative h-8 rounded" style={{
                   width: pipe.width,
@@ -871,12 +912,17 @@ export function Scene3D({
                 }}>
                   {flowing && <div className="pipe-flow absolute inset-0" />}
                 </div>
+                {pipeSelected && (
+                  <span className="absolute -top-5 right-0 px-1 text-[9px] font-bold text-black bg-[#13C2C2] z-10">
+                    已选
+                  </span>
+                )}
                 {/* 管路标签 + 测点数据气泡 */}
                 <div className="absolute -top-5 left-2 text-xs font-medium"
                   style={{
                     color: pipe.color === "gray" ? "#8c8c8c" : pipe.color === "blue" ? "#1890ff" : pipe.color === "green" ? "#52c41a" : pipe.color === "yellow" ? "#faad14" : pipe.color === "red" ? "#ff4d4f" : "#ff8520",
                     textShadow: "0 0 4px rgba(0,0,0,0.8)",
-                    opacity: focusMode === "pipeline" ? 1 : 0.45,
+                    opacity: focusMode === "pipeline" || maintenanceMode ? 1 : 0.45,
                     transition: "opacity 0.5s",
                   }}
                 >
@@ -892,13 +938,30 @@ export function Scene3D({
           <div className="absolute inset-0" style={{ opacity: equipmentHighlight, transition: "opacity 0.5s" }}>
             {equipmentPoints.map((eq) => {
               if (!isNameVisible(eq.name)) return null;
+              const eqSelected = maintenanceSelectedKeys.includes(`equipment:${eq.name}`);
+              const eqSelectable = maintenanceMode && maintenancePickMode;
               return (
               <div
                 key={eq.name}
-                className={`absolute ${focusMode === "equipment" ? "cursor-pointer group" : ""}`}
+                className={`absolute ${eqSelectable || focusMode === "equipment" ? "cursor-pointer group" : ""}`}
                 style={{ left: `${eq.x}%`, top: `${eq.y}%`, transform: "translate(-50%, -50%)", opacity: getOpacity(eq.name) }}
-                onClick={() => focusMode === "equipment" && handleEquipmentClick(eq.name)}
+                onClick={() => {
+                  if (focusMode === "equipment") handleEquipmentClick(eq.name);
+                  else if (eqSelectable)
+                    onToggleMaintenanceNode?.({
+                      key: `equipment:${eq.name}`,
+                      title: eq.name,
+                      kind: "equipment",
+                      system: resolvePipelineSystem(eq.name) ?? "厂房设备",
+                    });
+                }}
               >
+                {eqSelected && (
+                  <div
+                    className="absolute rounded-full border-2 animate-pulse"
+                    style={{ width: 36, height: 36, left: -18, top: -18, borderColor: "#13C2C2" }}
+                  />
+                )}
                 {/* 光环 */}
                 <div className="absolute rounded-full equipment-ripple" style={{
                   width: focusMode === "equipment" ? "32px" : "24px", height: focusMode === "equipment" ? "32px" : "24px",
@@ -934,6 +997,11 @@ export function Scene3D({
                     <div className="text-[9px] mt-0.5 opacity-80 leading-tight" style={{ color: eq.status === "warning" ? "#ff7875" : "#c5d0de" }}>
                       {eq.data}
                     </div>
+                    {eqSelected && (
+                      <div className="mt-1 text-[9px] font-bold text-black bg-[#13C2C2] px-1 inline-block">
+                        已选
+                      </div>
+                    )}
                   </div>
               </div>
               );
@@ -1025,7 +1093,11 @@ export function Scene3D({
               ? "点击设备查看属性详情" 
               : focusMode === "pipeline" 
                 ? "点击管路查看属性详情" 
-                : "厂房全景视图 · 可通过顶部导航切换设备/管路总览"}
+                : maintenanceMode
+                  ? maintenancePickMode
+                    ? "新建检修场景 · 点击设备或管道选择/取消"
+                    : "检修场景 · 全部设备与管道"
+                  : "厂房全景视图 · 可通过顶部导航切换设备/管路总览"}
           </div>
 
           {/* 楼层标签 */}
@@ -1035,242 +1107,6 @@ export function Scene3D({
     </div>
   );
 };
-
-  // ===== 检修场景：只展示所选管路/阀门，并以立牌标注状态 =====
-  const renderMaintenanceScene = () => {
-    if (!maintenanceScene) {
-      return (
-        <div className="absolute inset-0">
-          <img
-            src={panoramaBg}
-            alt="检修场景"
-            className="w-full h-full object-cover"
-            style={{ filter: "brightness(0.35) saturate(0.7)" }}
-          />
-          <div className="absolute inset-0" style={{ background: "rgba(7, 11, 20, 0.7)" }} />
-          <div className="scene-grid absolute inset-0 opacity-15" />
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 z-10">
-            <div className="text-white text-lg font-bold tracking-widest">
-              尚未选择检修场景
-            </div>
-            <div className="text-screen-muted text-xs">
-              可从历史检修场景中载入，或新建一个检修场景
-            </div>
-            <button
-              onClick={onOpenMaintenancePicker}
-              className="mt-2 px-5 py-2 text-sm text-[#40A9FF] border border-[#40A9FF]/60 hover:bg-[#40A9FF]/20 hover:text-white transition-colors rounded-none"
-            >
-              选择检修场景
-            </button>
-          </div>
-        </div>
-      );
-    }
-
-    const systemNames = Array.from(
-      new Set(maintenanceScene.nodes.map((node) => node.system)),
-    );
-    const pipeStatusOptions = [
-      { label: "带压", color: "#ff4d4f" },
-      { label: "不带压", color: "#8c8c8c" },
-    ];
-    const valveStatusOptions = [
-      { label: "开", color: "#52c41a" },
-      { label: "关", color: "#8c8c8c" },
-      { label: "检修中", color: "#faad14" },
-    ];
-
-    return (
-      <div className="absolute inset-0">
-        <img
-          src={panoramaBg}
-          alt="检修场景"
-          className="w-full h-full object-cover"
-          style={{ filter: "brightness(0.5) saturate(0.85)" }}
-        />
-        <div className="absolute inset-0" style={{ background: "rgba(7, 11, 20, 0.62)" }} />
-        <div className="scene-grid absolute inset-0 opacity-15" />
-
-        {/* 场景信息 */}
-        <div className="absolute top-[4%] left-1/2 -translate-x-1/2 text-center z-10">
-          <div
-            className="text-white text-base font-bold tracking-widest px-4 py-1"
-            style={{
-              textShadow: "0 0 10px rgba(64,169,255,0.8)",
-              borderBottom: "1px solid rgba(64,169,255,0.3)",
-            }}
-          >
-            {maintenanceScene.name}
-          </div>
-          <div className="text-[#40A9FF]/70 text-xs mt-1">
-            {maintenanceScene.createdAt} · {maintenanceScene.createdBy} ·{" "}
-            {maintenanceScene.nodes.length} 个检修对象
-          </div>
-        </div>
-
-        {/* 重新选择场景 */}
-        <div className="absolute top-3 right-3 z-10">
-          <button
-            onClick={onOpenMaintenancePicker}
-            className="px-3 py-1.5 text-xs text-[#40A9FF] bg-black/60 border border-[#40A9FF]/50 hover:bg-[#40A9FF]/20 hover:text-white transition-colors rounded-none backdrop-blur-sm"
-          >
-            重新选择
-          </button>
-        </div>
-
-        {/* 选中对象模型 + 状态立牌 */}
-        <div className="absolute inset-0 flex items-center justify-center px-8 pt-[9%] pb-16 overflow-auto z-[5]">
-          <div className="flex flex-wrap items-start justify-center gap-4 max-w-[94%]">
-            {systemNames.map((system) => {
-              const systemColor = getMaintenanceSystemColor(system);
-              const nodes = maintenanceScene.nodes.filter(
-                (node) => node.system === system,
-              );
-              return (
-                <div
-                  key={system}
-                  className="bg-black/45 border backdrop-blur-sm px-4 py-3"
-                  style={{ borderColor: `${systemColor}66` }}
-                >
-                  <div className="flex items-center gap-2 mb-2">
-                    <span
-                      className="w-1.5 h-3.5"
-                      style={{ background: systemColor, boxShadow: `0 0 6px ${systemColor}` }}
-                    />
-                    <span className="text-xs text-white font-medium">{system}</span>
-                    <span className="text-[10px] text-screen-muted">
-                      ({nodes.length})
-                    </span>
-                  </div>
-                  <div className="flex flex-wrap justify-center gap-x-8 gap-y-5">
-                    {nodes.map((node) => {
-                      const statusMeta = getMaintenanceStatusMeta(
-                        node.kind,
-                        node.status,
-                      );
-                      const statusColor = statusMeta.color;
-                      return (
-                        <div
-                          key={node.key}
-                          className="flex flex-col items-center cursor-pointer group"
-                          onClick={() => handlePipelineClick(node.title)}
-                        >
-                          {/* 状态立牌 */}
-                          <div className="flex flex-col items-center">
-                            <div
-                              className="px-2.5 py-1 text-xs font-medium transition-transform group-hover:-translate-y-0.5"
-                              style={{
-                                color: "#fff",
-                                background: `linear-gradient(180deg, ${statusColor}cc, ${statusColor}55)`,
-                                border: `1px solid ${statusColor}`,
-                                boxShadow: `0 0 10px ${statusColor}88`,
-                              }}
-                            >
-                              {statusMeta.label}
-                            </div>
-                            <div
-                              className="w-px h-3"
-                              style={{ background: statusColor }}
-                            />
-                            <div
-                              className="w-1.5 h-1.5 rotate-45 -mt-[3px]"
-                              style={{ background: statusColor }}
-                            />
-                          </div>
-
-                          {/* 模型 */}
-                          {node.kind === "pipe" ? (
-                            <div
-                              className="relative mt-1 w-40 h-5 transition-transform group-hover:scale-105"
-                              style={{
-                                background: `linear-gradient(180deg, ${systemColor}66, ${systemColor}22)`,
-                                border: `1px solid ${systemColor}`,
-                                boxShadow: `0 0 12px ${statusColor}55`,
-                              }}
-                            >
-                              <div
-                                className="absolute inset-y-1 left-1 right-1"
-                                style={{ background: `${systemColor}55` }}
-                              />
-                              <div
-                                className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-5"
-                                style={{ background: systemColor }}
-                              />
-                              <div
-                                className="absolute right-0 top-1/2 -translate-y-1/2 w-1.5 h-5"
-                                style={{ background: systemColor }}
-                              />
-                            </div>
-                          ) : (
-                            <div
-                              className="relative mt-1 w-12 h-12 flex items-center justify-center transition-transform group-hover:scale-110"
-                              style={{
-                                border: `2px solid ${systemColor}`,
-                                background: `${systemColor}26`,
-                                boxShadow: `0 0 12px ${statusColor}55`,
-                                borderRadius: "50%",
-                              }}
-                            >
-                              <Wrench size={18} style={{ color: systemColor }} />
-                              <span
-                                className="absolute w-2 h-2 rounded-full"
-                                style={{
-                                  top: -3,
-                                  right: -3,
-                                  background: statusColor,
-                                  boxShadow: `0 0 6px ${statusColor}`,
-                                }}
-                              />
-                            </div>
-                          )}
-
-                          <div className="mt-2 text-xs text-white text-center max-w-[180px]">
-                            {node.title}
-                          </div>
-                          <div className="text-[10px] text-screen-muted">
-                            {node.code}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* 状态图例 */}
-        <div className="absolute bottom-16 right-3 z-10 bg-black/60 border border-[#40A9FF]/30 backdrop-blur-sm p-2.5">
-          <div className="text-[10px] text-[#40A9FF]/70 mb-1.5">状态图例</div>
-          <div className="flex items-center gap-2 text-[10px] mb-1">
-            <span className="w-8 text-screen-muted">管路</span>
-            {pipeStatusOptions.map((item) => (
-              <span key={item.label} className="flex items-center gap-1" style={{ color: item.color }}>
-                <span
-                  className="w-3 h-1.5"
-                  style={{ background: item.color, boxShadow: `0 0 4px ${item.color}` }}
-                />
-                {item.label}
-              </span>
-            ))}
-          </div>
-          <div className="flex items-center gap-2 text-[10px]">
-            <span className="w-8 text-screen-muted">阀门</span>
-            {valveStatusOptions.map((item) => (
-              <span key={item.label} className="flex items-center gap-1" style={{ color: item.color }}>
-                <span
-                  className="w-2 h-2 rounded-full"
-                  style={{ background: item.color, boxShadow: `0 0 4px ${item.color}` }}
-                />
-                {item.label}
-              </span>
-            ))}
-          </div>
-        </div>
-      </div>
-    );
-  };
 
   return (
     <div className="flex-1 relative scene-placeholder overflow-hidden">
@@ -1297,8 +1133,7 @@ export function Scene3D({
 
         {/* 根据场景渲染不同内容 */}
         {viewMode === "overview" && renderOverviewScene()}
-        {viewMode === "interior" && focusMode !== "maintenance" && renderFusionScene()}
-        {viewMode === "interior" && focusMode === "maintenance" && renderMaintenanceScene()}
+        {viewMode === "interior" && renderFusionScene()}
 
         {/* 选中设备高亮框（检修场景使用立牌标注，不显示居中高亮框） */}
         {selectedNode && focusMode !== "maintenance" && (

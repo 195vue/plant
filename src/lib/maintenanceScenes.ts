@@ -7,13 +7,15 @@ import { useSyncExternalStore } from "react";
  */
 const STORAGE_KEY = "plant.maintenance-scenes.v1";
 
-export type MaintenanceNodeKind = "pipe" | "valve";
+export type MaintenanceNodeKind = "pipe" | "valve" | "equipment";
 
 export type MaintenanceNodeStatus =
   | "pressurized"
   | "unpressurized"
   | "open"
   | "closed"
+  | "running"
+  | "stopped"
   | "maintaining";
 
 export interface MaintenanceSceneNode {
@@ -52,6 +54,11 @@ export const MAINTENANCE_STATUS_OPTIONS: Record<
   valve: [
     { value: "open", label: "开", color: "#52c41a" },
     { value: "closed", label: "关", color: "#8c8c8c" },
+    { value: "maintaining", label: "检修中", color: "#faad14" },
+  ],
+  equipment: [
+    { value: "running", label: "运行", color: "#52c41a" },
+    { value: "stopped", label: "停机", color: "#8c8c8c" },
     { value: "maintaining", label: "检修中", color: "#faad14" },
   ],
 };

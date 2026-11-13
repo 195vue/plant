@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import ReactECharts from "echarts-for-react";
-import { ChevronLeft, ChevronRight, FileText, Play, Droplets, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, FileText, Play, Droplets, X, Plus, Trash2, Pencil } from "lucide-react";
 import { useAuthStore } from "@/store/auth";
 import { TopNav } from "@/components/screen/TopNav";
 import {
@@ -45,11 +45,13 @@ import { useRoamingPaths } from "@/lib/roamingPaths";
 import {
   addMaintenanceScene,
   deleteMaintenanceScene,
+  getMaintenanceStatusMeta,
   renameMaintenanceScene,
   useMaintenanceScenes,
 } from "@/lib/maintenanceScenes";
 import type {
-  MaintenanceSceneNode,
+  MaintenanceNodeKind,
+  MaintenanceNodeStatus,
   MaintenanceSceneRecord,
 } from "@/lib/maintenanceScenes";
 import {
@@ -57,11 +59,20 @@ import {
   retrofitSystemLabel,
   useRetrofitRecords,
 } from "@/lib/retrofitRecords";
-import { MaintenanceSceneModal } from "@/components/screen/MaintenanceSceneModal";
 import { DevNote } from "@/components/devNotes/DevNote";
 
 const ONLINE_COUNT = 230;
 const OFFLINE_COUNT = 18;
+
+// 新建检修场景时右侧记录的已选对象
+interface MaintenanceDraftItem {
+  key: string;
+  title: string;
+  code?: string;
+  kind: MaintenanceNodeKind;
+  system: string;
+  status: MaintenanceNodeStatus;
+}
 
 // 阀门开度数据（原型模拟，正式系统由实时测点推送）
 const VALVE_OPENING_UNITS = [
@@ -392,12 +403,24 @@ export default function Screen() {
 
   // 检修场景（原型阶段与后台检修场景记录共享 localStorage 数据）
   const maintenanceScenes = useMaintenanceScenes();
-  const [maintenanceOpen, setMaintenanceOpen] = useState(false);
   const [currentMaintenanceId, setCurrentMaintenanceId] = useState<number | null>(
     null
   );
   const currentMaintenanceScene =
     maintenanceScenes.find((scene) => scene.id === currentMaintenanceId) ?? null;
+  // 新建检修场景：草稿选择、场景名称与列表重命名/删除状态
+  const [maintenanceCreating, setMaintenanceCreating] = useState(false);
+  const [maintenanceDraft, setMaintenanceDraft] = useState<MaintenanceDraftItem[]>(
+    []
+  );
+  const [maintenanceSceneName, setMaintenanceSceneName] = useState("");
+  const [maintenanceRenamingId, setMaintenanceRenamingId] = useState<
+    number | null
+  >(null);
+  const [maintenanceRenameValue, setMaintenanceRenameValue] = useState("");
+  const [maintenanceDeletingId, setMaintenanceDeletingId] = useState<
+    number | null
+  >(null);
 
   // 实时流量（每分钟刷新；折线图 7 点 10 分钟窗口，未到补 0）
   const flow = useRealtimeFlow();
@@ -503,7 +526,9 @@ export default function Screen() {
       setFocusMode("maintenance");
       setSelectedNode(undefined);
       setOverviewActiveTab("stats");
-      setMaintenanceOpen(true);
+      setMaintenanceCreating(false);
+      setMaintenanceDraft([]);
+      setMaintenanceSceneName("");
       return;
     }
     if (scene === "overview") {
@@ -562,24 +587,69 @@ export default function Screen() {
     setFocusMode("maintenance");
     setSelectedNode(undefined);
     setCurrentMaintenanceId(record.id);
-    setMaintenanceOpen(false);
+    setMaintenanceCreating(false);
+    setMaintenanceDraft([]);
+    setMaintenanceSceneName("");
     message.success(`已载入检修场景：${record.name}`);
   };
 
-  const handleGenerateMaintenanceScene = (input: {
-    name: string;
-    nodes: MaintenanceSceneNode[];
+  const handleStartMaintenanceCreate = () => {
+    setViewMode("interior");
+    setFocusMode("maintenance");
+    setSelectedNode(undefined);
+    setCurrentMaintenanceId(null);
+    setMaintenanceDraft([]);
+    setMaintenanceSceneName("");
+    setMaintenanceRenamingId(null);
+    setMaintenanceDeletingId(null);
+    setMaintenanceCreating(true);
+  };
+
+  const handleCancelMaintenanceCreate = () => {
+    setMaintenanceCreating(false);
+    setMaintenanceDraft([]);
+    setMaintenanceSceneName("");
+  };
+
+  const handleToggleMaintenanceNode = (node: {
+    key: string;
+    title: string;
+    kind: "pipe" | "equipment";
+    system: string;
   }) => {
+    if (!maintenanceCreating) return;
+    setMaintenanceDraft((prev) => {
+      if (prev.some((item) => item.key === node.key)) {
+        return prev.filter((item) => item.key !== node.key);
+      }
+      return [
+        ...prev,
+        {
+          ...node,
+          // 原型不单独选状态：管路默认“不带压”，设备默认“运行”
+          status: node.kind === "pipe" ? "unpressurized" : "running",
+        },
+      ];
+    });
+  };
+
+  const handleGenerateMaintenanceScene = () => {
+    if (maintenanceDraft.length === 0) {
+      message.warning("请先在场景中选择设备或管道");
+      return;
+    }
     const record = addMaintenanceScene({
-      name: input.name,
-      nodes: input.nodes,
+      name: maintenanceSceneName,
+      nodes: maintenanceDraft,
       createdBy: currentUser.realName,
     });
     setViewMode("interior");
     setFocusMode("maintenance");
     setSelectedNode(undefined);
     setCurrentMaintenanceId(record.id);
-    setMaintenanceOpen(false);
+    setMaintenanceCreating(false);
+    setMaintenanceDraft([]);
+    setMaintenanceSceneName("");
     message.success(`检修场景已生成：${record.name}`);
   };
 
@@ -594,8 +664,12 @@ export default function Screen() {
     setOverviewActiveTab("stats");
     setDrillDownOpen(false);
     setDrillDownData(null);
-    setMaintenanceOpen(false);
     setCurrentMaintenanceId(null);
+    setMaintenanceCreating(false);
+    setMaintenanceDraft([]);
+    setMaintenanceSceneName("");
+    setMaintenanceRenamingId(null);
+    setMaintenanceDeletingId(null);
     setSceneResetKey((key) => key + 1);
   };
 
@@ -2006,10 +2080,303 @@ export default function Screen() {
           onWaterSystemToggle={handleWaterSystemToggle}
           playPathRequest={playPathRequest}
           maintenanceScene={currentMaintenanceScene}
-          onOpenMaintenancePicker={() => setMaintenanceOpen(true)}
+          maintenancePickMode={maintenanceCreating}
+          maintenanceSelectedKeys={
+            maintenanceCreating
+              ? maintenanceDraft.map((item) => item.key)
+              : currentMaintenanceScene?.nodes.map((item) => item.key) ?? []
+          }
+          onToggleMaintenanceNode={handleToggleMaintenanceNode}
         />
 
-        {rightPanelVisible ? (
+        {focusMode === "maintenance" && viewMode === "interior" ? (
+          <div className="w-[320px] flex-shrink-0 bg-screen-panel border-l border-[#40A9FF]/25 flex flex-col">
+            <div className="px-3 pt-3 pb-2 border-b border-[#40A9FF]/20">
+              <div className="flex items-center justify-between gap-2">
+                <div
+                  className="text-sm font-medium text-[#40A9FF]"
+                  style={{ textShadow: "0 0 6px rgba(64,169,255,0.5)" }}
+                >
+                  检修场景
+                </div>
+                {maintenanceCreating ? (
+                  <button
+                    onClick={handleCancelMaintenanceCreate}
+                    className="text-[10px] text-screen-muted hover:text-white"
+                  >
+                    返回列表
+                  </button>
+                ) : (
+                  <button
+                    onClick={handleStartMaintenanceCreate}
+                    className="flex items-center gap-1 px-2 py-1 text-[11px] text-white bg-[#40A9FF] hover:bg-[#40A9FF]/80 transition-colors rounded-none"
+                  >
+                    <Plus size={12} />
+                    创建新场景
+                  </button>
+                )}
+              </div>
+              <div className="mt-1 text-[10px] text-screen-muted">
+                {maintenanceCreating
+                  ? "在场景中点击设备或管道进行选择"
+                  : `历史检修场景（${maintenanceScenes.length}）`}
+              </div>
+            </div>
+
+            {maintenanceCreating ? (
+              <div className="flex min-h-0 flex-1 flex-col">
+                <div className="flex items-center justify-between border-b border-[#40A9FF]/20 px-3 py-2">
+                  <span className="text-[11px] text-screen-muted">
+                    已选对象（{maintenanceDraft.length}）
+                  </span>
+                  {maintenanceDraft.length > 0 && (
+                    <button
+                      onClick={() => setMaintenanceDraft([])}
+                      className="text-[10px] text-[#40A9FF] hover:underline"
+                    >
+                      清空
+                    </button>
+                  )}
+                </div>
+                <div className="flex-1 space-y-1.5 overflow-auto p-2">
+                  {maintenanceDraft.length === 0 ? (
+                    <div className="flex h-full flex-col items-center justify-center gap-1 px-6 text-center">
+                      <span className="text-[11px] text-screen-muted">尚未选择对象</span>
+                      <span className="text-[10px] text-screen-muted/70">
+                        在中间场景中点击设备或管道进行选择
+                      </span>
+                    </div>
+                  ) : (
+                    maintenanceDraft.map((item) => {
+                      const statusMeta = getMaintenanceStatusMeta(
+                        item.kind,
+                        item.status
+                      );
+                      return (
+                        <div
+                          key={item.key}
+                          className="border border-[#40A9FF]/20 bg-black/30 px-2 py-1.5"
+                        >
+                          <div className="flex items-center gap-1.5">
+                            <span
+                              className={`flex-shrink-0 px-1 py-0.5 text-[9px] text-white ${
+                                item.kind === "pipe" ? "bg-[#1890FF]" : "bg-[#13C2C2]"
+                              }`}
+                            >
+                              {item.kind === "pipe" ? "管道" : "设备"}
+                            </span>
+                            <span className="min-w-0 flex-1 truncate text-[11px] text-screen-text">
+                              {item.title}
+                            </span>
+                            <button
+                              onClick={() =>
+                                setMaintenanceDraft((prev) =>
+                                  prev.filter((row) => row.key !== item.key)
+                                )
+                              }
+                              title="移除"
+                              className="flex-shrink-0 text-screen-muted hover:text-red-400"
+                            >
+                              <X size={12} />
+                            </button>
+                          </div>
+                          <div className="mt-1 flex items-center justify-between gap-2">
+                            <span className="min-w-0 truncate text-[10px] text-screen-muted">
+                              {item.system}
+                            </span>
+                            <span
+                              className="flex-shrink-0 text-[10px]"
+                              style={{ color: statusMeta.color }}
+                            >
+                              {statusMeta.label}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+                <div className="space-y-2 border-t border-[#40A9FF]/20 p-3">
+                  <div>
+                    <div className="mb-1 text-[10px] text-screen-muted">场景名称</div>
+                    <input
+                      value={maintenanceSceneName}
+                      onChange={(event) =>
+                        setMaintenanceSceneName(event.target.value)
+                      }
+                      placeholder="不填写则自动生成"
+                      className="h-7 w-full rounded-none border border-[#40A9FF]/30 bg-black/40 px-2 text-[11px] text-screen-text placeholder:text-screen-muted/60 focus:border-[#40A9FF] focus:outline-none"
+                    />
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={handleCancelMaintenanceCreate}
+                      className="h-7 flex-1 rounded-none border border-[#40A9FF]/25 text-[11px] text-screen-muted transition-colors hover:border-[#40A9FF]/60 hover:text-white"
+                    >
+                      取消
+                    </button>
+                    <button
+                      onClick={handleGenerateMaintenanceScene}
+                      disabled={maintenanceDraft.length === 0}
+                      className={`h-7 flex-1 rounded-none text-[11px] text-white transition-colors ${
+                        maintenanceDraft.length === 0
+                          ? "cursor-not-allowed bg-[#40A9FF]/40"
+                          : "bg-[#40A9FF] hover:bg-[#40A9FF]/80"
+                      }`}
+                    >
+                      生成新场景（{maintenanceDraft.length}）
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="flex-1 space-y-2 overflow-auto p-2">
+                {maintenanceScenes.length === 0 && (
+                  <div className="py-8 text-center text-[11px] text-screen-muted">
+                    暂无历史检修场景，点击「创建新场景」生成
+                  </div>
+                )}
+                {maintenanceScenes.map((scene) => {
+                  const isCurrent = scene.id === currentMaintenanceId;
+                  return (
+                    <div
+                      key={scene.id}
+                      onClick={() => handleLoadMaintenanceScene(scene)}
+                      className={`cursor-pointer border p-2 transition-colors ${
+                        isCurrent
+                          ? "border-[#40A9FF] bg-[#40A9FF]/10"
+                          : "border-[#40A9FF]/20 bg-black/30 hover:border-[#40A9FF]/60"
+                      }`}
+                    >
+                      {maintenanceRenamingId === scene.id ? (
+                        <input
+                          autoFocus
+                          value={maintenanceRenameValue}
+                          onClick={(event) => event.stopPropagation()}
+                          onChange={(event) =>
+                            setMaintenanceRenameValue(event.target.value)
+                          }
+                          onKeyDown={(event) => {
+                            if (event.key === "Enter") {
+                              renameMaintenanceScene(
+                                scene.id,
+                                maintenanceRenameValue
+                              );
+                              setMaintenanceRenamingId(null);
+                              message.success("检修场景已重命名");
+                            }
+                            if (event.key === "Escape") {
+                              setMaintenanceRenamingId(null);
+                            }
+                          }}
+                          className="h-6 w-full rounded-none border border-[#40A9FF]/50 bg-black/40 px-1 text-[11px] text-screen-text focus:border-[#40A9FF] focus:outline-none"
+                        />
+                      ) : (
+                        <div className="flex items-center gap-1.5">
+                          <span className="truncate text-[11px] font-medium text-screen-text">
+                            {scene.name}
+                          </span>
+                          {isCurrent && (
+                            <span className="flex-shrink-0 bg-[#40A9FF] px-1 text-[9px] text-white">
+                              当前
+                            </span>
+                          )}
+                        </div>
+                      )}
+                      <div className="mt-1 text-[10px] text-screen-muted">
+                        {scene.createdAt} · {scene.createdBy}
+                      </div>
+                      <div className="text-[10px] text-screen-muted">
+                        {scene.nodes.length} 个检修对象
+                      </div>
+                      <div
+                        className="mt-1.5 flex items-center justify-end gap-3"
+                        onClick={(event) => event.stopPropagation()}
+                      >
+                        {maintenanceRenamingId === scene.id ? (
+                          <>
+                            <button
+                              onClick={() => {
+                                renameMaintenanceScene(
+                                  scene.id,
+                                  maintenanceRenameValue
+                                );
+                                setMaintenanceRenamingId(null);
+                                message.success("检修场景已重命名");
+                              }}
+                              className="text-[10px] text-[#40A9FF] hover:underline"
+                            >
+                              保存
+                            </button>
+                            <button
+                              onClick={() => setMaintenanceRenamingId(null)}
+                              className="text-[10px] text-screen-muted hover:underline"
+                            >
+                              取消
+                            </button>
+                          </>
+                        ) : maintenanceDeletingId === scene.id ? (
+                          <>
+                            <span className="text-[10px] text-red-400">确定删除？</span>
+                            <button
+                              onClick={() => {
+                                deleteMaintenanceScene(scene.id);
+                                if (currentMaintenanceId === scene.id) {
+                                  setCurrentMaintenanceId(null);
+                                }
+                                setMaintenanceDeletingId(null);
+                                message.success("检修场景已删除");
+                              }}
+                              className="text-[10px] text-red-400 hover:underline"
+                            >
+                              删除
+                            </button>
+                            <button
+                              onClick={() => setMaintenanceDeletingId(null)}
+                              className="text-[10px] text-screen-muted hover:underline"
+                            >
+                              取消
+                            </button>
+                          </>
+                        ) : (
+                          <>
+                            <button
+                              onClick={() => handleLoadMaintenanceScene(scene)}
+                              className="text-[10px] text-[#40A9FF] hover:underline"
+                            >
+                              载入
+                            </button>
+                            <button
+                              onClick={() => {
+                                setMaintenanceRenamingId(scene.id);
+                                setMaintenanceRenameValue(scene.name);
+                                setMaintenanceDeletingId(null);
+                              }}
+                              className="inline-flex items-center gap-0.5 text-[10px] text-screen-muted hover:text-white"
+                            >
+                              <Pencil size={10} />
+                              重命名
+                            </button>
+                            <button
+                              onClick={() => {
+                                setMaintenanceDeletingId(scene.id);
+                                setMaintenanceRenamingId(null);
+                              }}
+                              className="inline-flex items-center gap-0.5 text-[10px] text-screen-muted hover:text-red-400"
+                            >
+                              <Trash2 size={10} />
+                              删除
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        ) : rightPanelVisible ? (
           <DevNote
             id="screen-right-panel"
             title="右侧面板（大屏数据/节点信息）"
@@ -2049,25 +2416,6 @@ export default function Screen() {
       </div>
 
       <BottomBar key={`bottom-${sceneResetKey}`} onReset={handleGlobalReset} />
-
-      {/* 检修场景弹窗：选择历史检修场景或新建场景 */}
-      <MaintenanceSceneModal
-        open={maintenanceOpen}
-        onClose={() => setMaintenanceOpen(false)}
-        records={maintenanceScenes}
-        currentSceneId={currentMaintenanceId}
-        onLoad={handleLoadMaintenanceScene}
-        onGenerate={handleGenerateMaintenanceScene}
-        onRename={(id, name) => {
-          renameMaintenanceScene(id, name);
-          message.success("检修场景已重命名");
-        }}
-        onDelete={(id) => {
-          deleteMaintenanceScene(id);
-          if (currentMaintenanceId === id) setCurrentMaintenanceId(null);
-          message.success("检修场景已删除");
-        }}
-      />
 
       {/* 阀门开度大弹窗：实时数据 + 技术供水系统结构图 + 计算值 */}
       {valveModalOpen && (
